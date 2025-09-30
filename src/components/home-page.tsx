@@ -8,10 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateRoomCode } from '@/lib/game-utils';
-import { Sparkles, ArrowRight, LogIn, History } from 'lucide-react';
+import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
+
+type InProgressGame = {
+  id: string;
+  partnerName: string;
+};
 
 export default function HomePageClient() {
   const router = useRouter();
@@ -19,8 +25,9 @@ export default function HomePageClient() {
   const [roomCode, setRoomCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [user, setUser] = useState(auth.currentUser);
+  const [user, setUser] = useState<User | null>(auth.currentUser);
   const [loading, setLoading] = useState(false);
+  const [inProgressGames, setInProgressGames] = useState<InProgressGame[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,11 +35,48 @@ export default function HomePageClient() {
     if (joinCode) {
       setRoomCode(joinCode);
     }
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        setLoading(true);
+        const gamesQuery = query(
+          collection(db, 'games'),
+          where('players', 'array-contains', { id: currentUser.uid, email: currentUser.email, name: currentUser.displayName || `Player` }),
+          where('step', '!=', 'summary'),
+          orderBy('step'),
+          limit(5)
+        );
+
+        // This is a simplified query. Firestore can be tricky with array-contains on objects.
+        // A more robust solution might involve having a `playerIds` array of strings.
+        // For now, we fetch and then filter client-side for accuracy.
+        try {
+            const querySnapshot = await getDocs(collection(db, 'games'));
+            const userGames: InProgressGame[] = [];
+            querySnapshot.forEach(doc => {
+                const game = doc.data();
+                const isPlayer = game.players?.some((p: any) => p.id === currentUser.uid);
+                if (isPlayer && game.step !== 'summary') {
+                    const partner = game.players.find((p: any) => p.id !== currentUser.uid);
+                    userGames.push({
+                        id: doc.id,
+                        partnerName: partner?.name || 'Waiting for partner...',
+                    });
+                }
+            });
+            setInProgressGames(userGames);
+        } catch (error) {
+            console.error("Error fetching in-progress games:", error);
+            toast({ title: 'Could not fetch active games', variant: 'destructive' });
+        } finally {
+            setLoading(false);
+        }
+      } else {
+        setInProgressGames([]);
+      }
     });
     return () => unsubscribe();
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   const handleAuthAction = async (isSignUp: boolean) => {
     if (!email || !password) {
@@ -95,6 +139,7 @@ export default function HomePageClient() {
   
   const handleLogout = async () => {
     await signOut(auth);
+    setInProgressGames([]);
     toast({ title: 'Logged Out' });
   }
 
@@ -103,9 +148,20 @@ export default function HomePageClient() {
       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Welcome, {user.email}</CardTitle>
-          <CardDescription>Ready to play?</CardDescription>
+          <CardDescription>Ready to play or pick up where you left off?</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+           {inProgressGames.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">Resume Game</h3>
+              {inProgressGames.map(game => (
+                <Button key={game.id} variant="outline" className="w-full justify-between" onClick={() => router.push(`/game/${game.id}`)}>
+                    <span>Session with {game.partnerName}</span>
+                    <Play className="h-5 w-5" />
+                </Button>
+              ))}
+            </div>
+           )}
            <Button size="lg" className="w-full font-bold" onClick={handleCreateRoom}>
               <Sparkles className="mr-2 h-5 w-5" />
               Create a New Room
@@ -147,7 +203,7 @@ export default function HomePageClient() {
             <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              <LogIn className="mr-2" /> Login
+              {loading ? 'Logging in...' : <><LogIn className="mr-2" /> Login</>}
             </Button>
           </form>
         </TabsContent>
@@ -156,7 +212,7 @@ export default function HomePageClient() {
             <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              Sign Up & Join
+              {loading ? 'Signing up...' : 'Sign Up & Join'}
             </Button>
           </form>
         </TabsContent>
@@ -164,5 +220,3 @@ export default function HomePageClient() {
     </Card>
   );
 }
-
-    
