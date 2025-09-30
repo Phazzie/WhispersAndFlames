@@ -17,10 +17,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, ClipboardCopy, PartyPopper, AlertTriangle, Users } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
-type Player = { id: string; name: string; isReady: boolean };
+type Player = { id: string; name: string; isReady: boolean; email: string; };
 type GameState = {
   step: GameStep;
   players: Player[];
@@ -41,22 +42,25 @@ export default function GamePage() {
   const { toast } = useToast();
 
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentAnswer, setCurrentAnswer] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let pId = sessionStorage.getItem(`player_id_${roomCode}`);
-    if (!pId) {
-      pId = `player_${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem(`player_id_${roomCode}`, pId);
-    }
-    setPlayerId(pId);
-  }, [roomCode]);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        router.push(`/?join=${roomCode}`);
+      }
+    });
+    return () => unsubscribe();
+  }, [router, roomCode]);
+
 
   useEffect(() => {
-    if (!roomCode || !playerId) return;
+    if (!roomCode || !currentUser) return;
 
     const roomRef = doc(db, 'games', roomCode);
 
@@ -64,35 +68,38 @@ export default function GamePage() {
       if (snapshot.exists()) {
         const data = snapshot.data() as GameState;
         // If player is not in the game, add them.
-        if (data.players.length < 2 && !data.players.find(p => p.id === playerId)) {
-          const newPlayer: Player = { id: playerId, name: `Player ${data.players.length + 1}`, isReady: false };
+        if (data.players.length < 2 && !data.players.find(p => p.id === currentUser.uid)) {
+          const newPlayer: Player = { id: currentUser.uid, name: `Player ${data.players.length + 1}`, isReady: false, email: currentUser.email! };
           await updateDoc(roomRef, { players: [...data.players, newPlayer] });
         }
         setGameState(data);
       } else {
-        // Create new game if it doesn't exist
-        const newGame: GameState = {
-          step: 'lobby',
-          players: [{ id: playerId, name: 'Player 1', isReady: false }],
-          hostId: playerId,
-          selectedCategories: [],
-          selectedSpicyLevel: 'Mild',
-          gameRounds: [],
-          currentQuestion: '',
-          summary: '',
-        };
-        await setDoc(roomRef, newGame);
-        setGameState(newGame);
+        const user = auth.currentUser;
+        if (user) {
+            // Create new game if it doesn't exist
+            const newGame: GameState = {
+              step: 'lobby',
+              players: [{ id: user.uid, name: 'Player 1', isReady: false, email: user.email! }],
+              hostId: user.uid,
+              selectedCategories: [],
+              selectedSpicyLevel: 'Mild',
+              gameRounds: [],
+              currentQuestion: '',
+              summary: '',
+            };
+            await setDoc(roomRef, newGame);
+            setGameState(newGame);
+        }
       }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, [roomCode, playerId]);
+  }, [roomCode, currentUser]);
   
-  const me = useMemo(() => gameState?.players.find(p => p.id === playerId), [gameState, playerId]);
-  const partner = useMemo(() => gameState?.players.find(p => p.id !== playerId), [gameState, playerId]);
-  const isHost = useMemo(() => gameState?.hostId === playerId, [gameState, playerId]);
+  const me = useMemo(() => gameState?.players.find(p => p.id === currentUser?.uid), [gameState, currentUser]);
+  const partner = useMemo(() => gameState?.players.find(p => p.id !== currentUser?.uid), [gameState, currentUser]);
+  const isHost = useMemo(() => gameState?.hostId === currentUser?.uid, [gameState, currentUser]);
 
   const progress = useMemo(() => {
     if (!gameState) return 0;
@@ -233,7 +240,7 @@ export default function GamePage() {
     setIsLoading(false);
   };
   
-  if (!gameState || !me) {
+  if (isLoading || !gameState || !me) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -262,12 +269,18 @@ export default function GamePage() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                  <span className="font-semibold">{me.name} (You)</span>
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{me.name} (You)</span>
+                    <span className="text-xs text-muted-foreground">{me.email}</span>
+                  </div>
                   {me.isReady ? <span className="text-sm text-green-400">Ready</span> : <span className="text-sm text-amber-400">Waiting...</span>}
                 </div>
                 {partner ? (
                   <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-                    <span className="font-semibold">{partner.name}</span>
+                    <div className="flex flex-col">
+                      <span className="font-semibold">{partner.name}</span>
+                      <span className="text-xs text-muted-foreground">{partner.email}</span>
+                    </div>
                      {partner.isReady ? <span className="text-sm text-green-400">Ready</span> : <span className="text-sm text-amber-400">Waiting...</span>}
                   </div>
                 ) : (
@@ -444,5 +457,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
