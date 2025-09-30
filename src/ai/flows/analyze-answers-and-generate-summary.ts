@@ -21,7 +21,7 @@ const AnalyzeAnswersInputSchema = z.object({
 export type AnalyzeAnswersInput = z.infer<typeof AnalyzeAnswersInputSchema>;
 
 const AnalyzeAnswersOutputSchema = z.object({
-  summary: z.string().describe('A playful and encouraging summary of the session with personalized suggestions.'),
+  summary: z.string().describe('A playful and encouraging summary of the session, highlighting similarities and differences, with personalized suggestions.'),
 });
 
 export type AnalyzeAnswersOutput = z.infer<typeof AnalyzeAnswersOutputSchema>;
@@ -38,7 +38,10 @@ const prompt = ai.definePrompt({
   output: {schema: AnalyzeAnswersOutputSchema},
   prompt: `You are a relationship expert who analyzes answers from a couples game to provide personalized suggestions.
 
-  Analyze the following session data and generate a playful and encouraging summary with personalized suggestions to improve their connection. The tone should be positive and supportive.
+  Analyze the following session data. Your goal is to identify similarities and differences in the players' answers.
+  Based on this analysis, generate a playful and encouraging summary.
+  Highlight areas of alignment and suggest ways to explore differences in a positive way.
+  The tone should be positive, insightful, and supportive.
 
   Session Data:
   Questions: {{questions}}
@@ -46,7 +49,7 @@ const prompt = ai.definePrompt({
   Categories: {{categories}}
   Spicy Level: {{spicyLevel}}
 
-  Summary:`, // Ensure that the summary is returned
+  Generate the summary:`,
 });
 
 const analyzeAnswersFlow = ai.defineFlow(
