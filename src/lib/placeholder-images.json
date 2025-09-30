@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "home-hero",
+      "description": "Abstract image of flames and smoke, representing whispers and flames.",
+      "imageUrl": "https://images.unsplash.com/photo-1651759106951-d4c225067f11?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZmxhbWVzJTIwc21va2V8ZW58MHx8fHwxNzU5MjA0MzUwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "flames smoke"
+    }
+  ]
 }

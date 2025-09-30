@@ -1,0 +1,22 @@
+# **App Name**: Whispers and Flames
+
+## Core Features:
+
+- Room Creation and Joining: Users can create a private room, receiving a unique, shareable animal-themed code (e.g., Lion-Tiger-Bear-42), or join an existing room by entering a valid code. The system prevents exceeding the room capacity (2-3 users) and handles room code collisions by appending a suffix.
+- Category Selection: Users select intimacy categories (e.g., Hidden Attractions, Power Play) from a displayed list of 10 selectable cards. The system calculates the intersection of all players' selections, proceeding only with mutually selected categories. A message prompts re-selection if no mutual categories exist.
+- Spicy Level Selection: Each player independently sets their spicy level (Mild, Medium, Hot, Extra-Hot), influencing the nature of questions asked. The system operates at the LOWEST selected level for all participants. Clear descriptions are provided for each level. Users can change their level before the session starts.
+- AI Question Generation: Leveraging Grok AI, the system generates unique, contextually relevant questions based on selected categories (e.g., Hidden Attractions, Power Play), the lowest spicy level chosen (Mild, Medium, Hot, Extra-Hot), and prior questions/answers within the session. Examples of questions are 'What unspoken desires do you have for your partner?' or 'How could you explore a power dynamic in the bedroom?'. The AI Integration Contract includes handling previous questions and answers for context to avoid repetition and maintain relevance. A fallback mechanism utilizing pre-written, high-quality questions is activated via a circuit breaker pattern after 3 consecutive AI failures (acts as a tool). The system is designed to be easily switchable to different AI models (e.g., Grok-4, Gemini) by implementing the IAIService interface.
+- Real-time Answer Collection: The Angular frontend collects answers from all players in real-time before allowing progression to the next question. 'Waiting for...' indicators are displayed for pending answers. Players are given the ability to edit their answers before everyone submits. Answers are stored ephemerally, only within the session's memory.
+- AI Analysis and Summary: Post-session, the Grok AI analyzes all answers to identify shared themes and generate personalized suggestions, delivering an overall session summary. The AI Analysis Request includes session questions, answers, categories, and spicy level. The tone is playful and encouraging. The system is designed to be easily switchable to different AI models (e.g., Grok-4, Gemini) by implementing the IAIService interface. Summary suggestions use a tool that reasons whether the LLM should recommend actions in the sexual real of everyday activities, to enhance relevance, using AI.
+- Ephemeral Data Handling: All session data is temporary, automatically deleted 24 hours after creation. No questions, answers or personal content is persistently stored. Session data is stored in-memory (v1) or optionally in Redis with a TTL (v2).
+- Image Generation (Optional): An optional feature allowing users to generate images based on shared themes identified by the AI. The AI Integration Contract for image generation uses content-safe prompts, and safety level is based on the spicy level of the session. This feature relies on the IAIService interface, making it easy to switch AI models such as Grok-2-Image. Image generation is rate-limited to 3 images per session, and generated images are displayed only in-session with temporary URLs.
+
+## Style Guidelines:
+
+- Background color: Very dark grayish blue (#212936) to establish a dark color scheme and a sophisticated feel.
+- Primary color: Ember orange (#D46A4E) for a warm and inviting, yet slightly edgy and exciting tone.
+- Accent color: Deep red (#A93226) to highlight key interactive elements, creating contrast against the primary and background.
+- Body and headline font: 'Alegreya', a serif font for an elegant, intellectual, contemporary feel.
+- Use minimalist icons to represent categories and settings, with subtle animations on hover.
+- Employ a mobile-responsive design with clear sections for each step of the user flow. Use a grid system to organize categories and present information.
+- Incorporate smooth transitions and subtle animations for feedback on interactions, enhancing user experience without being distracting.
