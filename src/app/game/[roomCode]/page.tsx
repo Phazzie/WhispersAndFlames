@@ -14,7 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CATEGORIES, SPICY_LEVELS, type Category, type SpicyLevel } from '@/lib/constants';
 import { generateQuestionAction, analyzeAndSummarizeAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Sparkles, ClipboardCopy, PartyPopper, AlertTriangle, Users } from 'lucide-react';
+import { Loader2, Sparkles, ClipboardCopy, PartyPopper, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -22,13 +22,14 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 
 type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
 type Player = { id: string; name: string; isReady: boolean; email: string; selectedCategories: string[] };
+type GameRound = { question: string; answers: Record<string, string> };
 type GameState = {
   step: GameStep;
   players: Player[];
   hostId: string;
   commonCategories: string[];
   selectedSpicyLevel: SpicyLevel['name'];
-  gameRounds: { question: string; answers: Record<string, string> }[];
+  gameRounds: GameRound[];
   currentQuestion: string;
   summary: string;
 };
@@ -105,7 +106,7 @@ export default function GamePage() {
     if (!gameState) return 0;
     const { step, gameRounds } = gameState;
     if (step === 'summary') return 100;
-    if (step === 'game') return (gameRounds.length / TOTAL_QUESTIONS) * 100;
+    if (step === 'game') return ((gameRounds.length) / TOTAL_QUESTIONS) * 100;
     if (step === 'spicy') return 20;
     if (step === 'categories') return 10;
     return 0;
@@ -200,43 +201,61 @@ export default function GamePage() {
       toast({ title: "Answer can't be empty", variant: 'destructive'});
       return;
     }
-
     setIsLoading(true);
     setError(null);
-    
     const roomRef = doc(db, 'games', roomCode);
     const currentDoc = await getDoc(roomRef);
     const currentGameState = currentDoc.data() as GameState;
 
-    const currentRoundIndex = currentGameState.gameRounds.length;
-    let newGameRounds = [...currentGameState.gameRounds];
+    let updatedGameRounds = [...currentGameState.gameRounds];
+    const currentRound = updatedGameRounds.find(r => r.question === currentGameState.currentQuestion);
 
-    if (newGameRounds[currentRoundIndex]) {
-      // Round exists, add answer
-      newGameRounds[currentRoundIndex].answers[me.id] = currentAnswer;
+    if (currentRound) {
+        // Round exists, add answer.
+        currentRound.answers[me.id] = currentAnswer;
     } else {
-      // New round
-      newGameRounds.push({
-        question: currentGameState.currentQuestion,
-        answers: { [me.id]: currentAnswer },
-      });
+        // New round, question doesn't have a round object yet.
+        updatedGameRounds.push({
+            question: currentGameState.currentQuestion,
+            answers: { [me.id]: currentAnswer },
+        });
     }
 
-    // Check if both players answered
-    const bothAnswered = Object.keys(newGameRounds[currentRoundIndex].answers).length === 2;
+    await updateGameState({ gameRounds: updatedGameRounds });
+    
+    setCurrentAnswer('');
+    setIsLoading(false);
+  };
 
-    if (bothAnswered) {
-      if (newGameRounds.length >= TOTAL_QUESTIONS) {
+  const handleNextStep = async () => {
+    if (!gameState || !me) return;
+    
+    setIsLoading(true);
+    setError(null);
+
+    // Mark self as ready for next step
+    const updatedPlayers = gameState.players.map(p => p.id === me.id ? { ...p, isReady: true } : p);
+    await updateGameState({ players: updatedPlayers });
+
+    // Check if partner is also ready
+    const roomRef = doc(db, 'games', roomCode);
+    const currentDoc = await getDoc(roomRef);
+    const currentGameState = currentDoc.data() as GameState;
+
+    if (currentGameState.players.every(p => p.isReady)) {
+      // Both are ready, proceed. Reset ready status.
+      const resetPlayers = currentGameState.players.map(p => ({...p, isReady: false}));
+      if (currentGameState.gameRounds.length >= TOTAL_QUESTIONS) {
         // Game over
-        const allAnswers = newGameRounds.flatMap(r => Object.values(r.answers));
+        const allAnswers = currentGameState.gameRounds.flatMap(r => Object.values(r.answers));
         const summaryResult = await analyzeAndSummarizeAction({
-            questions: newGameRounds.map(r => r.question),
+            questions: currentGameState.gameRounds.map(r => r.question),
             answers: allAnswers,
             categories: currentGameState.commonCategories,
             spicyLevel: currentGameState.selectedSpicyLevel,
         });
         if ('summary' in summaryResult) {
-            await updateGameState({ gameRounds: newGameRounds, summary: summaryResult.summary, step: 'summary' });
+            await updateGameState({ players: resetPlayers, summary: summaryResult.summary, step: 'summary' });
         } else {
             setError(summaryResult.error);
         }
@@ -245,22 +264,18 @@ export default function GamePage() {
         const result = await generateQuestionAction({
             categories: currentGameState.commonCategories,
             spicyLevel: currentGameState.selectedSpicyLevel,
-            previousQuestionsAndAnswers: newGameRounds.map(r => ({question: r.question, answer: Object.values(r.answers).join(', ')})),
+            previousQuestionsAndAnswers: currentGameState.gameRounds.map(r => ({question: r.question, answer: Object.values(r.answers).join(', ')})),
         });
         if ('question' in result) {
-            await updateGameState({ gameRounds: newGameRounds, currentQuestion: result.question });
+            await updateGameState({ players: resetPlayers, currentQuestion: result.question });
         } else {
             setError(result.error);
         }
       }
-    } else {
-      // Just update answers
-      await updateGameState({ gameRounds: newGameRounds });
     }
-    
-    setCurrentAnswer('');
+    // If only one is ready, the state is updated and we wait for the other.
     setIsLoading(false);
-  };
+  }
   
   if (isLoading || !gameState || !me) {
     return (
@@ -395,9 +410,43 @@ export default function GamePage() {
           </div>
         );
       case 'game':
-        const myAnswer = gameRounds.find(r => r.question === currentQuestion)?.answers[me.id];
-        const partnerAnswered = partner && gameRounds.find(r => r.question === currentQuestion)?.answers[partner.id];
-        
+        const currentRound = gameRounds.find(r => r.question === currentQuestion);
+        const myAnswer = currentRound?.answers[me.id];
+        const partnerAnswer = partner ? currentRound?.answers[partner.id] : undefined;
+        const bothAnswered = !!myAnswer && !!partnerAnswer;
+
+        if (bothAnswered) {
+          // Both players have answered, show the reveal view.
+          return (
+            <div className="w-full max-w-2xl">
+              <p className="text-center text-primary font-semibold mb-4">Question {gameRounds.length} of {TOTAL_QUESTIONS}</p>
+              <Card>
+                <CardHeader>
+                  <blockquote className="text-center text-2xl font-semibold leading-relaxed font-headline">
+                    “{currentQuestion}”
+                  </blockquote>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-base">{me.name}'s Answer:</Label>
+                    <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{myAnswer}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-semibold text-base">{partner?.name}'s Answer:</Label>
+                    <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{partnerAnswer}</p>
+                  </div>
+                  <Button onClick={handleNextStep} className="w-full" size="lg" disabled={isLoading || me.isReady}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : me.isReady ? 'Waiting for partner...' : (gameRounds.length >= TOTAL_QUESTIONS ? 'See Summary' : 'Next Question')}
+                     {!me.isReady && (gameRounds.length < TOTAL_QUESTIONS) && <ArrowRight className="ml-2" />}
+                  </Button>
+                  {me.isReady && partner && !partner.isReady && <p className="text-center text-sm text-muted-foreground mt-2 animate-pulse">Waiting for {partner.name} to continue...</p>}
+                </CardContent>
+              </Card>
+            </div>
+          );
+        }
+
+        // Default view: answering the question
         return (
           <div className="w-full max-w-xl">
             <p className="text-center text-primary font-semibold mb-4">Question {gameRounds.length + 1} of {TOTAL_QUESTIONS}</p>
@@ -418,7 +467,7 @@ export default function GamePage() {
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : myAnswer ? 'Waiting for partner...' : 'Submit Answer'}
                     </Button>
 
-                    {myAnswer && !partnerAnswered && (
+                    {myAnswer && !partnerAnswer && (
                       <p className="text-center text-muted-foreground text-sm mt-4 animate-pulse">Waiting for your partner to answer...</p>
                     )}
                 </CardContent>
@@ -476,7 +525,7 @@ export default function GamePage() {
         <div className="flex-grow flex items-center justify-center w-full">
             <AnimatePresence mode="wait">
                 <motion.div
-                key={step}
+                key={step + (gameRounds.find(r=>r.question === currentQuestion)?.answers[me?.id] && gameRounds.find(r=>r.question === currentQuestion)?.answers[partner?.id || ''] ? 'reveal' : 'answer')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -490,3 +539,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
