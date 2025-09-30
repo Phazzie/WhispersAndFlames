@@ -42,9 +42,11 @@ export default function ProfilePage() {
     const fetchHistory = async () => {
       setLoading(true);
       const gamesRef = collection(db, 'games');
+      // Firestore doesn't support complex array queries with other clauses well.
+      // A more scalable approach would be to have a `userIds` array field.
+      // For now, we query for games where the step is summary and then filter client-side.
       const q = query(
         gamesRef,
-        where('players', 'array-contains', { id: user.uid, name: user.displayName || `Player`, email: user.email, selectedCategories: [], isReady: false }),
         where('step', '==', 'summary'),
         where('completedAt', '!=', null),
         orderBy('completedAt', 'desc')
@@ -52,39 +54,27 @@ export default function ProfilePage() {
       
       try {
         const querySnapshot = await getDocs(q);
-        const fetchedHistory: GameHistory[] = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const partnerData = data.players.find((p: any) => p.id !== user.uid);
-          // Firestore Timestamps need to be converted to JS Dates
-          const completedAtDate = data.completedAt instanceof Timestamp ? data.completedAt.toDate() : new Date(data.completedAt);
-
-          fetchedHistory.push({
-            id: doc.id,
-            completedAt: completedAtDate,
-            partner: partnerData || { id: 'solo', email: 'Solo Game' },
-            summary: data.summary,
-          });
-        });
         
-        // This is a workaround because Firestore doesn't support 'array-contains' with other query clauses perfectly.
-        // We have to filter client-side.
-        const gamesWithUser = querySnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data()}))
-          .filter(game => game.players.some((p: any) => p.id === user.uid));
-
-        const finalHistory: GameHistory[] = gamesWithUser.map(game => {
+        // Client-side filtering to get games containing the current user
+        const userHistory = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(game => game.players && game.players.some((p: any) => p.id === user.uid))
+          .map(game => {
             const partnerData = game.players.find((p: any) => p.id !== user.uid);
-            const completedAtDate = game.completedAt instanceof Timestamp ? game.completedAt.toDate() : new Date(game.completedAt);
-            return {
-                id: game.id,
-                completedAt: completedAtDate,
-                partner: partnerData || { id: 'solo', email: 'Solo Game' },
-                summary: game.summary,
-            }
-        }).sort((a,b) => b.completedAt.getTime() - a.completedAt.getTime());
+            // Firestore Timestamps need to be converted to JS Dates
+            const completedAtDate = game.completedAt instanceof Timestamp 
+                ? game.completedAt.toDate() 
+                : new Date(game.completedAt);
 
-        setHistory(finalHistory);
+            return {
+              id: game.id,
+              completedAt: completedAtDate,
+              partner: partnerData || { id: 'solo', email: 'Solo Game' },
+              summary: game.summary,
+            };
+          });
+
+        setHistory(userHistory);
 
       } catch (error) {
         console.error("Error fetching game history:", error);
