@@ -17,7 +17,7 @@ import { generateQuestionAction, analyzeAndSummarizeAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, ClipboardCopy, PartyPopper, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
-import { doc, onSnapshot, setDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, getDoc, DocumentReference } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
@@ -82,6 +82,8 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState('');
+  
+  const roomRef = useMemo(() => doc(db, 'games', roomCode), [roomCode]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -98,14 +100,12 @@ export default function GamePage() {
   useEffect(() => {
     if (!roomCode || !currentUser) return;
 
-    const roomRef = doc(db, 'games', roomCode);
-
     const unsubscribe = onSnapshot(roomRef, async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as GameState;
-        
-        const currentUserInGame = data.players.find(p => p.id === currentUser.uid);
-        if (data.players.length < 2 && !currentUserInGame) {
+        const isNewUser = !data.playerIds.includes(currentUser.uid);
+
+        if (isNewUser && data.players.length < 2) {
           const newPlayerName = `Player ${data.players.length + 1}`;
           const newPlayer: Player = { id: currentUser.uid, name: newPlayerName, isReady: false, email: currentUser.email!, selectedCategories: [] };
           await updateDoc(roomRef, { 
@@ -113,37 +113,36 @@ export default function GamePage() {
               playerIds: [...data.playerIds, currentUser.uid] 
           });
           setPlayerName(newPlayerName);
-        } else if (currentUserInGame) {
-            setPlayerName(currentUserInGame.name);
+        } else {
+            const me = data.players.find(p => p.id === currentUser.uid);
+            if (me) setPlayerName(me.name);
+            setGameState(data);
         }
-        setGameState(data);
       } else {
-        const user = auth.currentUser;
-        if (user) {
-            const newPlayerName = 'Player 1';
-            const newGame: GameState = {
-              step: 'lobby',
-              players: [{ id: user.uid, name: newPlayerName, isReady: false, email: user.email!, selectedCategories: [] }],
-              playerIds: [user.uid],
-              hostId: user.uid,
-              commonCategories: [],
-              finalSpicyLevel: 'Mild',
-              gameRounds: [],
-              currentQuestion: '',
-              currentQuestionIndex: 0,
-              totalQuestions: 0,
-              summary: '',
-            };
-            await setDoc(roomRef, newGame);
-            setGameState(newGame);
-            setPlayerName(newPlayerName);
-        }
+        // This is a new game
+        const newPlayerName = 'Player 1';
+        const newGame: GameState = {
+            step: 'lobby',
+            players: [{ id: currentUser.uid, name: newPlayerName, isReady: false, email: currentUser.email!, selectedCategories: [] }],
+            playerIds: [currentUser.uid],
+            hostId: currentUser.uid,
+            commonCategories: [],
+            finalSpicyLevel: 'Mild',
+            gameRounds: [],
+            currentQuestion: '',
+            currentQuestionIndex: 0,
+            totalQuestions: 0,
+            summary: '',
+        };
+        await setDoc(roomRef, newGame);
+        setPlayerName(newPlayerName);
+        setGameState(newGame);
       }
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, [roomCode, currentUser]);
+  }, [roomCode, currentUser, roomRef]);
   
   const me = useMemo(() => gameState?.players.find(p => p.id === currentUser?.uid), [gameState, currentUser]);
   const partner = useMemo(() => gameState?.players.find(p => p.id !== currentUser?.uid), [gameState, currentUser]);
@@ -158,24 +157,17 @@ export default function GamePage() {
     return 0;
   }, [gameState]);
 
-  const handleCopyCode = () => {
-    navigator.clipboard.writeText(roomCode);
-    toast({
-      title: 'Copied to Clipboard!',
-      description: 'The room code has been copied.',
-    });
-  };
-
   const updateGameState = async (newState: Partial<GameState>) => {
-    const roomRef = doc(db, 'games', roomCode);
     await updateDoc(roomRef, newState as any);
   };
-
+  
   const handleNameChange = async () => {
-    if (!me || !gameState || !playerName.trim()) return;
-    if (me.name === playerName.trim()) return;
+    if (!me || !playerName.trim() || me.name === playerName.trim()) return;
 
-    const updatedPlayers = gameState.players.map(p =>
+    const currentDoc = await getDoc(roomRef);
+    const currentGameState = currentDoc.data() as GameState;
+    
+    const updatedPlayers = currentGameState.players.map(p =>
       p.id === me.id ? { ...p, name: playerName.trim() } : p
     );
     await updateGameState({ players: updatedPlayers });
@@ -183,68 +175,106 @@ export default function GamePage() {
   };
   
   const handleToggleCategory = async (categoryName: string) => {
-    if (!me || !gameState || me.isReady) return;
+    if (!me || me.isReady) return;
+
     const myCurrentCategories = me.selectedCategories || [];
     const newCategories = myCurrentCategories.includes(categoryName)
         ? myCurrentCategories.filter((c) => c !== categoryName)
         : [...myCurrentCategories, categoryName];
 
-    const updatedPlayers = gameState.players.map(p =>
+    const currentDoc = await getDoc(roomRef);
+    const currentGameState = currentDoc.data() as GameState;
+
+    const updatedPlayers = currentGameState.players.map(p =>
         p.id === me.id ? { ...p, selectedCategories: newCategories } : p
     );
     await updateGameState({ players: updatedPlayers });
   };
   
   const handlePlayerReady = async (step: GameStep) => {
-    if (!me || !gameState) return;
+    if (!me) return;
     
     await handleNameChange();
 
-    const roomRef = doc(db, 'games', roomCode);
     const currentDoc = await getDoc(roomRef);
     const currentGameState = currentDoc.data() as GameState;
 
-    // Mark current player as ready
     const updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
-    const bothPlayersReady = updatedPlayers.every(p => p.isReady);
 
-    if (bothPlayersReady) {
-        let nextStep: GameStep = currentGameState.step;
-        let resetReadyStatus = true;
+    const allPlayersReady = updatedPlayers.every(p => p.isReady);
 
-        if (step === 'lobby') {
-            nextStep = 'categories';
-        } else if (step === 'categories') {
-            const p1 = updatedPlayers.find(p => p.id === me.id);
-            const p2 = updatedPlayers.find(p => p.id !== me.id);
-            if (p1 && p2) {
-                const commonCategories = p1.selectedCategories.filter(c => p2.selectedCategories.includes(c));
-                if(commonCategories.length === 0) {
-                    toast({ title: "No Common Ground", description: "You and your partner didn't select any common categories. Please discuss and select at least one together.", variant: 'destructive', duration: 5000});
-                    const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
-                    await updateGameState({ players: unReadyPlayers });
-                    return;
-                }
-                const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-                await updateGameState({ commonCategories, totalQuestions });
-            }
-            nextStep = 'spicy';
-        }
-
-        const finalPlayers = resetReadyStatus ? updatedPlayers.map(p => ({...p, isReady: false})) : updatedPlayers;
-        await updateGameState({ step: nextStep, players: finalPlayers });
+    if (allPlayersReady) {
+      if (step === 'lobby') {
+        const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
+        await updateGameState({ step: 'categories', players: resetPlayers });
+      } else if (step === 'categories') {
+          const commonCategories = updatedPlayers[0].selectedCategories.filter(c => updatedPlayers[1].selectedCategories.includes(c));
+          
+          if (commonCategories.length === 0) {
+              toast({ title: "No Common Ground", description: "You and your partner need to select at least one category in common.", variant: 'destructive', duration: 5000});
+              const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
+              await updateGameState({ players: unReadyPlayers });
+              return;
+          }
+          
+          const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
+          const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
+          await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
+      }
     }
   }
+
+  const handleSpicySelect = async (value: SpicyLevel['name']) => {
+    if (!me || me.isReady) return;
+    
+    let currentGameState = (await getDoc(roomRef)).data() as GameState;
+    
+    const updatedPlayers = currentGameState.players.map(p => 
+      p.id === me.id ? { ...p, selectedSpicyLevel: value, isReady: true } : p
+    );
+    
+    await updateGameState({ players: updatedPlayers });
+
+    const allReady = updatedPlayers.every(p => p.isReady);
+    
+    if (allReady) {
+        setIsLoading(true);
+        const p1Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers[0].selectedSpicyLevel!);
+        const p2Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers[1].selectedSpicyLevel!);
+        const finalLevelIndex = Math.min(p1Level, p2Level);
+        const finalSpicyLevel = SPICY_LEVELS[finalLevelIndex].name;
+
+        await updateGameState({ finalSpicyLevel });
+        await startFirstQuestion(finalSpicyLevel, currentGameState.commonCategories);
+    }
+  };
+  
+  const startFirstQuestion = async (finalSpicyLevel: SpicyLevel['name'], commonCategories: string[]) => {
+      setError(null);
+      const result = await generateQuestionAction({
+          categories: [commonCategories[0]],
+          spicyLevel: finalSpicyLevel,
+          previousQuestions: [],
+      });
+
+      if ('question' in result) {
+          const resetPlayers = gameState!.players.map(p => ({ ...p, isReady: false }));
+          await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1, players: resetPlayers });
+      } else {
+          setError(result.error);
+          toast({ title: 'Error starting game', description: result.error, variant: 'destructive' });
+      }
+      setIsLoading(false);
+  };
   
   const handleSubmitAnswer = async () => {
-    if (!currentAnswer.trim() || !gameState || !me) {
+    if (!currentAnswer.trim() || !me) {
       toast({ title: "Answer can't be empty", variant: 'destructive'});
       return;
     }
+
     setIsLoading(true);
-    setError(null);
-    const roomRef = doc(db, 'games', roomCode);
     const currentDoc = await getDoc(roomRef);
     const currentGameState = currentDoc.data() as GameState;
 
@@ -261,52 +291,49 @@ export default function GamePage() {
     }
 
     await updateGameState({ gameRounds: updatedGameRounds });
-    
     setCurrentAnswer('');
     setIsLoading(false);
   };
 
   const handleNextStep = async () => {
-    if (!gameState || !me) return;
+    if (!me) return;
     
     setIsLoading(true);
-    setError(null);
-
-    const roomRef = doc(db, 'games', roomCode);
     
-    const updatedPlayers = gameState.players.map(p => p.id === me.id ? { ...p, isReady: true } : p);
+    let currentGameState = (await getDoc(roomRef)).data() as GameState;
+    const updatedPlayers = currentGameState.players.map(p => p.id === me.id ? { ...p, isReady: true } : p);
     await updateGameState({ players: updatedPlayers });
-
-    const currentDoc = await getDoc(roomRef);
-    const currentGameState = currentDoc.data() as GameState;
+    
+    currentGameState = { ...currentGameState, players: updatedPlayers };
 
     if (currentGameState.players.every(p => p.isReady)) {
       const resetPlayers = currentGameState.players.map(p => ({...p, isReady: false}));
       
       if (currentGameState.currentQuestionIndex >= currentGameState.totalQuestions) {
-        // Game over
-        await updateGameState({ step: 'summary' }); // Move to summary step to show loading screen
-        const allAnswers = currentGameState.gameRounds.flatMap(r => Object.values(r.answers));
+        // --- GAME OVER ---
+        await updateGameState({ step: 'summary', players: resetPlayers }); 
+        
         const summaryResult = await analyzeAndSummarizeAction({
             questions: currentGameState.gameRounds.map(r => r.question),
-            answers: allAnswers,
+            answers: currentGameState.gameRounds.flatMap(r => Object.values(r.answers)),
             categories: currentGameState.commonCategories,
             spicyLevel: currentGameState.finalSpicyLevel,
         });
+
         if ('summary' in summaryResult) {
-            await updateGameState({ players: resetPlayers, summary: summaryResult.summary, completedAt: new Date() });
+            await updateGameState({ summary: summaryResult.summary, completedAt: new Date() });
         } else {
             setError(summaryResult.error);
             toast({ title: 'Summary Error', description: summaryResult.error, variant: 'destructive'});
+            await updateGameState({ step: 'game' }); // Go back if summary fails
         }
       } else {
-        // Next question
+        // --- NEXT QUESTION ---
         const nextQuestionIndex = currentGameState.currentQuestionIndex + 1;
         const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
-        const currentCategory = currentGameState.commonCategories[categoryIndex];
-
+        
         const result = await generateQuestionAction({
-            categories: [currentCategory],
+            categories: [currentGameState.commonCategories[categoryIndex]],
             spicyLevel: currentGameState.finalSpicyLevel,
             previousQuestions: currentGameState.gameRounds.map(r => r.question),
         });
@@ -321,62 +348,6 @@ export default function GamePage() {
     }
     setIsLoading(false);
   }
-
-  const handleSpicySelect = async (value: SpicyLevel['name']) => {
-    if (!me || !gameState || me.isReady) return;
-    
-    const roomRef = doc(db, 'games', roomCode);
-    
-    const updatedPlayers = gameState.players.map(p => 
-      p.id === me.id ? { ...p, selectedSpicyLevel: value, isReady: true } : p
-    );
-    await updateGameState({ players: updatedPlayers });
-
-    const currentDoc = await getDoc(roomRef);
-    const refreshedGameState = currentDoc.data() as GameState;
-
-    const bothReady = refreshedGameState.players.every(p => p.isReady);
-    
-    if (bothReady) {
-        const p1 = refreshedGameState.players[0];
-        const p2 = refreshedGameState.players[1];
-        if (!p1.selectedSpicyLevel || !p2.selectedSpicyLevel) return;
-
-        const p1Level = SPICY_LEVELS.findIndex(l => l.name === p1.selectedSpicyLevel);
-        const p2Level = SPICY_LEVELS.findIndex(l => l.name === p2.selectedSpicyLevel);
-        const finalLevelIndex = Math.min(p1Level, p2Level);
-        const finalSpicyLevel = SPICY_LEVELS[finalLevelIndex].name;
-        
-        const resetPlayers = refreshedGameState.players.map(p => ({...p, isReady: false}))
-        
-        await updateGameState({ finalSpicyLevel, players: resetPlayers });
-        await startFirstQuestion(finalSpicyLevel, refreshedGameState.commonCategories);
-    }
-  };
-
-  const startFirstQuestion = async (finalSpicyLevel: SpicyLevel['name'], commonCategories: string[]) => {
-    setIsLoading(true);
-    setError(null);
-
-    const currentCategory = commonCategories[0];
-    const result = await generateQuestionAction({
-        categories: [currentCategory],
-        spicyLevel: finalSpicyLevel,
-        previousQuestions: [],
-    });
-
-    if ('question' in result) {
-        await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1 });
-    } else {
-        setError(result.error);
-        toast({
-          title: 'Error starting game',
-          description: result.error,
-          variant: 'destructive',
-        })
-    }
-    setIsLoading(false);
-  };
   
   if (isLoading || !gameState || !me) {
       return <LoadingScreen message={isLoading ? undefined : "Setting up your game..."} />;
@@ -396,7 +367,10 @@ export default function GamePage() {
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2 rounded-lg border border-dashed p-4 justify-between">
                 <span className="font-mono text-lg font-bold text-primary">{roomCode}</span>
-                <Button variant="ghost" size="icon" onClick={handleCopyCode}>
+                <Button variant="ghost" size="icon" onClick={() => {
+                    navigator.clipboard.writeText(roomCode);
+                    toast({ title: 'Copied to Clipboard!' });
+                }}>
                   <ClipboardCopy className="h-5 w-5" />
                 </Button>
               </div>
@@ -446,7 +420,7 @@ export default function GamePage() {
           <div className="w-full max-w-3xl">
             <h2 className="text-3xl font-bold text-center mb-2">Choose Your Categories</h2>
             <p className="text-muted-foreground text-center mb-8">
-              Select at least one theme to explore together. Questions will be drawn from categories you both choose.
+              Select themes to explore together. Questions will be drawn from categories you both choose.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
               {CATEGORIES.map((cat) => {
@@ -480,7 +454,6 @@ export default function GamePage() {
             <Button onClick={() => handlePlayerReady('categories')} className="w-full max-w-xs mx-auto flex" size="lg" disabled={me.isReady || me.selectedCategories.length === 0}>
                 {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for partner...</> : 'Confirm Selections'}
             </Button>
-            {players.every(p => p.isReady) && <p className="text-center mt-4 text-green-400 animate-pulse">Both players ready! Moving on...</p>}
           </div>
         );
       case 'spicy':
@@ -536,7 +509,7 @@ export default function GamePage() {
         const partnerAnswer = partner ? currentRound?.answers[partner.id] : undefined;
         const bothAnswered = !!myAnswer && (players.length === 1 || !!partnerAnswer);
 
-        if (isLoading && !bothAnswered) {
+        if (isLoading && !myAnswer) {
             return <LoadingScreen />;
         }
 
@@ -562,8 +535,8 @@ export default function GamePage() {
                       <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{partnerAnswer}</p>
                     </div>
                   )}
-                  <Button onClick={handleNextStep} className="w-full" size="lg" disabled={isLoading || me.isReady}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : me.isReady ? 'Waiting for partner...' : (currentQuestionIndex >= totalQuestions ? 'See Summary' : 'Next Question')}
+                  <Button onClick={handleNextStep} className="w-full" size="lg" disabled={me.isReady}>
+                    {me.isReady ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (currentQuestionIndex >= totalQuestions ? 'See Summary' : 'Next Question')}
                      {!me.isReady && (currentQuestionIndex < totalQuestions) && <ArrowRight className="ml-2" />}
                   </Button>
                   {me.isReady && partner && !partner.isReady && <p className="text-center text-sm text-muted-foreground mt-2 animate-pulse">Waiting for {partner.name} to continue...</p>}
@@ -588,10 +561,10 @@ export default function GamePage() {
                         value={currentAnswer}
                         onChange={(e) => setCurrentAnswer(e.target.value)}
                         className="text-base"
-                        disabled={isLoading || !!myAnswer}
+                        disabled={!!myAnswer}
                     />
-                    <Button onClick={handleSubmitAnswer} className="w-full mt-6" size="lg" disabled={isLoading || !currentAnswer.trim() || !!myAnswer}>
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : myAnswer ? 'Waiting for partner...' : 'Submit Answer'}
+                    <Button onClick={handleSubmitAnswer} className="w-full mt-6" size="lg" disabled={!currentAnswer.trim() || !!myAnswer}>
+                        {myAnswer ? 'Waiting for partner...' : 'Submit Answer'}
                     </Button>
 
                     {myAnswer && (!partner || !partnerAnswer) && (
