@@ -41,28 +41,21 @@ export default function HomePageClient() {
         setLoading(true);
         const gamesQuery = query(
           collection(db, 'games'),
-          where('players', 'array-contains', { id: currentUser.uid, email: currentUser.email, name: currentUser.displayName || `Player` }),
+          where('playerIds', 'array-contains', currentUser.uid),
           where('step', '!=', 'summary'),
-          orderBy('step'),
           limit(5)
         );
 
-        // This is a simplified query. Firestore can be tricky with array-contains on objects.
-        // A more robust solution might involve having a `playerIds` array of strings.
-        // For now, we fetch and then filter client-side for accuracy.
         try {
-            const querySnapshot = await getDocs(collection(db, 'games'));
+            const querySnapshot = await getDocs(gamesQuery);
             const userGames: InProgressGame[] = [];
             querySnapshot.forEach(doc => {
                 const game = doc.data();
-                const isPlayer = game.players?.some((p: any) => p.id === currentUser.uid);
-                if (isPlayer && game.step !== 'summary') {
-                    const partner = game.players.find((p: any) => p.id !== currentUser.uid);
-                    userGames.push({
-                        id: doc.id,
-                        partnerName: partner?.name || 'Waiting for partner...',
-                    });
-                }
+                const partner = game.players.find((p: any) => p.id !== currentUser.uid);
+                userGames.push({
+                    id: doc.id,
+                    partnerName: partner?.name || 'Waiting for partner...',
+                });
             });
             setInProgressGames(userGames);
         } catch (error) {
@@ -220,3 +213,5 @@ export default function HomePageClient() {
     </Card>
   );
 }
+
+    

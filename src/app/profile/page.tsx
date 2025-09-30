@@ -18,6 +18,7 @@ type GameSession = {
     partner: { id: string, name: string; email: string };
     summary?: string;
     completedAt?: Date;
+    step: string;
 };
 
 export default function ProfilePage() {
@@ -44,29 +45,25 @@ export default function ProfilePage() {
     const fetchGames = async () => {
       setLoading(true);
       const gamesRef = collection(db, 'games');
-      // Querying all games and filtering client-side is not ideal for scale,
-      // but necessary for Firestore's limitations on array queries.
-      // A better data model would have a `playerIds: [uid1, uid2]` field.
-      const q = query(gamesRef, orderBy('completedAt', 'desc'));
+      const q = query(gamesRef, where('playerIds', 'array-contains', user.uid), orderBy('completedAt', 'desc'));
       
       try {
         const querySnapshot = await getDocs(q);
         
         const allUserGames = querySnapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(game => game.players && game.players.some((p: any) => p.id === user.uid))
-          .map(game => {
-            const partnerData = game.players.find((p: any) => p.id !== user.uid) || { id: 'solo', name: 'Solo Game', email: '' };
-            const completedAt = game.completedAt instanceof Timestamp 
-                ? game.completedAt.toDate() 
-                : (game.completedAt ? new Date(game.completedAt) : undefined);
+          .map(doc => {
+            const gameData = doc.data();
+            const partnerData = gameData.players.find((p: any) => p.id !== user.uid) || { id: 'solo', name: 'Solo Game', email: '' };
+            const completedAt = gameData.completedAt instanceof Timestamp 
+                ? gameData.completedAt.toDate() 
+                : (gameData.completedAt ? new Date(gameData.completedAt) : undefined);
 
             return {
-              id: game.id,
+              id: doc.id,
               completedAt: completedAt,
               partner: partnerData,
-              summary: game.summary,
-              step: game.step,
+              summary: gameData.summary,
+              step: gameData.step,
             };
           });
 
@@ -176,3 +173,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

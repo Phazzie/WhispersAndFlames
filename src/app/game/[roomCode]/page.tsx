@@ -27,6 +27,7 @@ type GameRound = { question: string; answers: Record<string, string> };
 type GameState = {
   step: GameStep;
   players: Player[];
+  playerIds: string[];
   hostId: string;
   commonCategories: string[];
   finalSpicyLevel: SpicyLevel['name'];
@@ -107,7 +108,10 @@ export default function GamePage() {
         if (data.players.length < 2 && !currentUserInGame) {
           const newPlayerName = `Player ${data.players.length + 1}`;
           const newPlayer: Player = { id: currentUser.uid, name: newPlayerName, isReady: false, email: currentUser.email!, selectedCategories: [] };
-          await updateDoc(roomRef, { players: [...data.players, newPlayer] });
+          await updateDoc(roomRef, { 
+              players: [...data.players, newPlayer],
+              playerIds: [...data.playerIds, currentUser.uid] 
+          });
           setPlayerName(newPlayerName);
         } else if (currentUserInGame) {
             setPlayerName(currentUserInGame.name);
@@ -120,6 +124,7 @@ export default function GamePage() {
             const newGame: GameState = {
               step: 'lobby',
               players: [{ id: user.uid, name: newPlayerName, isReady: false, email: user.email!, selectedCategories: [] }],
+              playerIds: [user.uid],
               hostId: user.uid,
               commonCategories: [],
               finalSpicyLevel: 'Mild',
@@ -664,3 +669,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
