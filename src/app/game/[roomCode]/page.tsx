@@ -60,7 +60,7 @@ export default function GamePage() {
             playerIds: [...data.playerIds, currentUser.uid]
           });
         } else {
-          setGameState(data);
+          setGameState({...data, roomCode});
         }
       } else {
         const newPlayerName = 'Player 1';
@@ -76,6 +76,7 @@ export default function GamePage() {
           currentQuestionIndex: 0,
           totalQuestions: 0,
           summary: '',
+          roomCode,
         };
         await setDoc(roomRef, newGame);
         setGameState(newGame);

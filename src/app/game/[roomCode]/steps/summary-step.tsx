@@ -23,7 +23,7 @@ export function SummaryStep({ gameState, me, handlers }: StepProps) {
           <CardTitle className="text-3xl">Your Session Summary</CardTitle>
           <CardDescription>A little insight from your conversation.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="prose prose-invert prose-p:text-foreground/90 prose-headings:text-primary max-w-none text-base whitespace-pre-wrap p-4 bg-secondary rounded-md">
             {summary}
           </div>

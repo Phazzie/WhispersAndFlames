@@ -43,6 +43,13 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     }
   };
 
+  const copyRoomCode = () => {
+    if (roomCode) {
+      navigator.clipboard.writeText(roomCode);
+      toast({ title: 'Copied to Clipboard!' });
+    }
+  };
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
@@ -52,10 +59,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
       <CardContent className="space-y-4">
         <div className="flex items-center space-x-2 rounded-lg border border-dashed p-4 justify-between">
           <span className="font-mono text-lg font-bold text-primary">{roomCode}</span>
-          <Button variant="ghost" size="icon" onClick={() => {
-              navigator.clipboard.writeText(roomCode!);
-              toast({ title: 'Copied to Clipboard!' });
-          }}>
+          <Button variant="ghost" size="icon" onClick={copyRoomCode}>
             <ClipboardCopy className="h-5 w-5" />
           </Button>
         </div>

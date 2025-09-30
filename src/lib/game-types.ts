@@ -1,6 +1,5 @@
 
 import type { DocumentReference } from 'firebase/firestore';
-import type { NextRouter } from 'next/router';
 import type { SPICY_LEVELS } from './constants';
 import type { generateQuestionAction, analyzeAndSummarizeAction } from '@/app/game/actions';
 
@@ -29,7 +28,7 @@ export type GameState = {
   totalQuestions: number;
   summary: string;
   completedAt?: Date;
-  roomCode?: string;
+  roomCode: string;
 };
 
 export type StepProps = {

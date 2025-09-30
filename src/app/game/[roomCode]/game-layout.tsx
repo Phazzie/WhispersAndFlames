@@ -30,7 +30,7 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
     return 0;
   })();
 
-  const animationKey = `${step}-${(step === 'game' && 'question' in gameState) ? gameState.currentQuestionIndex : '0'}`;
+  const animationKey = `${step}-${(step === 'game' && 'currentQuestionIndex' in gameState) ? gameState.currentQuestionIndex : '0'}`;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background relative">

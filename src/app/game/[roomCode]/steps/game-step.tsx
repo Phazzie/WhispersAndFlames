@@ -117,7 +117,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
               “{currentQuestion}”
             </blockquote>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             <div className="space-y-2">
               <Label className="font-semibold text-base">{me.name}'s Answer:</Label>
               <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{myAnswer}</p>

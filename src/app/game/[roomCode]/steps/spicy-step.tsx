@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { SPICY_LEVELS } from '@/lib/constants';
+import { SPICY_LEVELS, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 
 export function SpicyStep({ gameState, me, handlers }: StepProps) {
