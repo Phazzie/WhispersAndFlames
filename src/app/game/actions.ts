@@ -12,7 +12,7 @@ export async function generateQuestionAction(input: GenerateContextualQuestionsI
     // In a real app, you might trigger a circuit breaker here.
     // For now, we return a fallback question.
     return {
-      question: "If you could write a secret note to your partner, what would it say?",
+      question: "What's one secret you've never told your partner about something you find attractive in them?",
     };
   }
 }

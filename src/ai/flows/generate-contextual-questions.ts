@@ -18,10 +18,10 @@ const GenerateContextualQuestionsInputSchema = z.object({
     .array(z.string())
     .describe('The intimacy categories selected by the users.'),
   spicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).describe('The spicy level chosen by the users.'),
-  previousQuestionsAndAnswers: z
-    .array(z.object({question: z.string(), answer: z.string()}))
+  previousQuestions: z
+    .array(z.string())
     .optional()
-    .describe('Previous questions and answers to maintain context and avoid repetition.'),
+    .describe('An array of questions that have already been asked in this session to avoid repetition.'),
 });
 export type GenerateContextualQuestionsInput = z.infer<typeof GenerateContextualQuestionsInputSchema>;
 
@@ -30,44 +30,47 @@ const GenerateContextualQuestionsOutputSchema = z.object({
 });
 export type GenerateContextualQuestionsOutput = z.infer<typeof GenerateContextualQuestionsOutputSchema>;
 
-const generateQuestionTool = ai.defineTool({
-  name: 'generateQuestion',
-  description: 'Generates a unique and contextually relevant question based on the provided categories, spicy level, and previous questions/answers.',
-  inputSchema: GenerateContextualQuestionsInputSchema,
-  outputSchema: GenerateContextualQuestionsOutputSchema,
-},
-async (input) => {
-  // Invoke the question generation flow here
-  return generateContextualQuestionsFlow(input);
-});
-
 export async function generateContextualQuestions(
   input: GenerateContextualQuestionsInput
 ): Promise<GenerateContextualQuestionsOutput> {
-  return generateQuestionTool(input);
+  return generateContextualQuestionsFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'generateContextualQuestionsPrompt',
   input: {schema: GenerateContextualQuestionsInputSchema},
   output: {schema: GenerateContextualQuestionsOutputSchema},
-  prompt: `You are an AI designed to generate unique and engaging questions for couples to explore their intimacy.
+  prompt: `You are Ember—part wingman, part therapist, part co-conspirator. Your job is to give couples permission to voice what they've been whispering to themselves. You are playful, insightful, and never judgmental. You ask specific, thought-provoking questions that create intimacy.
 
-  Consider the following intimacy categories: {{categories}}
-  The spicy level is: {{spicyLevel}}
+Your Unbreakable Rules:
+1.  **Spicy Level Adherence**: You MUST generate a question that matches the given spicy level.
+2.  **Always About Them**: Every question must be about THEIR partner, using "your partner."
+3.  **Specificity is Sacred**: No generic questions. Force precision.
+4.  **One Question at a Time**: Your entire output must be a single question and nothing else.
 
-  {{#if previousQuestionsAndAnswers}}
-  Take into account the following previous questions and answers to avoid repetition and maintain context:
-  {{#each previousQuestionsAndAnswers}}
-  Question: {{this.question}}
-  Answer: {{this.answer}}
-  {{/each}}
-  {{/if}}
+Question Generation Protocol:
+1.  **Identify Constraints**:
+    -   Current spicy level: {{spicyLevel}}
+    -   Number of partners: 2
+    -   Current category/categories: {{#each categories}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+    -   Questions already asked (avoid these): {{#if previousQuestions}}{{#each previousQuestions}}"{{this}}"{{#unless @last}}, {{/unless}}{{/each}}{{else}}None{{/if}}
 
-  Generate a question that is relevant to the selected categories and spicy level, and that has not been asked before.
-  The question should encourage open and honest communication between partners.
-  Be creative and engaging.
-  Keep the questions short.`,
+2.  **Choose a Question Pattern**: Select a pattern that fits the spicy level and hasn't been overused. Examples:
+    -   **The 'Exactly' Pattern**: "Exactly where on your partner's body do your eyes go first?"
+    -   **The 'One Specific' Pattern**: "What's one specific thing you've imagined doing to your partner's neck?"
+    -   **The Sensory Constraint**: "What sound do you wish your partner made more of?"
+    -   **The Observation-Based Question**: "What's one non-sexual thing your partner does that makes you think sexual thoughts?"
+    -   **The Power Play Pattern**: "What's one instruction you'd love to give your partner that starts with 'Don't move while I...'?"
+
+3.  **Apply the Pattern**:
+    -   Use the pattern's structure.
+    -   Inject specificity with words like "exactly," "one specific," or sensory details.
+    -   Ensure the question is relevant to at least one of the selected categories.
+    -   Ensure it is a NEW question, different from the ones already asked.
+
+4.  **Final Output**: Return ONLY the single question text, with no preamble, explanation, or quotation marks.
+
+Generate the perfect question for this moment.`,
 });
 
 const generateContextualQuestionsFlow = ai.defineFlow(

@@ -180,7 +180,7 @@ export default function GamePage() {
     const result = await generateQuestionAction({
         categories: gameState.commonCategories,
         spicyLevel: gameState.selectedSpicyLevel,
-        previousQuestionsAndAnswers: [],
+        previousQuestions: [],
     });
 
     if ('question' in result) {
@@ -264,7 +264,7 @@ export default function GamePage() {
         const result = await generateQuestionAction({
             categories: currentGameState.commonCategories,
             spicyLevel: currentGameState.selectedSpicyLevel,
-            previousQuestionsAndAnswers: currentGameState.gameRounds.map(r => ({question: r.question, answer: Object.values(r.answers).join(', ')})),
+            previousQuestions: currentGameState.gameRounds.map(r => r.question),
         });
         if ('question' in result) {
             await updateGameState({ players: resetPlayers, currentQuestion: result.question });
