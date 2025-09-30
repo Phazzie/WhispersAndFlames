@@ -34,6 +34,7 @@ type GameState = {
   currentQuestionIndex: number;
   totalQuestions: number;
   summary: string;
+  completedAt?: Date;
 };
 const QUESTIONS_PER_CATEGORY = 2;
 
@@ -125,7 +126,7 @@ export default function GamePage() {
 
   const updateGameState = async (newState: Partial<GameState>) => {
     const roomRef = doc(db, 'games', roomCode);
-    await updateDoc(roomRef, newState);
+    await updateDoc(roomRef, newState as any);
   };
   
   const handleToggleCategory = async (categoryName: string) => {
@@ -261,7 +262,7 @@ export default function GamePage() {
             spicyLevel: currentGameState.finalSpicyLevel,
         });
         if ('summary' in summaryResult) {
-            await updateGameState({ players: resetPlayers, summary: summaryResult.summary, step: 'summary' });
+            await updateGameState({ players: resetPlayers, summary: summaryResult.summary, step: 'summary', completedAt: new Date() });
         } else {
             setError(summaryResult.error);
         }
@@ -296,17 +297,52 @@ export default function GamePage() {
     );
     await updateGameState({ players: updatedPlayers });
 
-    const bothReady = updatedPlayers.every(p => p.isReady);
+    const roomRef = doc(db, 'games', roomCode);
+    const currentDoc = await getDoc(roomRef);
+    const refreshedGameState = currentDoc.data() as GameState;
+
+    const bothReady = refreshedGameState.players.every(p => p.isReady);
     
     if (bothReady) {
-      const p1Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers[0].selectedSpicyLevel);
-      const p2Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers[1].selectedSpicyLevel);
+      const p1Level = SPICY_LEVELS.findIndex(l => l.name === refreshedGameState.players[0].selectedSpicyLevel);
+      const p2Level = SPICY_LEVELS.findIndex(l => l.name === refreshedGameState.players[1].selectedSpicyLevel);
       const finalLevelIndex = Math.min(p1Level, p2Level);
       const finalSpicyLevel = SPICY_LEVELS[finalLevelIndex].name;
       
-      await updateGameState({ finalSpicyLevel });
-      handleStartGame();
+      const resetPlayers = refreshedGameState.players.map(p => ({...p, isReady: false}))
+      
+      await updateGameState({ finalSpicyLevel, players: resetPlayers });
+      await handleStartFromSpicy(finalSpicyLevel);
     }
+  };
+
+  const handleStartFromSpicy = async (finalSpicyLevel: SpicyLevel['name']) => {
+    const roomRef = doc(db, 'games', roomCode);
+    const currentDoc = await getDoc(roomRef);
+    const currentGameState = currentDoc.data() as GameState;
+    if (!currentGameState) return;
+    
+    setIsLoading(true);
+    setError(null);
+
+    const currentCategory = currentGameState.commonCategories[0];
+    const result = await generateQuestionAction({
+        categories: [currentCategory],
+        spicyLevel: finalSpicyLevel,
+        previousQuestions: [],
+    });
+
+    if ('question' in result) {
+        await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1 });
+    } else {
+        setError(result.error);
+        toast({
+          title: 'Error',
+          description: result.error,
+          variant: 'destructive',
+        })
+    }
+    setIsLoading(false);
   };
   
   if (isLoading || !gameState || !me) {
@@ -356,14 +392,14 @@ export default function GamePage() {
                   <div className="text-sm text-muted-foreground text-center p-3">Waiting for partner to join...</div>
                 )}
               </div>
-              <Button onClick={() => handlePlayerReady('lobby')} className="w-full" size="lg" disabled={me.isReady || isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "I'm Ready!"}
+              <Button onClick={() => handlePlayerReady('lobby')} className="w-full" size="lg" disabled={me.isReady || isLoading || players.length < 2}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : players.length < 2 ? 'Waiting for partner...' : "I'm Ready!"}
               </Button>
             </CardContent>
           </Card>
         );
       case 'categories':
-        const bothReady = players.every(p => p.isReady);
+        const bothReadyCat = players.every(p => p.isReady);
         return (
           <div className="w-full max-w-3xl">
             <h2 className="text-3xl font-bold text-center mb-2">Choose Your Categories</h2>
@@ -391,7 +427,7 @@ export default function GamePage() {
                     </CardContent>
                     <div className="absolute bottom-1 right-1 flex gap-1">
                         {isSelectedByMe && <div className="w-2 h-2 rounded-full bg-blue-400" title={`Selected by ${me.name}`}></div>}
-                        {isSelectedByPartner && <div className="w-2 h-2 rounded-full bg-green-400" title={`Selected by ${partner.name}`}></div>}
+                        {partner && isSelectedByPartner && <div className="w-2 h-2 rounded-full bg-green-400" title={`Selected by ${partner.name}`}></div>}
                     </div>
                   </Card>
                 )
@@ -401,7 +437,7 @@ export default function GamePage() {
             <Button onClick={() => handlePlayerReady('categories')} className="w-full max-w-xs mx-auto flex" size="lg" disabled={me.isReady || me.selectedCategories.length === 0}>
                 {me.isReady ? 'Waiting for partner...' : 'Confirm Selections'}
             </Button>
-            {bothReady && <p className="text-center mt-4 text-green-400">Both players ready! Moving on...</p>}
+            {bothReadyCat && <p className="text-center mt-4 text-green-400">Both players ready! Moving on...</p>}
           </div>
         );
       case 'spicy':
@@ -455,7 +491,7 @@ export default function GamePage() {
         const currentRound = gameRounds.find(r => r.question === currentQuestion);
         const myAnswer = currentRound?.answers[me.id];
         const partnerAnswer = partner ? currentRound?.answers[partner.id] : undefined;
-        const bothAnswered = !!myAnswer && !!partnerAnswer;
+        const bothAnswered = !!myAnswer && (players.length === 1 || !!partnerAnswer);
 
         if (bothAnswered) {
           // Both players have answered, show the reveal view.
@@ -473,10 +509,12 @@ export default function GamePage() {
                     <Label className="font-semibold text-base">{me.name}'s Answer:</Label>
                     <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{myAnswer}</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="font-semibold text-base">{partner?.name}'s Answer:</Label>
-                    <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{partnerAnswer}</p>
-                  </div>
+                  {partner && (
+                    <div className="space-y-2">
+                      <Label className="font-semibold text-base">{partner.name}'s Answer:</Label>
+                      <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{partnerAnswer}</p>
+                    </div>
+                  )}
                   <Button onClick={handleNextStep} className="w-full" size="lg" disabled={isLoading || me.isReady}>
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : me.isReady ? 'Waiting for partner...' : (currentQuestionIndex >= totalQuestions ? 'See Summary' : 'Next Question')}
                      {!me.isReady && (currentQuestionIndex < totalQuestions) && <ArrowRight className="ml-2" />}
@@ -529,8 +567,8 @@ export default function GamePage() {
                       <div className="prose prose-invert prose-p:text-foreground/90 prose-headings:text-primary max-w-none text-base whitespace-pre-wrap p-4 bg-secondary rounded-md">
                           {summary}
                       </div>
-                      <Button onClick={() => router.push('/')} className="w-full mt-6" size="lg">
-                        Play Again
+                      <Button onClick={() => router.push('/profile')} className="w-full mt-6" size="lg">
+                        View My History
                       </Button>
                   </CardContent>
               </Card>
@@ -581,3 +619,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    

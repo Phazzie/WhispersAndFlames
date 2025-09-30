@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { generateRoomCode } from '@/lib/game-utils';
-import { Sparkles, ArrowRight, LogIn } from 'lucide-react';
+import { Sparkles, ArrowRight, LogIn, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -109,7 +110,7 @@ export default function HomePageClient() {
               <Sparkles className="mr-2 h-5 w-5" />
               Create a New Room
             </Button>
-            <form onSubmit={handleJoinRoom} className="space-y-4">
+            <form onSubmit={handleJoinRoom} className="space-y-2">
                <Input
                   id="room-code-authed"
                   placeholder="Or enter a room code"
@@ -122,6 +123,10 @@ export default function HomePageClient() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
             </form>
+             <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/profile')}>
+                <History className="mr-2 h-5 w-5" />
+                My History
+            </Button>
             <Button variant="link" onClick={handleLogout}>Logout</Button>
         </CardContent>
       </Card>
@@ -159,3 +164,5 @@ export default function HomePageClient() {
     </Card>
   );
 }
+
+    
