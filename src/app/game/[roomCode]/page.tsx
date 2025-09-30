@@ -21,20 +21,22 @@ import { db, auth } from '@/lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
-type Player = { id: string; name: string; isReady: boolean; email: string; selectedCategories: string[] };
+type Player = { id: string; name: string; isReady: boolean; email: string; selectedCategories: string[], selectedSpicyLevel?: SpicyLevel['name'] };
 type GameRound = { question: string; answers: Record<string, string> };
 type GameState = {
   step: GameStep;
   players: Player[];
   hostId: string;
   commonCategories: string[];
-  selectedSpicyLevel: SpicyLevel['name'];
+  finalSpicyLevel: SpicyLevel['name'];
   gameRounds: GameRound[];
   currentQuestion: string;
+  currentQuestionIndex: number;
+  totalQuestions: number;
   summary: string;
 };
+const QUESTIONS_PER_CATEGORY = 2;
 
-const TOTAL_QUESTIONS = 5;
 
 export default function GamePage() {
   const params = useParams();
@@ -83,9 +85,11 @@ export default function GamePage() {
               players: [{ id: user.uid, name: 'Player 1', isReady: false, email: user.email!, selectedCategories: [] }],
               hostId: user.uid,
               commonCategories: [],
-              selectedSpicyLevel: 'Mild',
+              finalSpicyLevel: 'Mild',
               gameRounds: [],
               currentQuestion: '',
+              currentQuestionIndex: 0,
+              totalQuestions: 0,
               summary: '',
             };
             await setDoc(roomRef, newGame);
@@ -100,13 +104,12 @@ export default function GamePage() {
   
   const me = useMemo(() => gameState?.players.find(p => p.id === currentUser?.uid), [gameState, currentUser]);
   const partner = useMemo(() => gameState?.players.find(p => p.id !== currentUser?.uid), [gameState, currentUser]);
-  const isHost = useMemo(() => gameState?.hostId === currentUser?.uid, [gameState, currentUser]);
 
   const progress = useMemo(() => {
     if (!gameState) return 0;
-    const { step, gameRounds } = gameState;
+    const { step, currentQuestionIndex, totalQuestions } = gameState;
     if (step === 'summary') return 100;
-    if (step === 'game') return ((gameRounds.length) / TOTAL_QUESTIONS) * 100;
+    if (step === 'game' && totalQuestions > 0) return ((currentQuestionIndex) / totalQuestions) * 100;
     if (step === 'spicy') return 20;
     if (step === 'categories') return 10;
     return 0;
@@ -149,13 +152,12 @@ export default function GamePage() {
     if (bothPlayersReady) {
         let nextStep: GameStep = gameState.step;
         let resetReadyStatus = true;
-        let commonCategories: string[] = [];
 
         if (step === 'lobby') {
             nextStep = 'categories';
         } else if (step === 'categories') {
             if (partner) {
-                commonCategories = me.selectedCategories.filter(c => partner.selectedCategories.includes(c));
+                const commonCategories = me.selectedCategories.filter(c => partner.selectedCategories.includes(c));
                 if(commonCategories.length === 0) {
                     toast({ title: "No Common Ground", description: "You and your partner didn't select any common categories. Please discuss and select at least one together.", variant: 'destructive', duration: 5000});
                     // Un-ready players
@@ -163,9 +165,10 @@ export default function GamePage() {
                     await updateGameState({ players: unReadyPlayers });
                     return;
                 }
+                const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
+                await updateGameState({ commonCategories, totalQuestions });
             }
             nextStep = 'spicy';
-            await updateGameState({ commonCategories });
         }
 
         const finalPlayers = resetReadyStatus ? updatedPlayers.map(p => ({...p, isReady: false})) : updatedPlayers;
@@ -177,14 +180,16 @@ export default function GamePage() {
     if (!gameState) return;
     setIsLoading(true);
     setError(null);
+
+    const currentCategory = gameState.commonCategories[0];
     const result = await generateQuestionAction({
-        categories: gameState.commonCategories,
-        spicyLevel: gameState.selectedSpicyLevel,
+        categories: [currentCategory],
+        spicyLevel: gameState.finalSpicyLevel,
         previousQuestions: [],
     });
 
     if ('question' in result) {
-        await updateGameState({ currentQuestion: result.question, step: 'game' });
+        await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1 });
     } else {
         setError(result.error);
         toast({
@@ -208,11 +213,11 @@ export default function GamePage() {
     const currentGameState = currentDoc.data() as GameState;
 
     let updatedGameRounds = [...currentGameState.gameRounds];
-    const currentRound = updatedGameRounds.find(r => r.question === currentGameState.currentQuestion);
+    const currentRoundIndex = updatedGameRounds.findIndex(r => r.question === currentGameState.currentQuestion);
 
-    if (currentRound) {
+    if (currentRoundIndex > -1) {
         // Round exists, add answer.
-        currentRound.answers[me.id] = currentAnswer;
+        updatedGameRounds[currentRoundIndex].answers[me.id] = currentAnswer;
     } else {
         // New round, question doesn't have a round object yet.
         updatedGameRounds.push({
@@ -245,14 +250,15 @@ export default function GamePage() {
     if (currentGameState.players.every(p => p.isReady)) {
       // Both are ready, proceed. Reset ready status.
       const resetPlayers = currentGameState.players.map(p => ({...p, isReady: false}));
-      if (currentGameState.gameRounds.length >= TOTAL_QUESTIONS) {
+      
+      if (currentGameState.currentQuestionIndex >= currentGameState.totalQuestions) {
         // Game over
         const allAnswers = currentGameState.gameRounds.flatMap(r => Object.values(r.answers));
         const summaryResult = await analyzeAndSummarizeAction({
             questions: currentGameState.gameRounds.map(r => r.question),
             answers: allAnswers,
             categories: currentGameState.commonCategories,
-            spicyLevel: currentGameState.selectedSpicyLevel,
+            spicyLevel: currentGameState.finalSpicyLevel,
         });
         if ('summary' in summaryResult) {
             await updateGameState({ players: resetPlayers, summary: summaryResult.summary, step: 'summary' });
@@ -261,13 +267,18 @@ export default function GamePage() {
         }
       } else {
         // Next question
+        const nextQuestionIndex = currentGameState.currentQuestionIndex + 1;
+        const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
+        const currentCategory = currentGameState.commonCategories[categoryIndex];
+
         const result = await generateQuestionAction({
-            categories: currentGameState.commonCategories,
-            spicyLevel: currentGameState.selectedSpicyLevel,
+            categories: [currentCategory],
+            spicyLevel: currentGameState.finalSpicyLevel,
             previousQuestions: currentGameState.gameRounds.map(r => r.question),
         });
+
         if ('question' in result) {
-            await updateGameState({ players: resetPlayers, currentQuestion: result.question });
+            await updateGameState({ players: resetPlayers, currentQuestion: result.question, currentQuestionIndex: nextQuestionIndex });
         } else {
             setError(result.error);
         }
@@ -276,6 +287,27 @@ export default function GamePage() {
     // If only one is ready, the state is updated and we wait for the other.
     setIsLoading(false);
   }
+
+  const handleSpicySelect = async (value: SpicyLevel['name']) => {
+    if (!me || !gameState) return;
+    
+    const updatedPlayers = gameState.players.map(p => 
+      p.id === me.id ? { ...p, selectedSpicyLevel: value, isReady: true } : p
+    );
+    await updateGameState({ players: updatedPlayers });
+
+    const bothReady = updatedPlayers.every(p => p.isReady);
+    
+    if (bothReady) {
+      const p1Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers[0].selectedSpicyLevel);
+      const p2Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers[1].selectedSpicyLevel);
+      const finalLevelIndex = Math.min(p1Level, p2Level);
+      const finalSpicyLevel = SPICY_LEVELS[finalLevelIndex].name;
+      
+      await updateGameState({ finalSpicyLevel });
+      handleStartGame();
+    }
+  };
   
   if (isLoading || !gameState || !me) {
     return (
@@ -286,7 +318,7 @@ export default function GamePage() {
     );
   }
   
-  const { step, players, commonCategories, selectedSpicyLevel, currentQuestion, gameRounds, summary } = gameState;
+  const { step, players, commonCategories, finalSpicyLevel, currentQuestion, gameRounds, summary, totalQuestions, currentQuestionIndex } = gameState;
 
   const renderStepContent = (): ReactNode => {
     switch (step) {
@@ -373,25 +405,23 @@ export default function GamePage() {
           </div>
         );
       case 'spicy':
-         const handleSpicySelect = (value: SpicyLevel['name']) => {
-            if (!isHost) return;
-            updateGameState({ selectedSpicyLevel: value });
-        };
+        const mySpicySelection = me?.selectedSpicyLevel;
+        const partnerSpicySelection = partner?.selectedSpicyLevel;
         return (
           <div className="w-full max-w-lg">
             <h2 className="text-3xl font-bold text-center mb-2">Set The Mood</h2>
             <p className="text-muted-foreground text-center mb-8">
-              {isHost ? 'Choose your desired level of intensity.' : 'Your partner is setting the mood...'}
+              Choose your desired level of intensity. The game will use the mildest level chosen.
             </p>
              <RadioGroup
-                value={selectedSpicyLevel}
+                value={mySpicySelection}
                 onValueChange={handleSpicySelect}
                 className="space-y-4"
-                disabled={!isHost}
+                disabled={me.isReady}
               >
                 {SPICY_LEVELS.map((level) => (
-                    <Card key={level.name} className={`has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary ${!isHost && 'opacity-70'}`}>
-                        <Label htmlFor={level.name} className={`flex items-start space-x-4 p-4 ${isHost ? 'cursor-pointer' : 'cursor-default'}`}>
+                    <Card key={level.name} className={`has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
+                        <Label htmlFor={level.name} className={`flex items-start space-x-4 p-4 cursor-pointer`}>
                             <RadioGroupItem value={level.name} id={level.name} className="mt-1"/>
                             <div className="flex-1">
                                 <h3 className="font-semibold">{level.name}</h3>
@@ -401,12 +431,24 @@ export default function GamePage() {
                     </Card>
                 ))}
              </RadioGroup>
-            {isHost && (
-              <Button onClick={handleStartGame} className="w-full mt-8" size="lg" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Start Game"}
-              </Button>
+             {(me.isReady || partner?.isReady) && (
+              <div className='flex justify-around mt-4'>
+                <div className='text-center'>
+                  <p className='font-semibold'>{me.name}'s choice:</p>
+                  <p className='text-primary'>{mySpicySelection || 'Choosing...'}</p>
+                </div>
+                 {partner && <div className='text-center'>
+                  <p className='font-semibold'>{partner.name}'s choice:</p>
+                  <p className='text-primary'>{partnerSpicySelection || 'Choosing...'}</p>
+                </div>}
+              </div>
             )}
-             {!isHost && <p className="text-center text-muted-foreground mt-4">Waiting for the host to start the game...</p>}
+             {players.every(p => p.isReady) && (
+                <div className="text-center mt-4 space-y-2">
+                    <p className="text-muted-foreground">Both players are ready. The game will begin with a <span className="font-bold text-primary">{finalSpicyLevel}</span> intensity.</p>
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+                </div>
+            )}
           </div>
         );
       case 'game':
@@ -419,7 +461,7 @@ export default function GamePage() {
           // Both players have answered, show the reveal view.
           return (
             <div className="w-full max-w-2xl">
-              <p className="text-center text-primary font-semibold mb-4">Question {gameRounds.length} of {TOTAL_QUESTIONS}</p>
+              <p className="text-center text-primary font-semibold mb-4">Question {currentQuestionIndex} of {totalQuestions}</p>
               <Card>
                 <CardHeader>
                   <blockquote className="text-center text-2xl font-semibold leading-relaxed font-headline">
@@ -436,8 +478,8 @@ export default function GamePage() {
                     <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{partnerAnswer}</p>
                   </div>
                   <Button onClick={handleNextStep} className="w-full" size="lg" disabled={isLoading || me.isReady}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : me.isReady ? 'Waiting for partner...' : (gameRounds.length >= TOTAL_QUESTIONS ? 'See Summary' : 'Next Question')}
-                     {!me.isReady && (gameRounds.length < TOTAL_QUESTIONS) && <ArrowRight className="ml-2" />}
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : me.isReady ? 'Waiting for partner...' : (currentQuestionIndex >= totalQuestions ? 'See Summary' : 'Next Question')}
+                     {!me.isReady && (currentQuestionIndex < totalQuestions) && <ArrowRight className="ml-2" />}
                   </Button>
                   {me.isReady && partner && !partner.isReady && <p className="text-center text-sm text-muted-foreground mt-2 animate-pulse">Waiting for {partner.name} to continue...</p>}
                 </CardContent>
@@ -449,7 +491,7 @@ export default function GamePage() {
         // Default view: answering the question
         return (
           <div className="w-full max-w-xl">
-            <p className="text-center text-primary font-semibold mb-4">Question {gameRounds.length + 1} of {TOTAL_QUESTIONS}</p>
+            <p className="text-center text-primary font-semibold mb-4">Question {currentQuestionIndex} of {totalQuestions}</p>
             <Card>
                 <CardContent className="p-6">
                     <blockquote className="text-center text-2xl font-semibold leading-relaxed font-headline mb-6">
@@ -539,5 +581,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
