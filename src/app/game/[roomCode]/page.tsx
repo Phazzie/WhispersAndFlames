@@ -50,6 +50,7 @@ function LoadingScreen({ message }: { message?: string }) {
     const [loadingMessage, setLoadingMessage] = useState(message || LOADING_MESSAGES[0]);
 
     useEffect(() => {
+        if (message) return;
         const interval = setInterval(() => {
             setLoadingMessage(prev => {
                 const currentIndex = LOADING_MESSAGES.indexOf(prev);
@@ -58,7 +59,7 @@ function LoadingScreen({ message }: { message?: string }) {
             });
         }, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [message]);
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
@@ -177,7 +178,7 @@ export default function GamePage() {
   };
   
   const handleToggleCategory = async (categoryName: string) => {
-    if (!me || !gameState) return;
+    if (!me || !gameState || me.isReady) return;
     const myCurrentCategories = me.selectedCategories || [];
     const newCategories = myCurrentCategories.includes(categoryName)
         ? myCurrentCategories.filter((c) => c !== categoryName)
@@ -210,8 +211,8 @@ export default function GamePage() {
         if (step === 'lobby') {
             nextStep = 'categories';
         } else if (step === 'categories') {
-            const p1 = updatedPlayers[0];
-            const p2 = updatedPlayers[1];
+            const p1 = updatedPlayers.find(p => p.id === me.id);
+            const p2 = updatedPlayers.find(p => p.id !== me.id);
             if (p1 && p2) {
                 const commonCategories = p1.selectedCategories.filter(c => p2.selectedCategories.includes(c));
                 if(commonCategories.length === 0) {
@@ -230,31 +231,6 @@ export default function GamePage() {
         await updateGameState({ step: nextStep, players: finalPlayers });
     }
   }
-
-  const handleStartGame = async () => {
-    if (!gameState) return;
-    setIsLoading(true);
-    setError(null);
-
-    const currentCategory = gameState.commonCategories[0];
-    const result = await generateQuestionAction({
-        categories: [currentCategory],
-        spicyLevel: gameState.finalSpicyLevel,
-        previousQuestions: [],
-    });
-
-    if ('question' in result) {
-        await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1 });
-    } else {
-        setError(result.error);
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        })
-    }
-    setIsLoading(false);
-  };
   
   const handleSubmitAnswer = async () => {
     if (!currentAnswer.trim() || !gameState || !me) {
@@ -316,6 +292,7 @@ export default function GamePage() {
             await updateGameState({ players: resetPlayers, summary: summaryResult.summary, completedAt: new Date() });
         } else {
             setError(summaryResult.error);
+            toast({ title: 'Summary Error', description: summaryResult.error, variant: 'destructive'});
         }
       } else {
         // Next question
@@ -333,6 +310,7 @@ export default function GamePage() {
             await updateGameState({ players: resetPlayers, currentQuestion: result.question, currentQuestionIndex: nextQuestionIndex });
         } else {
             setError(result.error);
+            toast({ title: 'Question Error', description: result.error, variant: 'destructive'});
         }
       }
     }
@@ -340,7 +318,7 @@ export default function GamePage() {
   }
 
   const handleSpicySelect = async (value: SpicyLevel['name']) => {
-    if (!me || !gameState) return;
+    if (!me || !gameState || me.isReady) return;
     
     const roomRef = doc(db, 'games', roomCode);
     
@@ -355,28 +333,27 @@ export default function GamePage() {
     const bothReady = refreshedGameState.players.every(p => p.isReady);
     
     if (bothReady) {
-      const p1Level = SPICY_LEVELS.findIndex(l => l.name === refreshedGameState.players[0].selectedSpicyLevel);
-      const p2Level = SPICY_LEVELS.findIndex(l => l.name === refreshedGameState.players[1].selectedSpicyLevel);
-      const finalLevelIndex = Math.min(p1Level, p2Level);
-      const finalSpicyLevel = SPICY_LEVELS[finalLevelIndex].name;
-      
-      const resetPlayers = refreshedGameState.players.map(p => ({...p, isReady: false}))
-      
-      await updateGameState({ finalSpicyLevel, players: resetPlayers });
-      await handleStartFromSpicy(finalSpicyLevel);
+        const p1 = refreshedGameState.players[0];
+        const p2 = refreshedGameState.players[1];
+        if (!p1.selectedSpicyLevel || !p2.selectedSpicyLevel) return;
+
+        const p1Level = SPICY_LEVELS.findIndex(l => l.name === p1.selectedSpicyLevel);
+        const p2Level = SPICY_LEVELS.findIndex(l => l.name === p2.selectedSpicyLevel);
+        const finalLevelIndex = Math.min(p1Level, p2Level);
+        const finalSpicyLevel = SPICY_LEVELS[finalLevelIndex].name;
+        
+        const resetPlayers = refreshedGameState.players.map(p => ({...p, isReady: false}))
+        
+        await updateGameState({ finalSpicyLevel, players: resetPlayers });
+        await startFirstQuestion(finalSpicyLevel, refreshedGameState.commonCategories);
     }
   };
 
-  const handleStartFromSpicy = async (finalSpicyLevel: SpicyLevel['name']) => {
-    const roomRef = doc(db, 'games', roomCode);
-    const currentDoc = await getDoc(roomRef);
-    const currentGameState = currentDoc.data() as GameState;
-    if (!currentGameState) return;
-    
+  const startFirstQuestion = async (finalSpicyLevel: SpicyLevel['name'], commonCategories: string[]) => {
     setIsLoading(true);
     setError(null);
 
-    const currentCategory = currentGameState.commonCategories[0];
+    const currentCategory = commonCategories[0];
     const result = await generateQuestionAction({
         categories: [currentCategory],
         spicyLevel: finalSpicyLevel,
@@ -388,7 +365,7 @@ export default function GamePage() {
     } else {
         setError(result.error);
         toast({
-          title: 'Error',
+          title: 'Error starting game',
           description: result.error,
           variant: 'destructive',
         })
@@ -396,7 +373,7 @@ export default function GamePage() {
     setIsLoading(false);
   };
   
-  if (!gameState || !me || (isLoading && step !== 'summary')) {
+  if (isLoading || !gameState || !me) {
       return <LoadingScreen message={isLoading ? undefined : "Setting up your game..."} />;
   }
   
@@ -453,14 +430,13 @@ export default function GamePage() {
                   <div className="text-sm text-muted-foreground text-center p-3">Waiting for partner to join...</div>
                 )}
               </div>
-              <Button onClick={() => handlePlayerReady('lobby')} className="w-full" size="lg" disabled={me.isReady || isLoading || players.length < 2}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : me.isReady ? 'Waiting for partner...' : players.length < 2 ? 'Waiting for partner...' : "I'm Ready!"}
+              <Button onClick={() => handlePlayerReady('lobby')} className="w-full" size="lg" disabled={me.isReady || players.length < 2}>
+                {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for partner...</> : players.length < 2 ? 'Waiting for partner...' : "I'm Ready!"}
               </Button>
             </CardContent>
           </Card>
         );
       case 'categories':
-        const bothReadyCat = players.every(p => p.isReady);
         return (
           <div className="w-full max-w-3xl">
             <h2 className="text-3xl font-bold text-center mb-2">Choose Your Categories</h2>
@@ -478,6 +454,7 @@ export default function GamePage() {
                     key={cat.name}
                     onClick={() => handleToggleCategory(cat.name)}
                     className={`transition-all duration-200 cursor-pointer relative overflow-hidden
+                      ${me.isReady ? 'cursor-not-allowed opacity-70' : ''}
                       ${isCommon ? 'border-primary ring-2 ring-primary shadow-lg' :
                       isSelectedByMe ? 'border-blue-400 ring-2 ring-blue-400' : 'hover:border-primary/50'}
                     `}
@@ -496,9 +473,9 @@ export default function GamePage() {
             </div>
             
             <Button onClick={() => handlePlayerReady('categories')} className="w-full max-w-xs mx-auto flex" size="lg" disabled={me.isReady || me.selectedCategories.length === 0}>
-                {me.isReady ? 'Waiting for partner...' : 'Confirm Selections'}
+                {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for partner...</> : 'Confirm Selections'}
             </Button>
-            {bothReadyCat && <p className="text-center mt-4 text-green-400">Both players ready! Moving on...</p>}
+            {players.every(p => p.isReady) && <p className="text-center mt-4 text-green-400 animate-pulse">Both players ready! Moving on...</p>}
           </div>
         );
       case 'spicy':
@@ -518,7 +495,7 @@ export default function GamePage() {
               >
                 {SPICY_LEVELS.map((level) => (
                     <Card key={level.name} className={`has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
-                        <Label htmlFor={level.name} className={`flex items-start space-x-4 p-4 cursor-pointer`}>
+                        <Label htmlFor={level.name} className={`flex items-start space-x-4 p-4 cursor-pointer ${me.isReady ? 'cursor-not-allowed' : ''}`}>
                             <RadioGroupItem value={level.name} id={level.name} className="mt-1"/>
                             <div className="flex-1">
                                 <h3 className="font-semibold">{level.name}</h3>
@@ -529,20 +506,20 @@ export default function GamePage() {
                 ))}
              </RadioGroup>
              {(me.isReady || partner?.isReady) && (
-              <div className='flex justify-around mt-4'>
+              <div className='flex justify-around mt-4 p-4 bg-secondary/50 rounded-lg'>
                 <div className='text-center'>
                   <p className='font-semibold'>{me.name}'s choice:</p>
-                  <p className='text-primary'>{mySpicySelection || 'Choosing...'}</p>
+                  <p className='text-primary font-bold text-lg'>{mySpicySelection || 'Choosing...'}</p>
                 </div>
                  {partner && <div className='text-center'>
                   <p className='font-semibold'>{partner.name}'s choice:</p>
-                  <p className='text-primary'>{partnerSpicySelection || 'Choosing...'}</p>
+                  <p className='text-primary font-bold text-lg'>{partnerSpicySelection || 'Choosing...'}</p>
                 </div>}
               </div>
             )}
              {players.every(p => p.isReady) && (
                 <div className="text-center mt-4 space-y-2">
-                    <p className="text-muted-foreground">Both players are ready. The game will begin with a <span className="font-bold text-primary">{finalSpicyLevel}</span> intensity.</p>
+                    <p className="text-muted-foreground">Both players are ready. The game will begin with <span className="font-bold text-primary">{finalSpicyLevel}</span> intensity.</p>
                     <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
                 </div>
             )}
@@ -553,6 +530,10 @@ export default function GamePage() {
         const myAnswer = currentRound?.answers[me.id];
         const partnerAnswer = partner ? currentRound?.answers[partner.id] : undefined;
         const bothAnswered = !!myAnswer && (players.length === 1 || !!partnerAnswer);
+
+        if (isLoading && !bothAnswered) {
+            return <LoadingScreen />;
+        }
 
         if (bothAnswered) {
           // Both players have answered, show the reveal view.
@@ -669,7 +650,7 @@ export default function GamePage() {
         <div className="flex-grow flex items-center justify-center w-full">
             <AnimatePresence mode="wait">
                 <motion.div
-                key={step + (gameRounds.find(r=>r.question === currentQuestion)?.answers[me?.id] && gameRounds.find(r=>r.question === currentQuestion)?.answers[partner?.id || ''] ? 'reveal' : 'answer')}
+                key={step + (step === 'game' ? (gameRounds.find(r=>r.question === currentQuestion)?.answers[me?.id] && gameRounds.find(r=>r.question === currentQuestion)?.answers[partner?.id || ''] ? 'reveal' : 'answer') : '')}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -683,5 +664,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
