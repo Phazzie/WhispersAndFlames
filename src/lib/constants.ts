@@ -31,3 +31,5 @@ export const SPICY_LEVELS: SpicyLevel[] = [
   { name: 'Hot', description: 'Turning up the heat. Questions that are daring and provocative.' },
   { name: 'Extra-Hot', description: 'For the bold and adventurous. Pushes boundaries and explores fantasies.' },
 ];
+
+export const QUESTIONS_PER_CATEGORY = 2;
