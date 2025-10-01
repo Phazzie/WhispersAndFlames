@@ -10,11 +10,20 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Users } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
+import { cn } from '@/lib/utils';
 
 type GameLayoutProps = {
   children: ReactNode;
   gameState: GameState;
   error: string | null;
+};
+
+const backgroundColors = {
+  lobby: 'bg-gradient-to-br from-background to-blue-950/30',
+  categories: 'bg-gradient-to-br from-background to-purple-950/30',
+  spicy: 'bg-gradient-to-br from-background to-amber-950/30',
+  game: 'bg-gradient-to-br from-background to-red-950/40',
+  summary: 'bg-gradient-to-br from-background to-emerald-950/30',
 };
 
 export function GameLayout({ children, gameState, error }: GameLayoutProps) {
@@ -31,9 +40,11 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
   })();
 
   const animationKey = `${step}-${(step === 'game' && 'currentQuestionIndex' in gameState) ? gameState.currentQuestionIndex : '0'}`;
+  
+  const bgClass = backgroundColors[step] || 'bg-background';
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background relative">
+    <div className={cn("min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000", bgClass)}>
       <div className="absolute top-0 left-0 right-0 p-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <Logo className="w-10 h-10 text-primary cursor-pointer" onClick={() => router.push('/')} />
