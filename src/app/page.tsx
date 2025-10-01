@@ -1,7 +1,8 @@
+
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import HomePageClient from '@/components/home-page';
 import { Logo } from '@/components/icons/logo';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'home-hero');
