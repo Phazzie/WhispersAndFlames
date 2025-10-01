@@ -44,7 +44,7 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
   const bgClass = backgroundColors[step] || 'bg-background';
 
   return (
-    <div className={cn("min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000", bgClass)}>
+    <div className={cn("min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000 font-body", bgClass)}>
       <div className="absolute top-0 left-0 right-0 p-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <Logo className="w-10 h-10 text-primary cursor-pointer" onClick={() => router.push('/')} />

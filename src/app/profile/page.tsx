@@ -82,7 +82,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background font-body">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
         <p className="mt-4 text-muted-foreground">Loading your history...</p>
       </div>
@@ -90,7 +90,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 sm:p-8 md:p-12 bg-background">
+    <div className="min-h-screen flex flex-col items-center p-4 sm:p-8 md:p-12 bg-background font-body">
         <div className="w-full max-w-4xl mx-auto">
             <div className='flex items-center justify-between mb-8'>
                 <Logo className="w-12 h-12 text-primary cursor-pointer" onClick={() => router.push('/')} />
@@ -101,7 +101,7 @@ export default function ProfilePage() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-3xl">My Sessions</CardTitle>
+                    <CardTitle className="text-3xl font-headline">My Sessions</CardTitle>
                     <CardDescription>Review your past conversations or jump back into an active one.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -132,7 +132,7 @@ export default function ProfilePage() {
                             ) : (
                                 <div className="text-center py-12">
                                     <Frown className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold">No Games Yet</h3>
+                                    <h3 className="text-xl font-semibold font-headline">No Games Yet</h3>
                                     <p className="text-muted-foreground mt-2">You haven't completed any games. Why not start one now?</p>
                                     <Button onClick={() => router.push('/')} className="mt-6">
                                         Start a New Game
@@ -158,7 +158,7 @@ export default function ProfilePage() {
                             ) : (
                                 <div className="text-center py-12">
                                     <Frown className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                                    <h3 className="text-xl font-semibold">No Active Games</h3>
+                                    <h3 className="text-xl font-semibold font-headline">No Active Games</h3>
                                     <p className="text-muted-foreground mt-2">You don't have any games in progress.</p>
                                      <Button onClick={() => router.push('/')} className="mt-6">
                                         Start a New Game

@@ -7,7 +7,7 @@ export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'home-hero');
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 md:p-12 relative overflow-hidden">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 md:p-12 relative overflow-hidden font-body">
       <div className="absolute inset-0 z-0">
         {heroImage && (
           <Image
