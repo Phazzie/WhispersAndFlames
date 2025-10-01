@@ -3,6 +3,7 @@ import Image from 'next/image';
 import HomePageClient from '@/components/home-page';
 import { Logo } from '@/components/icons/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const heroImage = PlaceHolderImages.find((img) => img.id === 'home-hero');
@@ -23,16 +24,23 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background to-background" />
       </div>
 
-      <div className="z-10 flex flex-col items-center text-center max-w-2xl w-full">
+      <div className="z-10 flex flex-col items-center text-center max-w-3xl w-full">
         <Logo className="w-24 h-24 mb-4 text-primary" />
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold font-headline tracking-tight text-foreground">
+        <h1 className={cn(
+          "text-4xl sm:text-5xl md:text-7xl font-bold font-headline tracking-tight text-transparent",
+          "bg-clip-text bg-gradient-to-r from-primary/80 via-primary to-primary/80",
+          "animate-pulse-slow"
+        )}>
           Whispers and Flames
         </h1>
-        <p className="mt-4 text-lg sm:text-xl text-muted-foreground max-w-lg">
-          Ignite connection and explore the depths of your intimacy through guided conversations.
+        <p className="mt-4 text-2xl sm:text-3xl text-foreground/90 font-light tracking-wide">
+          Your turn to play with fire.
         </p>
 
-        <div className="w-full max-w-md mt-10">
+        <div className="w-full max-w-md mt-12">
+            <p className="text-base sm:text-lg text-muted-foreground max-w-lg mb-6">
+                Ready to find out what you both really want? <br/>Ember is waiting.
+            </p>
           <HomePageClient />
         </div>
       </div>
