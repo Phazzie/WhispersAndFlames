@@ -49,10 +49,10 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <Logo className="w-10 h-10 text-primary cursor-pointer" onClick={() => router.push('/')} />
           <div className="flex items-center gap-4">
-            {players.length > 1 && (
+            {players.length > 0 && (
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-5 h-5" />
-                <span>{players.length} / 2</span>
+                <span>{players.length} / 3</span>
               </div>
             )}
             {step !== 'lobby' && <Progress value={progress} className="w-32 sm:w-64" />}

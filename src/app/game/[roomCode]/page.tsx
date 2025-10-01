@@ -52,7 +52,7 @@ export default function GamePage() {
         const data = snapshot.data() as GameState;
         const isNewUser = !data.playerIds.includes(currentUser.uid);
 
-        if (isNewUser && data.players.length < 2) {
+        if (isNewUser && data.players.length < 3) {
           const newPlayerName = `Player ${data.players.length + 1}`;
           const newPlayer: Player = { id: currentUser.uid, name: newPlayerName, isReady: false, email: currentUser.email!, selectedCategories: [] };
           await updateDoc(roomRef, {

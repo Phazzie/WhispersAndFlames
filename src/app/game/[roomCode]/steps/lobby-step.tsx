@@ -6,13 +6,29 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ClipboardCopy } from 'lucide-react';
-import type { StepProps } from '@/lib/game-types';
+import { Loader2, ClipboardCopy, Users } from 'lucide-react';
+import type { StepProps, Player } from '@/lib/game-types';
+
+const PlayerDisplay = ({ player, isMe }: { player: Player, isMe: boolean }) => (
+  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
+    <div className="flex flex-col">
+      <span className="font-semibold">{player.name} {isMe && '(You)'}</span>
+      <span className="text-xs text-muted-foreground">{player.email}</span>
+    </div>
+    {player.isReady ? <span className="text-sm text-green-400">Ready</span> : <span className="text-sm text-amber-400">Waiting...</span>}
+  </div>
+);
+
+const EmptyPlayerSlot = () => (
+    <div className="flex items-center justify-center p-3 rounded-lg bg-secondary/50 border border-dashed">
+        <div className="text-sm text-muted-foreground text-center">Waiting for a player to join...</div>
+    </div>
+);
+
 
 export function LobbyStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, toast, getDoc } = handlers;
   const { players, roomCode } = gameState;
-  const partner = players.find(p => p.id !== me.id);
   const [playerName, setPlayerName] = useState(me.name);
 
   const handleNameChange = async () => {
@@ -50,6 +66,11 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     }
   };
 
+  const allPlayers = [...players];
+  while(allPlayers.length < 3) {
+      allPlayers.push(null as any);
+  }
+
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
@@ -79,27 +100,13 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
         </div>
         
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-            <div className="flex flex-col">
-              <span className="font-semibold">{me.name} (You)</span>
-              <span className="text-xs text-muted-foreground">{me.email}</span>
-            </div>
-            {me.isReady ? <span className="text-sm text-green-400">Ready</span> : <span className="text-sm text-amber-400">Waiting...</span>}
-          </div>
-          {partner ? (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-              <div className="flex flex-col">
-                <span className="font-semibold">{partner.name}</span>
-                <span className="text-xs text-muted-foreground">{partner.email}</span>
-              </div>
-              {partner.isReady ? <span className="text-sm text-green-400">Ready</span> : <span className="text-sm text-amber-400">Waiting...</span>}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground text-center p-3">Waiting for partner to join...</div>
-          )}
+            {allPlayers.map((player, index) => player 
+                ? <PlayerDisplay key={player.id} player={player} isMe={player.id === me.id} />
+                : <EmptyPlayerSlot key={`empty-${index}`} />
+            )}
         </div>
-        <Button onClick={handlePlayerReady} className="w-full" size="lg" disabled={me.isReady || players.length < 2}>
-          {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for partner...</> : players.length < 2 ? 'Waiting for partner...' : "I'm Ready!"}
+        <Button onClick={handlePlayerReady} className="w-full" size="lg" disabled={me.isReady || players.length < 3}>
+          {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...</> : players.length < 3 ? 'Waiting for players...' : "I'm Ready!"}
         </Button>
       </CardContent>
     </Card>
