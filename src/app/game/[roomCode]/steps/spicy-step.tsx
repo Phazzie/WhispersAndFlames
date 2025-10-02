@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { SPICY_LEVELS } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
