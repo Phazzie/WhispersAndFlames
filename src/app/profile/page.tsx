@@ -63,7 +63,7 @@ export default function ProfilePage() {
             return {
               id: doc.id,
               completedAt: completedAt,
-              participants: participants.length > 0 ? participants : [{id: 'solo', name: 'Solo Game', email: '', isReady: false, selectedCategories:[] }],
+              participants: participants,
               summary: gameData.summary,
               step: gameData.step,
             };
@@ -83,7 +83,7 @@ export default function ProfilePage() {
   }, [user]);
 
   const getParticipantNames = (participants: Player[]) => {
-      if (participants.length === 0 || (participants.length === 1 && participants[0].id === 'solo')) {
+      if (participants.length === 0) {
           return 'Solo Game';
       }
       return participants.map(p => p.name).join(' & ');
