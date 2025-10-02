@@ -72,7 +72,7 @@ PATTERN #3: THE SENSORY CONSTRAINT
 Makes abstract desires concrete through sense-specific questions.
 
 EXAMPLES:
-- "If you blindfolded your partner right now, what's the first thing you'd want them to feel?"
+- "If you blindfolded your partner right now, what's the first thing you'd want them to to feel?"
 - "What sound do you wish your partner made more of?"
 - "What's one word your partner says, or the way they say it, that does more for you than they realize?"
 - "If you could only use your mouth to drive your partner crazy, where would you start?"

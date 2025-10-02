@@ -8,6 +8,7 @@ import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
 
 const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
+const getPlayerColor = (playerIndex: number) => PLAYER_COLORS[playerIndex] || 'bg-gray-400';
 
 export function CategoriesStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, toast, getDoc } = handlers;
@@ -62,10 +63,6 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
     }
   };
-  
-  const getPlayerColor = (playerIndex: number) => {
-    return PLAYER_COLORS[playerIndex] || 'bg-gray-400';
-  }
 
   return (
     <div className="w-full max-w-3xl">

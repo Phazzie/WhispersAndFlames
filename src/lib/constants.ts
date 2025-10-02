@@ -1,5 +1,5 @@
+import { Flame, Heart, Drama, BrainCircuit, Handshake, Sun, Moon, Gem, Lightbulb, Swords, Wind, Zap, Sunrise } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Flame, Heart, Drama, BrainCircuit, Handshake, Sun, Moon, Gem, Lightbulb, Swords } from 'lucide-react';
 
 export type Category = {
   name: string;
@@ -23,13 +23,14 @@ export const CATEGORIES: Category[] = [
 export type SpicyLevel = {
   name: 'Mild' | 'Medium' | 'Hot' | 'Extra-Hot';
   description: string;
+  icon: LucideIcon;
 };
 
 export const SPICY_LEVELS: SpicyLevel[] = [
-  { name: 'Mild', description: 'Gentle questions to warm things up. Perfect for getting started.' },
-  { name: 'Medium', description: 'Getting a little more personal. Explores deeper feelings and thoughts.' },
-  { name: 'Hot', description: 'Turning up the heat. Questions that are daring and provocative.' },
-  { name: 'Extra-Hot', description: 'For the bold and adventurous. Pushes boundaries and explores fantasies.' },
+  { name: 'Mild', description: 'Gentle questions to warm things up. Perfect for getting started.', icon: Wind },
+  { name: 'Medium', description: 'Getting a little more personal. Explores deeper feelings and thoughts.', icon: Sunrise },
+  { name: 'Hot', description: 'Turning up the heat. Questions that are daring and provocative.', icon: Flame },
+  { name: 'Extra-Hot', description: 'For the bold and adventurous. Pushes boundaries and explores fantasies.', icon: Zap },
 ];
 
 export const QUESTIONS_PER_CATEGORY = 2;

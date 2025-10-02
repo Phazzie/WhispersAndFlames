@@ -4,18 +4,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowRight, Wind, Sunrise, Flame, Zap, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, Sparkles } from 'lucide-react';
 import { SPICY_LEVELS } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 import { LoadingScreen } from '../loading-screen';
-
-const spicyLevelIcons = {
-  Mild: Wind,
-  Medium: Sunrise,
-  Hot: Flame,
-  'Extra-Hot': Zap,
-};
 
 export function SpicyStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, getDoc, setIsLoading, setError, generateQuestionAction, toast } = handlers;
@@ -103,7 +96,7 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
             animate="visible"
         >
             {SPICY_LEVELS.map((level) => {
-              const Icon = spicyLevelIcons[level.name];
+              const Icon = level.icon;
               const isSelectedByMe = selectedLevel === level.name;
               
               return (
