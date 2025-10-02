@@ -32,27 +32,28 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   const [playerName, setPlayerName] = useState(me.name);
 
   const handleNameChange = async () => {
-    if (!playerName.trim() || me.name === playerName.trim()) return;
+    const newName = playerName.trim();
+    if (!newName || me.name === newName) return;
 
     const currentDoc = await getDoc(roomRef);
     const currentGameState = currentDoc.data() as any;
     
     const updatedPlayers = currentGameState.players.map(p =>
-      p.id === me.id ? { ...p, name: playerName.trim() } : p
+      p.id === me.id ? { ...p, name: newName } : p
     );
     await updateGameState({ players: updatedPlayers });
-    toast({ title: 'Name updated!', description: `You are now known as ${playerName.trim()}`});
+    toast({ title: 'Name updated!', description: `You are now known as ${newName}`});
   };
 
   const handlePlayerReady = async () => {
-    await handleNameChange();
-
     const currentDoc = await getDoc(roomRef);
     const currentGameState = currentDoc.data() as any;
 
     const updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
 
+    // This check should be performed on the updated state from the listener, not here.
+    // The listener on the main page will handle transitioning to the next step.
     if (updatedPlayers.every(p => p.isReady)) {
       const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
       await updateGameState({ step: 'categories', players: resetPlayers });
@@ -106,7 +107,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
             )}
         </div>
         <Button onClick={handlePlayerReady} className="w-full" size="lg" disabled={me.isReady || players.length < 3}>
-          {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...</> : players.length < 3 ? 'Waiting for players...' : "I'm Ready!"}
+          {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...</> : players.length < 3 ? 'Waiting for 3 players...' : "I'm Ready!"}
         </Button>
       </CardContent>
     </Card>

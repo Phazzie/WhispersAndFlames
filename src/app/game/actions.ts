@@ -9,13 +9,29 @@ function getFallbackQuestion(): string {
     return "What's one secret you've never told your partner about something you find attractive in them?";
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('AI operation timed out'));
+    }, ms);
+
+    promise
+      .then(value => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(reason => {
+        clearTimeout(timer);
+        reject(reason);
+      });
+  });
+}
 
 export async function generateQuestionAction(input: GenerateContextualQuestionsInput): Promise<{ question: string } | { error: string }> {
   try {
-    // Add a 3-time retry mechanism with a circuit breaker for the AI call
     for (let i = 0; i < 3; i++) {
         try {
-            const result = await generateContextualQuestions(input);
+            const result = await withTimeout(generateContextualQuestions(input), 8000); // 8-second timeout
             if (result.question) {
                 return { question: result.question };
             }
@@ -29,10 +45,9 @@ export async function generateQuestionAction(input: GenerateContextualQuestionsI
     // This part should be unreachable, but as a safeguard:
     return { question: getFallbackQuestion() };
 
-  } catch (error) {
+  } catch (error) e {
     console.error('AI question generation failed permanently. Using fallback.', error);
-    const fallbackQuestion = getFallbackQuestion();
-    return { question: fallbackQuestion };
+    return { error: 'The AI is taking too long to respond. Please try again in a moment.' };
   }
 }
 

@@ -29,6 +29,7 @@ This document provides instructions for Gemini, the AI coding assistant, on how 
 - `src/ai/flows/*.ts`: Genkit flows for generating questions and summaries.
 - `src/ai/genkit.ts`: Genkit initialization and configuration.
 - `aiprompting.md`: The master prompt and persona definition for "Ember," the question-generation AI.
+- `agents.md`: High-level overview of the AI agent personas used in the app.
 - `package.json`: Project dependencies. Any new packages added here will be auto-installed.
 
 ## 4. Coding & Development Guidelines
@@ -52,7 +53,7 @@ This document provides instructions for Gemini, the AI coding assistant, on how 
 ### Genkit (AI)
 - **Flows:** AI logic is encapsulated in Genkit flows located in `src/ai/flows/`.
 - **Schemas:** Use Zod (`z`) to define input and output schemas for all flows. This ensures type safety and predictable AI outputs.
-- **Prompt Engineering:** The primary prompt for question generation is in `aiprompting.md`. When modifying AI behavior, start by refining this prompt.
+- **Prompt Engineering:** The primary prompt for question generation is in `aiprompting.md`. Refer to this for AI behavior changes.
 
 ## 5. Responding to User Requests
 

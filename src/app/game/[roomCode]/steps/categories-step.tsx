@@ -35,19 +35,18 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     const currentDoc = await getDoc(roomRef);
     let currentGameState = currentDoc.data() as GameState;
 
+    // Critical Bug Fix: Prevent moving forward if not all players are present.
+    if (currentGameState.players.length !== 3) {
+      toast({ title: "Waiting for Players", description: "You need exactly 3 players to start the game.", variant: 'destructive', duration: 5000});
+      return;
+    }
+
     let updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
 
     currentGameState = { ...currentGameState, players: updatedPlayers };
 
     if (updatedPlayers.every(p => p.isReady)) {
-      if (updatedPlayers.length < 3) {
-        toast({ title: "Waiting for Players", description: "You need 3 players to start the game.", variant: 'destructive', duration: 5000});
-        const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
-        await updateGameState({ players: unReadyPlayers });
-        return;
-      }
-      
       const allSelectedCategories = updatedPlayers.map(p => p.selectedCategories);
       const commonCategories = allSelectedCategories.reduce((a, b) => a.filter(c => b.includes(c)));
           
