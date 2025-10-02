@@ -14,15 +14,14 @@ import { LoadingScreen } from '../loading-screen';
 export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, getDoc, setIsLoading, setError, generateQuestionAction, analyzeAndSummarizeAction, toast } = handlers;
   const { players, currentQuestion, gameRounds, totalQuestions, currentQuestionIndex } = gameState;
-  const partner = players.find(p => p.id !== me.id);
+  const otherPlayers = players.filter(p => p.id !== me.id);
 
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const currentRound = gameRounds.find(r => r.question === currentQuestion);
   const myAnswer = currentRound?.answers[me.id];
-  const partnerAnswer = partner ? currentRound?.answers[partner.id] : undefined;
-  const bothAnswered = !!myAnswer && (players.length === 1 || !!partnerAnswer);
+  const allPlayersAnswered = currentRound && Object.keys(currentRound.answers).length === players.length;
   
   const handleSubmitAnswer = async () => {
     if (!currentAnswer.trim()) {
@@ -40,6 +39,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
     if (currentRoundIndexInState > -1) {
         updatedGameRounds[currentRoundIndexInState].answers[me.id] = currentAnswer;
     } else {
+        // This case should ideally not happen if a question is set, but as a fallback:
         updatedGameRounds.push({
             question: currentGameState.currentQuestion,
             answers: { [me.id]: currentAnswer },
@@ -107,9 +107,10 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
       return <LoadingScreen />;
   }
 
-  if (bothAnswered) {
+  if (allPlayersAnswered) {
+    const readyPlayerCount = players.filter(p => p.isReady).length;
     return (
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <p className="text-center text-primary font-semibold mb-4">Question {currentQuestionIndex} of {totalQuestions}</p>
         <Card>
           <CardHeader>
@@ -118,21 +119,25 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
             </blockquote>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            <div className="space-y-2">
-              <Label className="font-semibold text-base">{me.name}'s Answer:</Label>
-              <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{myAnswer}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {players.map(player => (
+                <div key={player.id} className="space-y-2">
+                  <Label className="font-semibold text-base">{player.name}'s Answer:</Label>
+                  <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap h-full">{currentRound.answers[player.id]}</p>
+                </div>
+              ))}
             </div>
-            {partner && (
-              <div className="space-y-2">
-                <Label className="font-semibold text-base">{partner.name}'s Answer:</Label>
-                <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap">{partnerAnswer}</p>
-              </div>
-            )}
-            <Button onClick={handleNextStep} className="w-full" size="lg" disabled={me.isReady}>
+            
+            <Button onClick={handleNextStep} className="w-full mt-6" size="lg" disabled={me.isReady}>
               {me.isReady ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (currentQuestionIndex >= totalQuestions ? 'See Summary' : 'Next Question')}
               {!me.isReady && (currentQuestionIndex < totalQuestions) && <ArrowRight className="ml-2" />}
             </Button>
-            {me.isReady && partner && !partner.isReady && <p className="text-center text-sm text-muted-foreground mt-2 animate-pulse">Waiting for {partner.name} to continue...</p>}
+
+            {me.isReady && readyPlayerCount < players.length && 
+              <p className="text-center text-sm text-muted-foreground mt-2 animate-pulse">
+                Waiting for {players.length - readyPlayerCount} more player{players.length - readyPlayerCount > 1 ? 's' : ''}...
+              </p>
+            }
           </CardContent>
         </Card>
       </div>
@@ -156,14 +161,16 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
                   disabled={!!myAnswer}
               />
               <Button onClick={handleSubmitAnswer} className="w-full mt-6" size="lg" disabled={!currentAnswer.trim() || !!myAnswer}>
-                  {myAnswer ? 'Waiting for partner...' : 'Submit Answer'}
+                  {myAnswer ? 'Waiting for other players...' : 'Submit Answer'}
               </Button>
 
-              {myAnswer && (!partner || !partnerAnswer) && (
-                <p className="text-center text-muted-foreground text-sm mt-4 animate-pulse">Waiting for your partner to answer...</p>
+              {myAnswer && !allPlayersAnswered && (
+                <p className="text-center text-muted-foreground text-sm mt-4 animate-pulse">Waiting for other players to answer...</p>
               )}
           </CardContent>
       </Card>
     </div>
   );
 }
+
+    

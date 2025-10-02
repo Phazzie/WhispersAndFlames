@@ -12,10 +12,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Home, Frown, Play } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
+import type { Player } from '@/lib/game-types';
 
 type GameSession = {
     id: string;
-    partner: { id: string, name: string; email: string };
+    participants: Player[];
     summary?: string;
     completedAt?: Date;
     step: string;
@@ -53,7 +54,8 @@ export default function ProfilePage() {
         const allUserGames = querySnapshot.docs
           .map(doc => {
             const gameData = doc.data();
-            const partnerData = gameData.players.find((p: any) => p.id !== user.uid) || { id: 'solo', name: 'Solo Game', email: '' };
+            const participants = gameData.players.filter((p: any) => p.id !== user.uid);
+            
             const completedAt = gameData.completedAt instanceof Timestamp 
                 ? gameData.completedAt.toDate() 
                 : (gameData.completedAt ? new Date(gameData.completedAt) : undefined);
@@ -61,7 +63,7 @@ export default function ProfilePage() {
             return {
               id: doc.id,
               completedAt: completedAt,
-              partner: partnerData,
+              participants: participants.length > 0 ? participants : [{id: 'solo', name: 'Solo Game', email: '', isReady: false, selectedCategories:[] }],
               summary: gameData.summary,
               step: gameData.step,
             };
@@ -79,6 +81,13 @@ export default function ProfilePage() {
 
     fetchGames();
   }, [user]);
+
+  const getParticipantNames = (participants: Player[]) => {
+      if (participants.length === 0 || participants[0].id === 'solo') {
+          return 'Solo Game';
+      }
+      return participants.map(p => p.name).join(' & ');
+  }
 
   if (loading) {
     return (
@@ -117,7 +126,7 @@ export default function ProfilePage() {
                                         <AccordionItem value={`item-${index}`} key={game.id}>
                                             <AccordionTrigger>
                                                 <div className='flex justify-between w-full pr-4'>
-                                                    <span>Session with {game.partner.name}</span>
+                                                    <span>Session with {getParticipantNames(game.participants)}</span>
                                                     <span className='text-muted-foreground'>{game.completedAt?.toLocaleDateString()}</span>
                                                 </div>
                                             </AccordionTrigger>
@@ -146,7 +155,7 @@ export default function ProfilePage() {
                                     {inProgress.map(game => (
                                         <Card key={game.id} className="flex items-center justify-between p-4">
                                             <div>
-                                                <p className="font-semibold">Session with {game.partner.name}</p>
+                                                <p className="font-semibold">Session with {getParticipantNames(game.participants)}</p>
                                                 <p className="text-sm text-muted-foreground">Game in progress</p>
                                             </div>
                                             <Button onClick={() => router.push(`/game/${game.id}`)}>
