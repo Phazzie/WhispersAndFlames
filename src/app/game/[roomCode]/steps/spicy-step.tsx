@@ -12,9 +12,6 @@ import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 export function SpicyStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, getDoc, setIsLoading, setError, generateQuestionAction, toast } = handlers;
   const { players, finalSpicyLevel, commonCategories } = gameState;
-  const partner = players.find(p => p.id !== me.id);
-  const mySpicySelection = me?.selectedSpicyLevel;
-  const partnerSpicySelection = partner?.selectedSpicyLevel;
 
   const startFirstQuestion = async (level: SpicyLevel['name'], categories: string[]) => {
     setError(null);
@@ -50,9 +47,8 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
     
     if (allReady) {
         setIsLoading(true);
-        const p1Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers.find(p=>p.id === me.id)!.selectedSpicyLevel!);
-        const p2Level = SPICY_LEVELS.findIndex(l => l.name === updatedPlayers.find(p=>p.id !== me.id)!.selectedSpicyLevel!);
-        const finalLevelIndex = Math.min(p1Level, p2Level);
+        const playerLevels = updatedPlayers.map(p => SPICY_LEVELS.findIndex(l => l.name === p.selectedSpicyLevel!));
+        const finalLevelIndex = Math.min(...playerLevels);
         const finalLevel = SPICY_LEVELS[finalLevelIndex].name;
 
         await updateGameState({ finalSpicyLevel: finalLevel });
@@ -64,10 +60,10 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
     <div className="w-full max-w-lg">
       <h2 className="text-3xl font-bold text-center mb-2">Set The Mood</h2>
       <p className="text-muted-foreground text-center mb-8">
-        Choose your desired level of intensity. The game will use the mildest level chosen by either of you.
+        Choose your desired level of intensity. The game will use the mildest level chosen by any player.
       </p>
       <RadioGroup
-          value={mySpicySelection}
+          value={me.selectedSpicyLevel}
           onValueChange={handleSpicySelect}
           className="space-y-4"
           disabled={me.isReady}
@@ -84,21 +80,19 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
               </Card>
           ))}
       </RadioGroup>
-      {(me.isReady || partner?.isReady) && (
-        <div className='flex justify-around mt-4 p-4 bg-secondary/50 rounded-lg'>
-          <div className='text-center'>
-            <p className='font-semibold'>{me.name}'s choice:</p>
-            <p className='text-primary font-bold text-lg'>{mySpicySelection || 'Choosing...'}</p>
-          </div>
-          {partner && <div className='text-center'>
-            <p className='font-semibold'>{partner.name}'s choice:</p>
-            <p className='text-primary font-bold text-lg'>{partnerSpicySelection || 'Choosing...'}</p>
-          </div>}
+      {players.some(p => p.isReady) && (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 p-4 bg-secondary/50 rounded-lg'>
+          {players.map(player => (
+            <div key={player.id} className='text-center'>
+              <p className='font-semibold'>{player.name}{player.id === me.id ? ' (You)' : ''}:</p>
+              <p className='text-primary font-bold text-lg'>{player.selectedSpicyLevel || 'Choosing...'}</p>
+            </div>
+          ))}
         </div>
       )}
       {players.every(p => p.isReady) && (
           <div className="text-center mt-4 space-y-2">
-              <p className="text-muted-foreground">Both players are ready. The game will begin with <span className="font-bold text-primary">{finalSpicyLevel}</span> intensity.</p>
+              <p className="text-muted-foreground">All players are ready. The game will begin with <span className="font-bold text-primary">{finalSpicyLevel}</span> intensity.</p>
               <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
           </div>
       )}
