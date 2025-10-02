@@ -34,32 +34,38 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     const currentDoc = await getDoc(roomRef);
     let currentGameState = currentDoc.data() as GameState;
 
-    const updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
+    // Mark current player as ready
+    let updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
 
     currentGameState = { ...currentGameState, players: updatedPlayers };
 
+    // Check if all players are now ready
     if (updatedPlayers.every(p => p.isReady)) {
+      // Re-verify player count, although lobby should prevent this
       if (updatedPlayers.length < 3) {
         toast({ title: "Waiting for Players", description: "You need 3 players to start the game.", variant: 'destructive', duration: 5000});
+        // Un-ready everyone so the host can see the message
         const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
         await updateGameState({ players: unReadyPlayers });
         return;
       }
       
       const allSelectedCategories = updatedPlayers.map(p => p.selectedCategories);
+      // Find the intersection of all player's selected categories
       const commonCategories = allSelectedCategories.reduce((a, b) => a.filter(c => b.includes(c)));
           
       if (commonCategories.length === 0) {
           toast({ title: "No Common Ground", description: "All three players must select at least one category in common.", variant: 'destructive', duration: 5000});
+          // Un-ready everyone to allow for re-selection
           const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
           await updateGameState({ players: unReadyPlayers });
           return;
       }
       
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      // Reset isReady state for the next step
-      const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false }));
+      // Reset isReady state for the next step and move to spicy selection
+      const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false, selectedSpicyLevel: undefined }));
       await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
     }
   };
