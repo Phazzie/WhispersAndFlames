@@ -1,17 +1,26 @@
 
 'use client';
 
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowRight, Wind, Sunrise, Flame, Zap, Sparkles } from 'lucide-react';
 import { SPICY_LEVELS, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
+import { cn } from '@/lib/utils';
+
+const spicyLevelIcons = {
+  Mild: Wind,
+  Medium: Sunrise,
+  Hot: Flame,
+  'Extra-Hot': Zap,
+};
+
 
 export function SpicyStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, getDoc, setIsLoading, setError, generateQuestionAction, toast } = handlers;
   const { players, finalSpicyLevel, commonCategories } = gameState;
+  const [selectedLevel, setSelectedLevel] = useState<SpicyLevel['name'] | undefined>(me.selectedSpicyLevel);
 
   const startFirstQuestion = async (level: SpicyLevel['name'], categories: string[]) => {
     setError(null);
@@ -27,12 +36,16 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
     } else {
         setError(result.error);
         toast({ title: 'Error starting game', description: result.error, variant: 'destructive' });
+        // un-ready everyone if it fails
+        const unreadyPlayers = gameState.players.map(p => ({ ...p, isReady: false, selectedSpicyLevel: undefined }));
+        await updateGameState({ players: unreadyPlayers });
     }
     setIsLoading(false);
   };
 
   const handleSpicySelect = async (value: SpicyLevel['name']) => {
     if (me.isReady) return;
+    setSelectedLevel(value);
     
     let currentGameState = (await getDoc(roomRef)).data() as GameState;
     
@@ -56,46 +69,134 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 100,
+        damping: 10,
+      },
+    },
+    hover: {
+        scale: 1.03,
+        translateY: -5,
+        boxShadow: "0px 15px 25px hsla(var(--primary) / 0.15)",
+        transition: { type: 'spring', stiffness: 300, damping: 15 }
+    }
+  };
+  
+  if (players.every(p => p.isReady)) {
+      return (
+          <div className="text-center mt-4 space-y-4 flex flex-col items-center">
+              <p className="text-xl text-muted-foreground">All players are ready. The game will begin with...</p>
+              <p className="text-5xl font-bold text-primary animate-pulse">{finalSpicyLevel} intensity.</p>
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mt-4" />
+          </div>
+      );
+  }
+
   return (
-    <div className="w-full max-w-lg">
-      <h2 className="text-3xl font-bold text-center mb-2">Set The Mood</h2>
-      <p className="text-muted-foreground text-center mb-8">
-        Choose your desired level of intensity. The game will use the mildest level chosen by any player.
-      </p>
-      <RadioGroup
-          value={me.selectedSpicyLevel}
-          onValueChange={handleSpicySelect}
-          className="space-y-4"
-          disabled={me.isReady}
+    <div className="w-full max-w-5xl text-center">
+        <h1 className="text-5xl md:text-6xl font-bold font-headline text-foreground leading-tight">
+            Set the Mood
+        </h1>
+        <p className="mt-2 text-lg text-muted-foreground max-w-lg mx-auto">
+            Choose your heat. The game will use the mildest level chosen by any player.
+        </p>
+
+        <motion.div 
+            className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
         >
-          {SPICY_LEVELS.map((level) => (
-              <Card key={level.name} className={`has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary`}>
-                  <Label htmlFor={level.name} className={`flex items-start space-x-4 p-4 cursor-pointer ${me.isReady ? 'cursor-not-allowed' : ''}`}>
-                      <RadioGroupItem value={level.name} id={level.name} className="mt-1"/>
-                      <div className="flex-1">
-                          <h3 className="font-semibold">{level.name}</h3>
-                          <p className="text-muted-foreground text-sm">{level.description}</p>
-                      </div>
-                  </Label>
-              </Card>
-          ))}
-      </RadioGroup>
-      {players.some(p => p.isReady) && (
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 p-4 bg-secondary/50 rounded-lg'>
+            {SPICY_LEVELS.map((level) => {
+              const Icon = spicyLevelIcons[level.name];
+              const isSelectedByMe = selectedLevel === level.name;
+              
+              return (
+                <motion.div
+                    key={level.name}
+                    variants={cardVariants}
+                    whileHover={me.isReady ? '' : 'hover'}
+                    onClick={() => handleSpicySelect(level.name)}
+                    className={cn(
+                        "group relative rounded-xl border-4 p-6 text-center cursor-pointer transition-all duration-300 ease-in-out overflow-hidden",
+                        me.isReady && 'opacity-60 cursor-not-allowed',
+                        isSelectedByMe ? 'border-primary bg-primary/10 shadow-2xl shadow-primary/20' : 'border-border bg-card'
+                    )}
+                >
+                    <div className="relative z-10 flex flex-col items-center">
+                        <motion.div 
+                            className={cn(
+                                "flex items-center justify-center w-16 h-16 rounded-full mb-4 transition-colors duration-300",
+                                isSelectedByMe ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground group-hover:bg-primary group-hover:text-primary-foreground'
+                            )}
+                            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                            animate={{ scale: isSelectedByMe ? 1.1 : 1 }}
+                        >
+                            <Icon className="w-8 h-8" />
+                        </motion.div>
+                        <h3 className="text-2xl font-bold font-headline">{level.name}</h3>
+                        <p className="mt-2 text-muted-foreground text-sm h-12">{level.description}</p>
+                    </div>
+
+                    <AnimatePresence>
+                    {isSelectedByMe && !me.isReady && (
+                        <motion.div
+                            initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
+                            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                            exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                            className="absolute -top-3 -right-3 w-8 h-8 bg-accent rounded-full flex items-center justify-center text-accent-foreground"
+                        >
+                            <Sparkles className="w-5 h-5" />
+                        </motion.div>
+                    )}
+                    </AnimatePresence>
+                </motion.div>
+            )})}
+        </motion.div>
+
+        {me.isReady && (
+          <div className="mt-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+            <p className="mt-2 text-muted-foreground">Waiting for other players to choose...</p>
+          </div>
+        )}
+
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 p-4 bg-secondary/50 rounded-lg max-w-2xl mx-auto'>
           {players.map(player => (
             <div key={player.id} className='text-center'>
               <p className='font-semibold'>{player.name}{player.id === me.id ? ' (You)' : ''}:</p>
-              <p className='text-primary font-bold text-lg'>{player.selectedSpicyLevel || 'Choosing...'}</p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={player.selectedSpicyLevel || 'Choosing...'}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className='text-primary font-bold text-xl'
+                >
+                  {player.selectedSpicyLevel || 'Choosing...'}
+                </motion.p>
+              </AnimatePresence>
             </div>
           ))}
         </div>
-      )}
-      {players.every(p => p.isReady) && (
-          <div className="text-center mt-4 space-y-2">
-              <p className="text-muted-foreground">All players are ready. The game will begin with <span className="font-bold text-primary">{finalSpicyLevel}</span> intensity.</p>
-              <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
-          </div>
-      )}
     </div>
   );
 }
