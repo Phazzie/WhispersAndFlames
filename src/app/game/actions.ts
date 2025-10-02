@@ -29,6 +29,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 export async function generateQuestionAction(input: GenerateContextualQuestionsInput): Promise<{ question: string } | { error: string }> {
   try {
+    // Retry up to 3 times
     for (let i = 0; i < 3; i++) {
         try {
             const result = await withTimeout(generateContextualQuestions(input), 8000); // 8-second timeout
@@ -45,17 +46,20 @@ export async function generateQuestionAction(input: GenerateContextualQuestionsI
     // This part should be unreachable, but as a safeguard:
     return { question: getFallbackQuestion() };
 
-  } catch (error) e {
-    console.error('AI question generation failed permanently. Using fallback.', error);
+  } catch (error: any) {
+    console.error('AI question generation failed permanently:', error);
     return { error: 'The AI is taking too long to respond. Please try again in a moment.' };
   }
 }
 
 export async function analyzeAndSummarizeAction(input: AnalyzeAnswersInput): Promise<{ summary: string } | { error: string }> {
   try {
-    const result = await analyzeAnswersAndGenerateSummary(input);
-    return { summary: result.summary };
-  } catch (error) {
+    const result = await withTimeout(analyzeAnswersAndGenerateSummary(input), 15000); // 15-second timeout
+    if (result.summary) {
+        return { summary: result.summary };
+    }
+    throw new Error("Failed to get summary from AI.");
+  } catch (error: any) {
     console.error('AI summary generation failed:', error);
     return { error: 'Could not generate a summary at this time. Please try again later.' };
   }

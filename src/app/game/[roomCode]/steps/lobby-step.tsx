@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ClipboardCopy, Users } from 'lucide-react';
+import { Loader2, ClipboardCopy } from 'lucide-react';
 import type { StepProps, Player } from '@/lib/game-types';
 
 const PlayerDisplay = ({ player, isMe }: { player: Player, isMe: boolean }) => (
@@ -35,27 +35,41 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     const newName = playerName.trim();
     if (!newName || me.name === newName) return;
 
+    // This function now *only* handles the name change.
     const currentDoc = await getDoc(roomRef);
+    if (!currentDoc.exists()) return;
+
     const currentGameState = currentDoc.data() as any;
     
-    const updatedPlayers = currentGameState.players.map(p =>
+    const updatedPlayers = currentGameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, name: newName } : p
     );
+
     await updateGameState({ players: updatedPlayers });
     toast({ title: 'Name updated!', description: `You are now known as ${newName}`});
   };
 
   const handlePlayerReady = async () => {
+    // This function now *only* handles the ready state.
     const currentDoc = await getDoc(roomRef);
+    if (!currentDoc.exists()) return;
+    
     const currentGameState = currentDoc.data() as any;
 
-    const updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
+    // Check if we have exactly 3 players before allowing ready-up.
+    if (currentGameState.players.length < 3) {
+        toast({title: "Waiting for more players", description: "You need 3 players to be in the room to start.", variant: "destructive"});
+        return;
+    }
+
+    const updatedPlayers = currentGameState.players.map((p: Player) => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
 
-    // This check should be performed on the updated state from the listener, not here.
-    // The listener on the main page will handle transitioning to the next step.
-    if (updatedPlayers.every(p => p.isReady)) {
-      const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
+    // The game progression logic is handled by the listener in page.tsx
+    // We can add a check here just to be safe and potentially move to the next state if all are ready
+    const allPlayersReady = updatedPlayers.every((p: Player) => p.isReady);
+    if (allPlayersReady) {
+      const resetPlayers = updatedPlayers.map((p: Player) => ({...p, isReady: false}));
       await updateGameState({ step: 'categories', players: resetPlayers });
     }
   };
@@ -93,7 +107,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
               id="playerName"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              onBlur={handleNameChange}
+              onBlur={handleNameChange} // Update name on blur
               placeholder="Enter your name"
               disabled={me.isReady}
             />

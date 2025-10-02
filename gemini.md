@@ -10,7 +10,7 @@ This document provides instructions for Gemini, the AI coding assistant, on how 
 
 ## 2. Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Backend & Database**: Firebase (Firestore for real-time game state, Firebase Auth for users)

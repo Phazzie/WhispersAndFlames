@@ -32,6 +32,12 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
   };
   
   const handlePlayerReady = async () => {
+    // Player must select at least one category to be ready
+    if (me.selectedCategories.length === 0) {
+        toast({ title: "No categories selected", description: "Please select at least one category to explore.", variant: 'destructive'});
+        return;
+    }
+
     const currentDoc = await getDoc(roomRef);
     let currentGameState = currentDoc.data() as GameState;
 
@@ -44,21 +50,24 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     let updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
 
-    currentGameState = { ...currentGameState, players: updatedPlayers };
+    // Re-fetch the state to ensure we have the most recent data for the final check.
+    currentGameState = (await getDoc(roomRef)).data() as GameState;
 
-    if (updatedPlayers.every(p => p.isReady)) {
-      const allSelectedCategories = updatedPlayers.map(p => p.selectedCategories);
+    // The game should only advance if ALL players are now ready.
+    if (currentGameState.players.every(p => p.isReady)) {
+      const allSelectedCategories = currentGameState.players.map(p => p.selectedCategories);
       const commonCategories = allSelectedCategories.reduce((a, b) => a.filter(c => b.includes(c)));
           
       if (commonCategories.length === 0) {
-          toast({ title: "No Common Ground", description: "All three players must select at least one category in common.", variant: 'destructive', duration: 5000});
-          const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
+          toast({ title: "No Common Ground", description: "All three players must select at least one category in common. Please discuss and re-select.", variant: 'destructive', duration: 8000});
+          // Un-ready all players so they can change their selections
+          const unReadyPlayers = currentGameState.players.map(p => ({...p, isReady: false}));
           await updateGameState({ players: unReadyPlayers });
           return;
       }
       
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false, selectedSpicyLevel: undefined }));
+      const resetPlayers = currentGameState.players.map(p => ({...p, isReady: false, selectedSpicyLevel: undefined }));
       await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
     }
   };
@@ -105,7 +114,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
         })}
       </div>
       
-      <Button onClick={handlePlayerReady} className="w-full max-w-xs mx-auto flex" size="lg" disabled={me.isReady || me.selectedCategories.length === 0}>
+      <Button onClick={handlePlayerReady} className="w-full max-w-xs mx-auto flex" size="lg" disabled={me.isReady}>
           {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...</> : 'Confirm Selections'}
       </Button>
     </div>
