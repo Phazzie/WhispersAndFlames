@@ -14,7 +14,6 @@ import { LoadingScreen } from '../loading-screen';
 export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, getDoc, setIsLoading, setError, generateQuestionAction, analyzeAndSummarizeAction, toast } = handlers;
   const { players, currentQuestion, gameRounds, totalQuestions, currentQuestionIndex } = gameState;
-  const otherPlayers = players.filter(p => p.id !== me.id);
 
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,13 +103,13 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   };
   
   if (isSubmitting) {
-      return <LoadingScreen />;
+      return <LoadingScreen message="Submitting your answer..." />;
   }
 
   if (allPlayersAnswered) {
     const readyPlayerCount = players.filter(p => p.isReady).length;
     return (
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         <p className="text-center text-primary font-semibold mb-4">Question {currentQuestionIndex} of {totalQuestions}</p>
         <Card>
           <CardHeader>
@@ -172,5 +171,3 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
     </div>
   );
 }
-
-    

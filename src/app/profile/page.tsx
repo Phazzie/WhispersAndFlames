@@ -83,7 +83,7 @@ export default function ProfilePage() {
   }, [user]);
 
   const getParticipantNames = (participants: Player[]) => {
-      if (participants.length === 0 || participants[0].id === 'solo') {
+      if (participants.length === 0 || (participants.length === 1 && participants[0].id === 'solo')) {
           return 'Solo Game';
       }
       return participants.map(p => p.name).join(' & ');
@@ -182,5 +182,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
