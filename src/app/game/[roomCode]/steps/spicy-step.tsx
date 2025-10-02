@@ -5,9 +5,10 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowRight, Wind, Sunrise, Flame, Zap, Sparkles } from 'lucide-react';
-import { SPICY_LEVELS, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
+import { SPICY_LEVELS } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
+import { LoadingScreen } from '../loading-screen';
 
 const spicyLevelIcons = {
   Mild: Wind,
@@ -16,31 +17,34 @@ const spicyLevelIcons = {
   'Extra-Hot': Zap,
 };
 
-
 export function SpicyStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, getDoc, setIsLoading, setError, generateQuestionAction, toast } = handlers;
-  const { players, finalSpicyLevel, commonCategories } = gameState;
+  const { players } = gameState;
   const [selectedLevel, setSelectedLevel] = useState<SpicyLevel['name'] | undefined>(me.selectedSpicyLevel);
 
   const startFirstQuestion = async (level: SpicyLevel['name'], categories: string[]) => {
+    setIsLoading(true);
     setError(null);
-    const result = await generateQuestionAction({
-        categories: [categories[0]],
-        spicyLevel: level,
-        previousQuestions: [],
-    });
+    try {
+      const result = await generateQuestionAction({
+          categories: [categories[0]],
+          spicyLevel: level,
+          previousQuestions: [],
+      });
 
-    if ('question' in result) {
-        const resetPlayers = gameState.players.map(p => ({ ...p, isReady: false }));
-        await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1, players: resetPlayers });
-    } else {
-        setError(result.error);
-        toast({ title: 'Error starting game', description: result.error, variant: 'destructive' });
-        // un-ready everyone if it fails
+      if ('question' in result) {
+          const resetPlayers = gameState.players.map(p => ({ ...p, isReady: false }));
+          await updateGameState({ currentQuestion: result.question, step: 'game', currentQuestionIndex: 1, players: resetPlayers });
+      } else {
+          throw new Error(result.error);
+      }
+    } catch (e: any) {
+        toast({ title: 'Error starting game', description: e.message, variant: 'destructive' });
         const unreadyPlayers = gameState.players.map(p => ({ ...p, isReady: false, selectedSpicyLevel: undefined }));
         await updateGameState({ players: unreadyPlayers });
+    } finally {
+        setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleSpicySelect = async (value: SpicyLevel['name']) => {
@@ -59,7 +63,6 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
     const allReady = updatedPlayers.every(p => p.isReady);
     
     if (allReady) {
-        setIsLoading(true);
         const playerLevels = updatedPlayers.map(p => SPICY_LEVELS.findIndex(l => l.name === p.selectedSpicyLevel!));
         const finalLevelIndex = Math.min(...playerLevels);
         const finalLevel = SPICY_LEVELS[finalLevelIndex].name;
@@ -71,47 +74,22 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const cardVariants = {
     hidden: { opacity: 0, y: 30, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: {
-        type: 'spring',
-        stiffness: 100,
-        damping: 10,
-      },
-    },
-    hover: {
-        scale: 1.03,
-        translateY: -5,
-        boxShadow: "0px 15px 25px hsla(var(--primary) / 0.15)",
-        transition: { type: 'spring', stiffness: 300, damping: 15 }
-    }
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 100, damping: 10 } },
+    hover: { scale: 1.03, translateY: -5, boxShadow: "0px 15px 25px hsla(var(--primary) / 0.15)", transition: { type: 'spring', stiffness: 300, damping: 15 } }
   };
   
   if (players.every(p => p.isReady)) {
-      return (
-          <div className="text-center mt-4 space-y-4 flex flex-col items-center">
-              <p className="text-xl text-muted-foreground">All players are ready. The game will begin with...</p>
-              <p className="text-5xl font-bold text-primary animate-pulse">{finalSpicyLevel} intensity.</p>
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mt-4" />
-          </div>
-      );
+      return <LoadingScreen message="Calculating your perfect game..." />;
   }
 
   return (
     <div className="w-full max-w-5xl text-center">
-        <h1 className="text-5xl md:text-6xl font-bold font-headline text-foreground leading-tight">
+        <h1 className="text-5xl md:text-6xl font-bold leading-tight">
             Set the Mood
         </h1>
         <p className="mt-2 text-lg text-muted-foreground max-w-lg mx-auto">
@@ -151,12 +129,12 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
                         >
                             <Icon className="w-8 h-8" />
                         </motion.div>
-                        <h3 className="text-2xl font-bold font-headline">{level.name}</h3>
+                        <h3 className="text-2xl font-bold">{level.name}</h3>
                         <p className="mt-2 text-muted-foreground text-sm h-12">{level.description}</p>
                     </div>
 
                     <AnimatePresence>
-                    {isSelectedByMe && !me.isReady && (
+                    {isSelectedByMe && (
                         <motion.div
                             initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
                             animate={{ scale: 1, opacity: 1, rotate: 0 }}

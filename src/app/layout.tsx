@@ -1,11 +1,20 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { Playfair_Display } from "next/font/google";
+import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Whispers and Flames',
   description: 'Explore intimacy through guided conversations.',
 };
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-playfair',
+});
 
 export default function RootLayout({
   children,
@@ -13,12 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={cn("antialiased", playfair.variable)}>
       <body>
         {children}
         <Toaster />

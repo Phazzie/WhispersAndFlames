@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
-import type { StepProps, GameState, Player } from '@/lib/game-types';
+import type { StepProps, GameState } from '@/lib/game-types';
 
 const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
 
@@ -34,45 +34,37 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     const currentDoc = await getDoc(roomRef);
     let currentGameState = currentDoc.data() as GameState;
 
-    // Mark current player as ready
     let updatedPlayers = currentGameState.players.map(p => p.id === me.id ? {...p, isReady: true} : p);
     await updateGameState({ players: updatedPlayers });
 
     currentGameState = { ...currentGameState, players: updatedPlayers };
 
-    // Check if all players are now ready
     if (updatedPlayers.every(p => p.isReady)) {
-      // Re-verify player count, although lobby should prevent this
       if (updatedPlayers.length < 3) {
         toast({ title: "Waiting for Players", description: "You need 3 players to start the game.", variant: 'destructive', duration: 5000});
-        // Un-ready everyone so the host can see the message
         const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
         await updateGameState({ players: unReadyPlayers });
         return;
       }
       
       const allSelectedCategories = updatedPlayers.map(p => p.selectedCategories);
-      // Find the intersection of all player's selected categories
       const commonCategories = allSelectedCategories.reduce((a, b) => a.filter(c => b.includes(c)));
           
       if (commonCategories.length === 0) {
           toast({ title: "No Common Ground", description: "All three players must select at least one category in common.", variant: 'destructive', duration: 5000});
-          // Un-ready everyone to allow for re-selection
           const unReadyPlayers = updatedPlayers.map(p => ({...p, isReady: false}));
           await updateGameState({ players: unReadyPlayers });
           return;
       }
       
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      // Reset isReady state for the next step and move to spicy selection
       const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false, selectedSpicyLevel: undefined }));
       await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
     }
   };
   
-  const getPlayerColor = (playerId: string) => {
-    const index = players.findIndex(p => p.id === playerId);
-    return PLAYER_COLORS[index] || 'bg-gray-400';
+  const getPlayerColor = (playerIndex: number) => {
+    return PLAYER_COLORS[playerIndex] || 'bg-gray-400';
   }
 
   return (
@@ -102,11 +94,11 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
                 <h3 className="font-semibold text-sm">{cat.name}</h3>
               </CardContent>
               <div className="absolute bottom-1 right-1 flex gap-1">
-                  {players.map(player => 
+                  {players.map((player, index) => 
                       player.selectedCategories?.includes(cat.name) && (
                         <div 
                           key={player.id} 
-                          className={`w-2 h-2 rounded-full ${getPlayerColor(player.id)}`} 
+                          className={`w-2 h-2 rounded-full ${getPlayerColor(index)}`} 
                           title={`Selected by ${player.name}`}
                         />
                       )

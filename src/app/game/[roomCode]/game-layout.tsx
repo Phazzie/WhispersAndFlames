@@ -18,7 +18,7 @@ type GameLayoutProps = {
   error: string | null;
 };
 
-const backgroundColors = {
+const backgroundColors: Record<GameState['step'], string> = {
   lobby: 'bg-gradient-to-br from-background to-blue-950/30',
   categories: 'bg-gradient-to-br from-background to-purple-950/30',
   spicy: 'bg-gradient-to-br from-background to-amber-950/30',
@@ -31,7 +31,6 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
   const { step, players, currentQuestionIndex, totalQuestions } = gameState;
 
   const progress = (() => {
-    if (!gameState) return 0;
     if (step === 'summary') return 100;
     if (step === 'game' && totalQuestions > 0) return ((currentQuestionIndex) / totalQuestions) * 100;
     if (step === 'spicy') return 20;
@@ -39,12 +38,11 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
     return 0;
   })();
 
-  const animationKey = `${step}-${(step === 'game' && 'currentQuestionIndex' in gameState) ? gameState.currentQuestionIndex : '0'}`;
-  
+  const animationKey = `${step}-${step === 'game' ? currentQuestionIndex : '0'}`;
   const bgClass = backgroundColors[step] || 'bg-background';
 
   return (
-    <div className={cn("min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000 font-body", bgClass)}>
+    <div className={cn("min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000", bgClass)}>
       <div className="absolute top-0 left-0 right-0 p-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <Logo className="w-10 h-10 text-primary cursor-pointer" onClick={() => router.push('/')} />

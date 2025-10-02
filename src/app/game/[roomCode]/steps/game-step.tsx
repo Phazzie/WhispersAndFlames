@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -28,25 +29,30 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
     }
     
     setIsSubmitting(true);
-    const currentDoc = await getDoc(roomRef);
-    const currentGameState = currentDoc.data() as GameState;
+    try {
+        const currentDoc = await getDoc(roomRef);
+        const currentGameState = currentDoc.data() as GameState;
 
-    let updatedGameRounds = [...currentGameState.gameRounds];
-    const currentRoundIndexInState = updatedGameRounds.findIndex(r => r.question === currentGameState.currentQuestion);
+        let updatedGameRounds = [...currentGameState.gameRounds];
+        const currentRoundIndexInState = updatedGameRounds.findIndex(r => r.question === currentGameState.currentQuestion);
 
-    if (currentRoundIndexInState > -1) {
-        updatedGameRounds[currentRoundIndexInState].answers[me.id] = currentAnswer;
-    } else {
-        // This case should ideally not happen if a question is set, but as a fallback:
-        updatedGameRounds.push({
-            question: currentGameState.currentQuestion,
-            answers: { [me.id]: currentAnswer },
-        });
+        if (currentRoundIndexInState > -1) {
+            updatedGameRounds[currentRoundIndexInState].answers[me.id] = currentAnswer;
+        } else {
+            updatedGameRounds.push({
+                question: currentGameState.currentQuestion,
+                answers: { [me.id]: currentAnswer },
+            });
+        }
+
+        await updateGameState({ gameRounds: updatedGameRounds });
+        setCurrentAnswer('');
+    } catch(e) {
+        console.error(e);
+        setError("There was an issue submitting your answer.");
+    } finally {
+        setIsSubmitting(false);
     }
-
-    await updateGameState({ gameRounds: updatedGameRounds });
-    setCurrentAnswer('');
-    setIsSubmitting(false);
   };
 
   const handleNextStep = async () => {
@@ -65,36 +71,43 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
         // --- GAME OVER ---
         await updateGameState({ step: 'summary', players: resetPlayers }); 
         
-        const summaryResult = await analyzeAndSummarizeAction({
-            questions: currentGameState.gameRounds.map(r => r.question),
-            answers: currentGameState.gameRounds.flatMap(r => Object.values(r.answers)),
-            categories: currentGameState.commonCategories,
-            spicyLevel: currentGameState.finalSpicyLevel,
-        });
+        try {
+            const summaryResult = await analyzeAndSummarizeAction({
+                questions: currentGameState.gameRounds.map(r => r.question),
+                answers: currentGameState.gameRounds.flatMap(r => Object.values(r.answers)),
+                categories: currentGameState.commonCategories,
+                spicyLevel: currentGameState.finalSpicyLevel,
+            });
 
-        if ('summary' in summaryResult) {
-            await updateGameState({ summary: summaryResult.summary, completedAt: new Date() });
-        } else {
-            setError(summaryResult.error);
-            toast({ title: 'Summary Error', description: summaryResult.error, variant: 'destructive'});
-            await updateGameState({ step: 'game' }); // Go back if summary fails
+            if ('summary' in summaryResult) {
+                await updateGameState({ summary: summaryResult.summary, completedAt: new Date() });
+            } else {
+                setError(summaryResult.error);
+                await updateGameState({ step: 'game' }); // Go back if summary fails
+            }
+        } catch(e: any) {
+            setError(e.message || "Could not generate summary.");
+            await updateGameState({ step: 'game' });
         }
       } else {
         // --- NEXT QUESTION ---
-        const nextQuestionIndex = currentGameState.currentQuestionIndex + 1;
-        const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
-        
-        const result = await generateQuestionAction({
-            categories: [currentGameState.commonCategories[categoryIndex]],
-            spicyLevel: currentGameState.finalSpicyLevel,
-            previousQuestions: currentGameState.gameRounds.map(r => r.question),
-        });
+        try {
+            const nextQuestionIndex = currentGameState.currentQuestionIndex + 1;
+            const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
+            
+            const result = await generateQuestionAction({
+                categories: [currentGameState.commonCategories[categoryIndex]],
+                spicyLevel: currentGameState.finalSpicyLevel,
+                previousQuestions: currentGameState.gameRounds.map(r => r.question),
+            });
 
-        if ('question' in result) {
-            await updateGameState({ players: resetPlayers, currentQuestion: result.question, currentQuestionIndex: nextQuestionIndex });
-        } else {
-            setError(result.error);
-            toast({ title: 'Question Error', description: result.error, variant: 'destructive'});
+            if ('question' in result) {
+                await updateGameState({ players: resetPlayers, currentQuestion: result.question, currentQuestionIndex: nextQuestionIndex });
+            } else {
+                setError(result.error);
+            }
+        } catch (e: any) {
+             setError(e.message || "Could not generate next question.");
         }
       }
     }
@@ -112,7 +125,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
         <p className="text-center text-primary font-semibold mb-4">Question {currentQuestionIndex} of {totalQuestions}</p>
         <Card>
           <CardHeader>
-            <blockquote className="text-center text-2xl font-semibold leading-relaxed font-headline">
+            <blockquote className="text-center text-2xl font-semibold leading-relaxed">
               “{currentQuestion}”
             </blockquote>
           </CardHeader>
@@ -147,7 +160,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
       <p className="text-center text-primary font-semibold mb-4">Question {currentQuestionIndex} of {totalQuestions}</p>
       <Card>
           <CardContent className="p-6">
-              <blockquote className="text-center text-2xl font-semibold leading-relaxed font-headline mb-6">
+              <blockquote className="text-center text-2xl font-semibold leading-relaxed mb-6">
                   “{currentQuestion}”
               </blockquote>
               <Textarea 
