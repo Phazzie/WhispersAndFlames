@@ -4,7 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, type User, signOut } from 'firebase/auth';
-import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, Timestamp, limit } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Home, Frown, Play, LogOut } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
-import type { Player } from '@/lib/game-types';
+import type { Player, GameState } from '@/lib/game-types';
 import { useToast } from '@/hooks/use-toast';
 
 type GameSession = {
@@ -20,7 +20,7 @@ type GameSession = {
     participants: Player[];
     summary?: string;
     completedAt?: Date;
-    step: string;
+    step: GameStep;
 };
 
 export default function ProfilePage() {
@@ -35,28 +35,49 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       const gamesRef = collection(db, 'games');
-      const q = query(gamesRef, where('playerIds', 'array-contains', uid), orderBy('completedAt', 'desc'));
       
-      const querySnapshot = await getDocs(q);
+      // Query for completed games
+      const historyQuery = query(
+        gamesRef, 
+        where('playerIds', 'array-contains', uid), 
+        where('step', '==', 'summary'),
+        orderBy('completedAt', 'desc'),
+        limit(50)
+      );
+
+      // Query for in-progress games
+      const inProgressQuery = query(
+        gamesRef,
+        where('playerIds', 'array-contains', uid),
+        where('step', '!=', 'summary'),
+        orderBy('createdAt', 'desc'),
+        limit(10)
+      );
+
+      const [historySnapshot, inProgressSnapshot] = await Promise.all([
+        getDocs(historyQuery),
+        getDocs(inProgressQuery)
+      ]);
       
-      const allUserGames = querySnapshot.docs.map(doc => {
-        const gameData = doc.data();
+      const mapDocToGameSession = (doc: any): GameSession => {
+        const gameData = doc.data() as GameState & { completedAt?: Timestamp, createdAt?: Timestamp };
         
         const completedAt = gameData.completedAt instanceof Timestamp 
             ? gameData.completedAt.toDate() 
-            : (gameData.completedAt ? new Date(gameData.completedAt) : undefined);
+            : undefined;
 
         return {
           id: doc.id,
           completedAt: completedAt,
           participants: gameData.players,
           summary: gameData.summary,
-          step: gameData.step,
+          step: gameData.step as GameStep,
         };
-      });
+      };
 
-      setHistory(allUserGames.filter(g => g.step === 'summary' && g.completedAt));
-      setInProgress(allUserGames.filter(g => g.step !== 'summary'));
+      setHistory(historySnapshot.docs.map(mapDocToGameSession));
+      setInProgress(inProgressSnapshot.docs.map(mapDocToGameSession));
+
     } catch (error) {
       console.error("Error fetching game history:", error);
       toast({ title: "Error", description: "Could not fetch your game history.", variant: "destructive" });
@@ -84,9 +105,9 @@ export default function ProfilePage() {
   }
 
   const getParticipantNames = (participants: Player[], currentUserId: string) => {
-    const otherPlayers = participants.filter(p => p.id !== currentUserId);
+    const otherPlayers = participants.filter(p => p.id !== currentUserId).map(p => p.name);
     if (otherPlayers.length === 0) return 'Solo Game';
-    return otherPlayers.map(p => p.name).join(' & ');
+    return otherPlayers.join(' & ');
   }
 
   if (loading) {
@@ -157,7 +178,7 @@ export default function ProfilePage() {
                                         <Card key={game.id} className="flex items-center justify-between p-4">
                                             <div>
                                                 <p className="font-semibold">Session with {getParticipantNames(game.participants, user!.uid)}</p>
-                                                <p className="text-sm text-muted-foreground">Game in progress</p>
+                                                <p className="text-sm text-muted-foreground">Currently on: {game.step}</p>
                                             </div>
                                             <Button onClick={() => router.push(`/game/${game.id}`)}>
                                                 <Play className="mr-2 h-4 w-4" /> Resume

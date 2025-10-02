@@ -1,5 +1,5 @@
 
-import type { DocumentReference } from 'firebase/firestore';
+import type { DocumentReference, FieldValue } from 'firebase/firestore';
 import type { SPICY_LEVELS } from './constants';
 import type { generateQuestionAction, analyzeAndSummarizeAction } from '@/app/game/actions';
 
@@ -27,8 +27,9 @@ export type GameState = {
   currentQuestionIndex: number;
   totalQuestions: number;
   summary: string;
-  completedAt?: Date;
   roomCode: string;
+  createdAt?: FieldValue;
+  completedAt?: FieldValue;
 };
 
 export type StepProps = {

@@ -1,16 +1,15 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, onSnapshot, setDoc, updateDoc, getDoc, type DocumentReference } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 
 import { db, auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
-import type { GameState, Player, SpicyLevel, GameStep } from '@/lib/game-types';
+import type { GameState, Player } from '@/lib/game-types';
 import { generateQuestionAction, analyzeAndSummarizeAction } from '../actions';
-import { SPICY_LEVELS, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 
 import { GameLayout } from './game-layout';
 import { LobbyStep } from './steps/lobby-step';
@@ -34,64 +33,91 @@ export default function GamePage() {
   const roomRef = useMemo(() => doc(db, 'games', roomCode), [roomCode]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // Auth listener
+    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
       } else {
         router.push(`/?join=${roomCode}`);
       }
     });
-    return () => unsubscribe();
+
+    return () => authUnsubscribe();
   }, [router, roomCode]);
 
-  useEffect(() => {
-    if (!roomCode || !currentUser) return;
 
-    const unsubscribe = onSnapshot(roomRef, async (snapshot) => {
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Firestore listener
+    const gameUnsubscribe = onSnapshot(roomRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as GameState;
-        const isNewUser = !data.playerIds.includes(currentUser.uid);
-
-        if (isNewUser && data.players.length < 3) {
-          const newPlayerName = `Player ${data.players.length + 1}`;
-          const newPlayer: Player = { id: currentUser.uid, name: newPlayerName, isReady: false, email: currentUser.email!, selectedCategories: [] };
-          await updateDoc(roomRef, {
-            players: [...data.players, newPlayer],
-            playerIds: [...data.playerIds, currentUser.uid]
-          });
+        
+        // If player is not in game, add them (if space available)
+        if (!data.playerIds.includes(currentUser.uid)) {
+          if (data.players.length < 3) {
+            const newPlayer: Player = { 
+              id: currentUser.uid, 
+              name: `Player ${data.players.length + 1}`, 
+              isReady: false, 
+              email: currentUser.email!, 
+              selectedCategories: [] 
+            };
+            updateDoc(roomRef, {
+              players: arrayUnion(newPlayer),
+              playerIds: arrayUnion(currentUser.uid)
+            });
+          } else {
+             // Game is full
+             toast({title: "Room Full", description: "This game room is already full.", variant: "destructive"});
+             router.push('/');
+          }
         } else {
-          setGameState({...data, roomCode});
+          setGameState({ ...data, roomCode });
         }
+
       } else {
-        const newPlayerName = 'Player 1';
-        const newGame: GameState = {
-          step: 'lobby',
-          players: [{ id: currentUser.uid, name: newPlayerName, isReady: false, email: currentUser.email!, selectedCategories: [] }],
-          playerIds: [currentUser.uid],
-          hostId: currentUser.uid,
-          commonCategories: [],
-          finalSpicyLevel: 'Mild',
-          gameRounds: [],
-          currentQuestion: '',
-          currentQuestionIndex: 0,
-          totalQuestions: 0,
-          summary: '',
-          roomCode,
-        };
-        await setDoc(roomRef, newGame);
-        setGameState(newGame);
+         // Game does not exist, create it for the current user
+         const newPlayer: Player = { id: currentUser.uid, name: 'Player 1', isReady: false, email: currentUser.email!, selectedCategories: [] };
+         const newGame: GameState = {
+            step: 'lobby',
+            players: [newPlayer],
+            playerIds: [currentUser.uid],
+            hostId: currentUser.uid,
+            commonCategories: [],
+            finalSpicyLevel: 'Mild',
+            gameRounds: [],
+            currentQuestion: '',
+            currentQuestionIndex: 0,
+            totalQuestions: 0,
+            summary: '',
+            roomCode,
+            createdAt: serverTimestamp() as any, // Use server timestamp
+          };
+          setDoc(roomRef, newGame);
       }
       setIsLoading(false);
+    }, (err) => {
+        console.error("Snapshot error:", err);
+        setError("Could not connect to the game session.");
+        setIsLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [roomCode, currentUser, roomRef]);
+    return () => gameUnsubscribe();
+
+  }, [currentUser, roomCode, roomRef, router, toast]);
 
   const me = useMemo(() => gameState?.players.find(p => p.id === currentUser?.uid), [gameState, currentUser]);
 
-  const updateGameState = async (newState: Partial<GameState>) => {
-    await updateDoc(roomRef, newState as any);
-  };
+  const updateGameState = useCallback(async (newState: Partial<GameState>) => {
+    try {
+        await updateDoc(roomRef, newState as any);
+    } catch (e: any) {
+        console.error("Error updating game state:", e);
+        setError("There was an issue updating the game. Please try again.");
+    }
+  },[roomRef]);
 
   const handlers = {
     updateGameState,
@@ -106,7 +132,7 @@ export default function GamePage() {
   };
 
   if (isLoading || !gameState || !me) {
-    return <LoadingScreen message={isLoading ? undefined : "Setting up your game..."} />;
+    return <LoadingScreen message={isLoading ? undefined : "Joining game..."} />;
   }
 
   const renderStepContent = () => {
