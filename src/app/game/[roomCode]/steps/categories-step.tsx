@@ -59,7 +59,8 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       }
       
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false, selectedCategories: [] }));
+      // Reset isReady state for the next step, but keep selections for now if needed (or clear them)
+      const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false }));
       await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
     }
   };
