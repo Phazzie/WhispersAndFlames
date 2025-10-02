@@ -12,7 +12,6 @@ const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
 export function CategoriesStep({ gameState, me, handlers }: StepProps) {
   const { roomRef, updateGameState, toast, getDoc } = handlers;
   const { players } = gameState;
-  const otherPlayers = players.filter(p => p.id !== me.id);
 
   const handleToggleCategory = async (categoryName: string) => {
     if (me.isReady) return;
@@ -59,7 +58,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       }
       
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      // Reset isReady state for the next step, but keep selections for now if needed (or clear them)
+      // Reset isReady state for the next step
       const resetPlayers = updatedPlayers.map(p => ({...p, isReady: false }));
       await updateGameState({ commonCategories, totalQuestions, step: 'spicy', players: resetPlayers });
     }
@@ -80,7 +79,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
         {CATEGORIES.map((cat) => {
           const isSelectedByMe = me.selectedCategories.includes(cat.name);
           const selections = players.filter(p => p.selectedCategories?.includes(cat.name));
-          const isCommon = selections.length === players.length;
+          const isCommon = selections.length === players.length && players.length === 3;
 
           return (
             <Card
