@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2025-10-17
+
+### Removed
+- **Firebase Integration**: Completely removed Firebase (Firestore and Authentication)
+- Firebase npm package and all related dependencies
+- `.firebaserc` configuration file
+
+### Added
+- **In-Memory Storage**: New storage layer for games and user sessions
+- **Session-Based Authentication**: Custom authentication system using HTTP-only cookies
+- **API Routes**: Complete set of REST API endpoints for auth and game management:
+  - `/api/auth/signup` - User registration
+  - `/api/auth/signin` - User login
+  - `/api/auth/signout` - User logout
+  - `/api/auth/me` - Get current user
+  - `/api/game/create` - Create new game
+  - `/api/game/join` - Join existing game
+  - `/api/game/update` - Update game state
+  - `/api/game/[roomCode]` - Get game by room code
+- **Client Libraries**: `client-auth.ts` and `client-game.ts` for frontend API interactions
+- **Polling-Based Updates**: Real-time game updates via 2-second polling interval
+
+### Changed
+- Game state management now uses in-memory storage instead of Firestore
+- Authentication switched from Firebase Auth to custom session-based system
+- Updated all game step components to use new API-based architecture
+- Home page and profile page rewritten to use new authentication system
+- Game types updated to remove Firebase-specific types (DocumentReference, FieldValue)
+
+### Technical Details
+- Storage is ephemeral - all data resets on server restart
+- Sessions stored in memory with 7-day expiration
+- SHA-256 hashing for passwords (suitable for demo, not production)
+- Optimized for DigitalOcean App Platform single-instance deployment
+
 ## [0.2.0] - 2025-10-17
 
 ### Added

@@ -10,7 +10,7 @@ const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
 const getPlayerColor = (playerIndex: number) => PLAYER_COLORS[playerIndex] || 'bg-gray-400';
 
 export function CategoriesStep({ gameState, me, handlers }: StepProps) {
-  const { roomRef, updateGameState, toast, getDoc } = handlers;
+  const { updateGameState, toast } = handlers;
   const { players } = gameState;
 
   const handleToggleCategory = async (categoryName: string) => {
@@ -21,10 +21,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       ? myCurrentCategories.filter((c) => c !== categoryName)
       : [...myCurrentCategories, categoryName];
 
-    const currentDoc = await getDoc(roomRef);
-    const currentGameState = currentDoc.data() as GameState;
-
-    const updatedPlayers = currentGameState.players.map((p) =>
+    const updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, selectedCategories: newCategories } : p
     );
     await updateGameState({ players: updatedPlayers });
@@ -41,31 +38,25 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       return;
     }
 
-    const currentDoc = await getDoc(roomRef);
-    let currentGameState = currentDoc.data() as GameState;
-
-    // Critical Bug Fix: Prevent moving forward if not all players are present.
-    if (currentGameState.players.length !== 3) {
+    // Check if we have at least 2 players
+    if (gameState.players.length < 2) {
       toast({
         title: 'Waiting for Players',
-        description: 'You need exactly 3 players to start the game.',
+        description: 'You need at least 2 players to start the game.',
         variant: 'destructive',
         duration: 5000,
       });
       return;
     }
 
-    let updatedPlayers = currentGameState.players.map((p) =>
+    let updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
     await updateGameState({ players: updatedPlayers });
 
-    // Re-fetch the state to ensure we have the most recent data for the final check.
-    currentGameState = (await getDoc(roomRef)).data() as GameState;
-
     // The game should only advance if ALL players are now ready.
-    if (currentGameState.players.every((p) => p.isReady)) {
-      const allSelectedCategories = currentGameState.players.map((p) => p.selectedCategories);
+    if (updatedPlayers.every((p) => p.isReady)) {
+      const allSelectedCategories = updatedPlayers.map((p) => p.selectedCategories);
       const commonCategories = allSelectedCategories.reduce((a, b) =>
         a.filter((c) => b.includes(c))
       );
@@ -74,18 +65,18 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
         toast({
           title: 'No Common Ground',
           description:
-            'All three players must select at least one category in common. Please discuss and re-select.',
+            'All players must select at least one category in common. Please discuss and re-select.',
           variant: 'destructive',
           duration: 8000,
         });
         // Un-ready all players so they can change their selections
-        const unReadyPlayers = currentGameState.players.map((p) => ({ ...p, isReady: false }));
+        const unReadyPlayers = updatedPlayers.map((p) => ({ ...p, isReady: false }));
         await updateGameState({ players: unReadyPlayers });
         return;
       }
 
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      const resetPlayers = currentGameState.players.map((p) => ({
+      const resetPlayers = updatedPlayers.map((p) => ({
         ...p,
         isReady: false,
         selectedSpicyLevel: undefined,

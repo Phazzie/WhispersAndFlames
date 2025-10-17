@@ -1,4 +1,3 @@
-import type { DocumentReference, FieldValue } from 'firebase/firestore';
 import type { SPICY_LEVELS } from './constants';
 import type { generateQuestionAction, analyzeAndSummarizeAction } from '@/app/game/actions';
 
@@ -27,17 +26,16 @@ export type GameState = {
   totalQuestions: number;
   summary: string;
   roomCode: string;
-  createdAt?: FieldValue;
-  completedAt?: FieldValue;
+  createdAt?: Date;
+  completedAt?: Date;
 };
 
 export type StepProps = {
   gameState: GameState;
   me: Player;
   handlers: {
-    roomRef: DocumentReference;
+    roomCode: string;
     updateGameState: (newState: Partial<GameState>) => Promise<void>;
-    getDoc: (ref: DocumentReference) => Promise<any>;
     toast: (options: {
       title: string;
       description?: string;

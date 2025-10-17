@@ -31,7 +31,7 @@ const EmptyPlayerSlot = () => (
 );
 
 export function LobbyStep({ gameState, me, handlers }: StepProps) {
-  const { roomRef, updateGameState, toast, getDoc } = handlers;
+  const { updateGameState, toast } = handlers;
   const { players, roomCode } = gameState;
   const [playerName, setPlayerName] = useState(me.name);
 
@@ -39,13 +39,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     const newName = playerName.trim();
     if (!newName || me.name === newName) return;
 
-    // This function now *only* handles the name change.
-    const currentDoc = await getDoc(roomRef);
-    if (!currentDoc.exists()) return;
-
-    const currentGameState = currentDoc.data() as any;
-
-    const updatedPlayers = currentGameState.players.map((p: Player) =>
+    const updatedPlayers = gameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, name: newName } : p
     );
 
@@ -54,29 +48,21 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   };
 
   const handlePlayerReady = async () => {
-    // This function now *only* handles the ready state.
-    const currentDoc = await getDoc(roomRef);
-    if (!currentDoc.exists()) return;
-
-    const currentGameState = currentDoc.data() as any;
-
-    // Check if we have exactly 3 players before allowing ready-up.
-    if (currentGameState.players.length < 3) {
+    // Check if we have at least 2 players before allowing ready-up.
+    if (gameState.players.length < 2) {
       toast({
         title: 'Waiting for more players',
-        description: 'You need 3 players to be in the room to start.',
+        description: 'You need at least 2 players to start.',
         variant: 'destructive',
       });
       return;
     }
 
-    const updatedPlayers = currentGameState.players.map((p: Player) =>
+    const updatedPlayers = gameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
     await updateGameState({ players: updatedPlayers });
 
-    // The game progression logic is handled by the listener in page.tsx
-    // We can add a check here just to be safe and potentially move to the next state if all are ready
     const allPlayersReady = updatedPlayers.every((p: Player) => p.isReady);
     if (allPlayersReady) {
       const resetPlayers = updatedPlayers.map((p: Player) => ({ ...p, isReady: false }));

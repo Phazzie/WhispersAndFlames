@@ -79,8 +79,9 @@ Required environment variables:
 ### Limitations
 
 - Single instance deployment (no horizontal scaling)
-- In-memory database (data is ephemeral)
+- In-memory storage (data is ephemeral, sessions and games reset on restart)
 - Rate limiting is per-instance
+- No database persistence - all data stored in server memory
 
 ### Health Check
 

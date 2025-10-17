@@ -10,15 +10,7 @@ import { cn } from '@/lib/utils';
 import { LoadingScreen } from '../loading-screen';
 
 export function SpicyStep({ gameState, me, handlers }: StepProps) {
-  const {
-    roomRef,
-    updateGameState,
-    getDoc,
-    setIsLoading,
-    setError,
-    generateQuestionAction,
-    toast,
-  } = handlers;
+  const { updateGameState, setIsLoading, setError, generateQuestionAction, toast } = handlers;
   const { players } = gameState;
   const [selectedLevel, setSelectedLevel] = useState<SpicyLevel['name'] | undefined>(
     me.selectedSpicyLevel
@@ -62,14 +54,11 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
     if (me.isReady) return;
     setSelectedLevel(value);
 
-    let currentGameState = (await getDoc(roomRef)).data() as GameState;
-
-    const updatedPlayers = currentGameState.players.map((p) =>
+    const updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, selectedSpicyLevel: value, isReady: true } : p
     );
 
     await updateGameState({ players: updatedPlayers });
-    currentGameState.players = updatedPlayers;
 
     const allReady = updatedPlayers.every((p) => p.isReady);
 
@@ -81,7 +70,7 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
       const finalLevel = SPICY_LEVELS[finalLevelIndex].name;
 
       await updateGameState({ finalSpicyLevel: finalLevel });
-      await startFirstQuestion(finalLevel, currentGameState.commonCategories);
+      await startFirstQuestion(finalLevel, gameState.commonCategories);
     }
   };
 

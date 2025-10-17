@@ -55,7 +55,7 @@ Whispers and Flames creates a safe, private space for couples to explore their r
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS with shadcn/ui components
-- **Backend**: Firebase (Firestore & Authentication)
+- **Backend**: In-memory storage with session-based authentication
 - **AI**: Google's Gemini via Genkit
 - **Testing**: Vitest (unit/integration), Playwright (e2e)
 - **Linting**: ESLint + Prettier
@@ -146,17 +146,20 @@ src/
 
 ### Security Features
 
-- **Rate Limiting**: 30 requests per minute per IP
+- **Rate Limiting**: 30 requests per minute per IP (in-memory)
 - **Security Headers**: X-Frame-Options, Referrer-Policy, CSP
-- **Input Validation**: Zod schema validation on all server actions
+- **Input Validation**: Zod schema validation on all API routes
 - **Environment Validation**: Type-safe environment configuration
+- **Session-Based Auth**: HTTP-only cookies with 7-day expiration
 
 ## ⚠️ Known Limitations
 
-- **Database**: In-memory only (single instance, ephemeral data)
-- **Scaling**: No horizontal scaling support
+- **Storage**: In-memory only (no database, data resets on restart)
+- **Sessions**: Session-based authentication (stored in memory)
+- **Scaling**: No horizontal scaling support - single instance only
 - **Rate Limiting**: Per-instance only (not distributed)
 - **Network**: Google Fonts may fail in restricted environments
+- **Real-time Updates**: Uses polling (2-second intervals) instead of WebSockets
 
 ## 📝 Contributing
 

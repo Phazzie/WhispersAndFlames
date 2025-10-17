@@ -12,9 +12,7 @@ import { LoadingScreen } from '../loading-screen';
 
 export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const {
-    roomRef,
     updateGameState,
-    getDoc,
     setIsLoading,
     setError,
     generateQuestionAction,
@@ -39,19 +37,16 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
 
     setIsSubmitting(true);
     try {
-      const currentDoc = await getDoc(roomRef);
-      const currentGameState = currentDoc.data() as GameState;
-
-      let updatedGameRounds = [...currentGameState.gameRounds];
+      let updatedGameRounds = [...gameState.gameRounds];
       const currentRoundIndexInState = updatedGameRounds.findIndex(
-        (r) => r.question === currentGameState.currentQuestion
+        (r) => r.question === gameState.currentQuestion
       );
 
       if (currentRoundIndexInState > -1) {
         updatedGameRounds[currentRoundIndexInState].answers[me.id] = currentAnswer;
       } else {
         updatedGameRounds.push({
-          question: currentGameState.currentQuestion,
+          question: gameState.currentQuestion,
           answers: { [me.id]: currentAnswer },
         });
       }
@@ -69,34 +64,31 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const handleNextStep = async () => {
     setIsLoading(true);
 
-    let currentGameState = (await getDoc(roomRef)).data() as GameState;
-    const updatedPlayers = currentGameState.players.map((p) =>
+    const updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
     await updateGameState({ players: updatedPlayers });
 
-    currentGameState = { ...currentGameState, players: updatedPlayers };
+    if (updatedPlayers.every((p) => p.isReady)) {
+      const resetPlayers = updatedPlayers.map((p) => ({ ...p, isReady: false }));
 
-    if (currentGameState.players.every((p) => p.isReady)) {
-      const resetPlayers = currentGameState.players.map((p) => ({ ...p, isReady: false }));
-
-      if (currentGameState.currentQuestionIndex >= currentGameState.totalQuestions) {
+      if (gameState.currentQuestionIndex >= gameState.totalQuestions) {
         // --- GAME OVER ---
         await updateGameState({ step: 'summary', players: resetPlayers });
 
         try {
           const summaryResult = await analyzeAndSummarizeAction({
-            questions: currentGameState.gameRounds.map((r) => r.question),
-            answers: currentGameState.gameRounds.flatMap((r) => Object.values(r.answers)),
-            categories: currentGameState.commonCategories,
-            spicyLevel: currentGameState.finalSpicyLevel,
-            playerCount: currentGameState.players.length,
+            questions: gameState.gameRounds.map((r) => r.question),
+            answers: gameState.gameRounds.flatMap((r) => Object.values(r.answers)),
+            categories: gameState.commonCategories,
+            spicyLevel: gameState.finalSpicyLevel,
+            playerCount: gameState.players.length,
           });
 
           if ('summary' in summaryResult) {
             await updateGameState({
               summary: summaryResult.summary,
-              completedAt: new Date() as any,
+              completedAt: new Date(),
             });
           } else {
             setError(summaryResult.error);
@@ -109,13 +101,13 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
       } else {
         // --- NEXT QUESTION ---
         try {
-          const nextQuestionIndex = currentGameState.currentQuestionIndex + 1;
+          const nextQuestionIndex = gameState.currentQuestionIndex + 1;
           const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
 
           const result = await generateQuestionAction({
-            categories: [currentGameState.commonCategories[categoryIndex]],
-            spicyLevel: currentGameState.finalSpicyLevel,
-            previousQuestions: currentGameState.gameRounds.map((r) => r.question),
+            categories: [gameState.commonCategories[categoryIndex]],
+            spicyLevel: gameState.finalSpicyLevel,
+            previousQuestions: gameState.gameRounds.map((r) => r.question),
           });
 
           if ('question' in result) {
