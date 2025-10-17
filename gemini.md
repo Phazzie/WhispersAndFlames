@@ -35,22 +35,26 @@ This document provides instructions for Gemini, the AI coding assistant, on how 
 ## 4. Coding & Development Guidelines
 
 ### General
+
 - **Clarity & Conciseness:** Write clean, readable, and self-documenting code.
 - **Component-Based:** Create small, reusable components where possible. Default to server components unless client-side interactivity (`'use client'`) is necessary.
 - **TypeScript First:** Use TypeScript for all new code. Leverage the types defined in `src/lib/game-types.ts`.
 - **No Comments in JSON:** Do not add comments to `package.json` or `tsconfig.json`.
 
 ### Next.js
+
 - **App Router:** Use the `app/` directory structure.
 - **Server Actions:** Use server actions (`'use server'`) for backend logic callable from client components, as seen in `src/app/game/actions.ts`.
 
 ### Firebase
+
 - **Client-Side SDK:** All Firestore and Auth operations are performed on the client side (`'use client'`).
 - **Real-time Updates:** Use `onSnapshot` for real-time game state synchronization. Ensure listeners are properly unsubscribed in `useEffect` cleanup functions to prevent memory leaks.
 - **Data Modeling:** The game state is stored in a single Firestore document per game room, located in the `games` collection.
 - **Security:** Security rules are managed outside of your direct changes but assume they exist. Write code that respects user ownership and authentication.
 
 ### Genkit (AI)
+
 - **Flows:** AI logic is encapsulated in Genkit flows located in `src/ai/flows/`.
 - **Schemas:** Use Zod (`z`) to define input and output schemas for all flows. This ensures type safety and predictable AI outputs.
 - **Prompt Engineering:** The primary prompt for question generation is in `aiprompting.md`. Refer to this for AI behavior changes.

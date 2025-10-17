@@ -1,4 +1,3 @@
-
 import Image from 'next/image';
 import HomePageClient from '@/components/home-page';
 import { Logo } from '@/components/icons/logo';
@@ -26,11 +25,13 @@ export default function Home() {
 
       <div className="z-10 flex flex-col items-center text-center max-w-3xl w-full">
         <Logo className="w-24 h-24 mb-4 text-primary" />
-        <h1 className={cn(
-          "text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-transparent",
-          "bg-clip-text bg-gradient-to-r from-primary/80 via-primary to-primary/80",
-          "animate-pulse-slow"
-        )}>
+        <h1
+          className={cn(
+            'text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-transparent',
+            'bg-clip-text bg-gradient-to-r from-primary/80 via-primary to-primary/80',
+            'animate-pulse-slow'
+          )}
+        >
           Whispers and Flames
         </h1>
         <p className="mt-4 text-2xl sm:text-3xl text-foreground/90 font-light tracking-wide">
@@ -38,9 +39,10 @@ export default function Home() {
         </p>
 
         <div className="w-full max-w-md mt-12">
-            <p className="text-base sm:text-lg text-muted-foreground max-w-lg mb-6">
-                Ready to find out what you both really want? <br/>Ember is waiting.
-            </p>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-lg mb-6">
+            Ready to find out what you both really want? <br />
+            Ember is waiting.
+          </p>
           <HomePageClient />
         </div>
       </div>

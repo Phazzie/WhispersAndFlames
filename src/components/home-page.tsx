@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,13 @@ import { generateRoomCode } from '@/lib/game-utils';
 import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+  type User,
+} from 'firebase/auth';
 
 export default function HomePageClient() {
   const router = useRouter();
@@ -96,12 +101,12 @@ export default function HomePageClient() {
       });
     }
   };
-  
+
   const handleLogout = async () => {
     await signOut(auth);
     toast({ title: 'Logged Out' });
-  }
-  
+  };
+
   if (loading) {
     return (
       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
@@ -111,7 +116,7 @@ export default function HomePageClient() {
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (user) {
@@ -122,31 +127,38 @@ export default function HomePageClient() {
           <CardDescription>{user.email}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <Button size="lg" className="w-full font-bold" onClick={handleCreateRoom}>
-              <Sparkles className="mr-2 h-5 w-5" />
-              Create a New Room
+          <Button size="lg" className="w-full font-bold" onClick={handleCreateRoom}>
+            <Sparkles className="mr-2 h-5 w-5" />
+            Create a New Room
+          </Button>
+          <form onSubmit={handleJoinRoom} className="space-y-2">
+            <Input
+              id="room-code-authed"
+              placeholder="Or enter a room code"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value)}
+              className="text-center text-lg h-12"
+            />
+            <Button type="submit" size="lg" className="w-full font-bold" variant="secondary">
+              Join Room
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <form onSubmit={handleJoinRoom} className="space-y-2">
-               <Input
-                  id="room-code-authed"
-                  placeholder="Or enter a room code"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value)}
-                  className="text-center text-lg h-12"
-                />
-                <Button type="submit" size="lg" className="w-full font-bold" variant="secondary">
-                  Join Room
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-            </form>
-             <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/profile')}>
-                <History className="mr-2 h-5 w-5" />
-                My Session History
-            </Button>
-            <Button variant="link" onClick={handleLogout}>Logout</Button>
+          </form>
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full"
+            onClick={() => router.push('/profile')}
+          >
+            <History className="mr-2 h-5 w-5" />
+            My Session History
+          </Button>
+          <Button variant="link" onClick={handleLogout}>
+            Logout
+          </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -159,18 +171,60 @@ export default function HomePageClient() {
           </TabsList>
         </CardHeader>
         <TabsContent value="login">
-          <form onSubmit={(e) => { e.preventDefault(); handleAuthAction(false); }} className="space-y-4 p-6 pt-0">
-            <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAuthAction(false);
+            }}
+            className="space-y-4 p-6 pt-0"
+          >
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? 'Logging in...' : <><LogIn className="mr-2" /> Login & Join</>}
+              {loading ? (
+                'Logging in...'
+              ) : (
+                <>
+                  <LogIn className="mr-2" /> Login & Join
+                </>
+              )}
             </Button>
           </form>
         </TabsContent>
         <TabsContent value="signup">
-          <form onSubmit={(e) => { e.preventDefault(); handleAuthAction(true); }} className="space-y-4 p-6 pt-0">
-            <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleAuthAction(true);
+            }}
+            className="space-y-4 p-6 pt-0"
+          >
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading ? 'Signing up...' : 'Sign Up & Join'}
             </Button>

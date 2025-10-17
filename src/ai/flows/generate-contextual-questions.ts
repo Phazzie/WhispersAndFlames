@@ -9,25 +9,31 @@
  * - GenerateContextualQuestionsOutput - The return type for the generateContextualQuestions function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateContextualQuestionsInputSchema = z.object({
-  categories: z
-    .array(z.string())
-    .describe('The intimacy categories selected by the users.'),
-  spicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).describe('The spicy level chosen by the users.'),
+  categories: z.array(z.string()).describe('The intimacy categories selected by the users.'),
+  spicyLevel: z
+    .enum(['Mild', 'Medium', 'Hot', 'Extra-Hot'])
+    .describe('The spicy level chosen by the users.'),
   previousQuestions: z
     .array(z.string())
     .optional()
-    .describe('An array of questions that have already been asked in this session to avoid repetition.'),
+    .describe(
+      'An array of questions that have already been asked in this session to avoid repetition.'
+    ),
 });
-export type GenerateContextualQuestionsInput = z.infer<typeof GenerateContextualQuestionsInputSchema>;
+export type GenerateContextualQuestionsInput = z.infer<
+  typeof GenerateContextualQuestionsInputSchema
+>;
 
 const GenerateContextualQuestionsOutputSchema = z.object({
   question: z.string().describe('The generated question.'),
 });
-export type GenerateContextualQuestionsOutput = z.infer<typeof GenerateContextualQuestionsOutputSchema>;
+export type GenerateContextualQuestionsOutput = z.infer<
+  typeof GenerateContextualQuestionsOutputSchema
+>;
 
 export async function generateContextualQuestions(
   input: GenerateContextualQuestionsInput
@@ -37,8 +43,8 @@ export async function generateContextualQuestions(
 
 const prompt = ai.definePrompt({
   name: 'generateContextualQuestionsPrompt',
-  input: {schema: GenerateContextualQuestionsInputSchema},
-  output: {schema: GenerateContextualQuestionsOutputSchema},
+  input: { schema: GenerateContextualQuestionsInputSchema },
+  output: { schema: GenerateContextualQuestionsOutputSchema },
   prompt: `You are Ember—part wingman, part therapist, part co-conspirator. Your job is to give couples permission to voice what they've been whispering to themselves. You are playful, insightful, and never judgmental. You ask specific, thought-provoking questions that create intimacy.
 
 Your Unbreakable Rules:
@@ -72,8 +78,8 @@ const generateContextualQuestionsFlow = ai.defineFlow(
     inputSchema: GenerateContextualQuestionsInputSchema,
     outputSchema: GenerateContextualQuestionsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { output } = await prompt(input);
     return output!;
   }
 );

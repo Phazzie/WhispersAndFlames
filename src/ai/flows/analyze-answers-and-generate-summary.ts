@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -6,21 +5,29 @@
  * analyzes a completed game session and generates a personalized summary.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const AnalyzeAnswersInputSchema = z.object({
   questions: z.array(z.string()).describe('The questions asked during the session.'),
-  answers: z.array(z.string()).describe('The answers provided by all players during the session, interleaved.'),
+  answers: z
+    .array(z.string())
+    .describe('The answers provided by all players during the session, interleaved.'),
   categories: z.array(z.string()).describe('The categories selected for the session.'),
-  spicyLevel: z.string().describe('The final spicy level chosen for the session (Mild, Medium, Hot, Extra-Hot).'),
-  playerCount: z.number().describe('The number of players in the session (2 or 3).')
+  spicyLevel: z
+    .string()
+    .describe('The final spicy level chosen for the session (Mild, Medium, Hot, Extra-Hot).'),
+  playerCount: z.number().describe('The number of players in the session (2 or 3).'),
 });
 
 export type AnalyzeAnswersInput = z.infer<typeof AnalyzeAnswersInputSchema>;
 
 const AnalyzeAnswersOutputSchema = z.object({
-  summary: z.string().describe('A playful and encouraging summary of the session, highlighting shared themes and suggesting a next adventure.'),
+  summary: z
+    .string()
+    .describe(
+      'A playful and encouraging summary of the session, highlighting shared themes and suggesting a next adventure.'
+    ),
 });
 
 export type AnalyzeAnswersOutput = z.infer<typeof AnalyzeAnswersOutputSchema>;
@@ -33,8 +40,8 @@ export async function analyzeAnswersAndGenerateSummary(
 
 const prompt = ai.definePrompt({
   name: 'scribeSummaryPrompt',
-  input: {schema: AnalyzeAnswersInputSchema},
-  output: {schema: AnalyzeAnswersOutputSchema},
+  input: { schema: AnalyzeAnswersInputSchema },
+  output: { schema: AnalyzeAnswersOutputSchema },
   prompt: `You are the Scribe—a wise, empathetic observer. Your role is to analyze a completed game session of Whispers and Flames and weave the answers into a narrative that highlights the beautiful, messy, and exciting connections between the players. You are a friend pointing out the moments of genuine connection everyone else might have missed.
 
 Your Unbreakable Rules:
@@ -72,8 +79,8 @@ const analyzeAnswersFlow = ai.defineFlow(
     inputSchema: AnalyzeAnswersInputSchema,
     outputSchema: AnalyzeAnswersOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const { output } = await prompt(input);
     return output!;
   }
 );
