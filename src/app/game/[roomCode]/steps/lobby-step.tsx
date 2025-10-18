@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -9,25 +8,30 @@ import { Label } from '@/components/ui/label';
 import { Loader2, ClipboardCopy } from 'lucide-react';
 import type { StepProps, Player } from '@/lib/game-types';
 
-const PlayerDisplay = ({ player, isMe }: { player: Player, isMe: boolean }) => (
+const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
   <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
     <div className="flex flex-col">
-      <span className="font-semibold">{player.name} {isMe && '(You)'}</span>
+      <span className="font-semibold">
+        {player.name} {isMe && '(You)'}
+      </span>
       <span className="text-xs text-muted-foreground">{player.email}</span>
     </div>
-    {player.isReady ? <span className="text-sm text-green-400">Ready</span> : <span className="text-sm text-amber-400">Waiting...</span>}
+    {player.isReady ? (
+      <span className="text-sm text-green-400">Ready</span>
+    ) : (
+      <span className="text-sm text-amber-400">Waiting...</span>
+    )}
   </div>
 );
 
 const EmptyPlayerSlot = () => (
-    <div className="flex items-center justify-center p-3 rounded-lg bg-secondary/50 border border-dashed">
-        <div className="text-sm text-muted-foreground text-center">Waiting for a player to join...</div>
-    </div>
+  <div className="flex items-center justify-center p-3 rounded-lg bg-secondary/50 border border-dashed">
+    <div className="text-sm text-muted-foreground text-center">Waiting for a player to join...</div>
+  </div>
 );
 
-
 export function LobbyStep({ gameState, me, handlers }: StepProps) {
-  const { roomRef, updateGameState, toast, getDoc } = handlers;
+  const { updateGameState, toast } = handlers;
   const { players, roomCode } = gameState;
   const [playerName, setPlayerName] = useState(me.name);
 
@@ -35,41 +39,33 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     const newName = playerName.trim();
     if (!newName || me.name === newName) return;
 
-    // This function now *only* handles the name change.
-    const currentDoc = await getDoc(roomRef);
-    if (!currentDoc.exists()) return;
-
-    const currentGameState = currentDoc.data() as any;
-    
-    const updatedPlayers = currentGameState.players.map((p: Player) =>
+    const updatedPlayers = gameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, name: newName } : p
     );
 
     await updateGameState({ players: updatedPlayers });
-    toast({ title: 'Name updated!', description: `You are now known as ${newName}`});
+    toast({ title: 'Name updated!', description: `You are now known as ${newName}` });
   };
 
   const handlePlayerReady = async () => {
-    // This function now *only* handles the ready state.
-    const currentDoc = await getDoc(roomRef);
-    if (!currentDoc.exists()) return;
-    
-    const currentGameState = currentDoc.data() as any;
-
-    // Check if we have exactly 3 players before allowing ready-up.
-    if (currentGameState.players.length < 3) {
-        toast({title: "Waiting for more players", description: "You need 3 players to be in the room to start.", variant: "destructive"});
-        return;
+    // Check if we have at least 2 players before allowing ready-up.
+    if (gameState.players.length < 2) {
+      toast({
+        title: 'Waiting for more players',
+        description: 'You need at least 2 players to start.',
+        variant: 'destructive',
+      });
+      return;
     }
 
-    const updatedPlayers = currentGameState.players.map((p: Player) => p.id === me.id ? {...p, isReady: true} : p);
+    const updatedPlayers = gameState.players.map((p: Player) =>
+      p.id === me.id ? { ...p, isReady: true } : p
+    );
     await updateGameState({ players: updatedPlayers });
 
-    // The game progression logic is handled by the listener in page.tsx
-    // We can add a check here just to be safe and potentially move to the next state if all are ready
     const allPlayersReady = updatedPlayers.every((p: Player) => p.isReady);
     if (allPlayersReady) {
-      const resetPlayers = updatedPlayers.map((p: Player) => ({...p, isReady: false}));
+      const resetPlayers = updatedPlayers.map((p: Player) => ({ ...p, isReady: false }));
       await updateGameState({ step: 'categories', players: resetPlayers });
     }
   };
@@ -82,8 +78,8 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   };
 
   const allPlayers = [...players];
-  while(allPlayers.length < 3) {
-      allPlayers.push(null as any);
+  while (allPlayers.length < 3) {
+    allPlayers.push(null as any);
   }
 
   return (
@@ -103,7 +99,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
         <div className="space-y-2">
           <Label htmlFor="playerName">Your Name</Label>
           <div className="flex space-x-2">
-            <Input 
+            <Input
               id="playerName"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
@@ -113,15 +109,31 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
             />
           </div>
         </div>
-        
+
         <div className="space-y-2">
-            {allPlayers.map((player, index) => player 
-                ? <PlayerDisplay key={player.id} player={player} isMe={player.id === me.id} />
-                : <EmptyPlayerSlot key={`empty-${index}`} />
-            )}
+          {allPlayers.map((player, index) =>
+            player ? (
+              <PlayerDisplay key={player.id} player={player} isMe={player.id === me.id} />
+            ) : (
+              <EmptyPlayerSlot key={`empty-${index}`} />
+            )
+          )}
         </div>
-        <Button onClick={handlePlayerReady} className="w-full" size="lg" disabled={me.isReady || players.length < 3}>
-          {me.isReady ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...</> : players.length < 3 ? 'Waiting for 3 players...' : "I'm Ready!"}
+        <Button
+          onClick={handlePlayerReady}
+          className="w-full"
+          size="lg"
+          disabled={me.isReady || players.length < 3}
+        >
+          {me.isReady ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
+            </>
+          ) : players.length < 3 ? (
+            'Waiting for 3 players...'
+          ) : (
+            "I'm Ready!"
+          )}
         </Button>
       </CardContent>
     </Card>

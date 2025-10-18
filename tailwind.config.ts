@@ -1,5 +1,4 @@
-
-import type {Config} from 'tailwindcss';
+import type { Config } from 'tailwindcss';
 
 const config = {
   darkMode: ['class'],
@@ -11,9 +10,9 @@ const config = {
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: '2rem',
       screens: {
-        "2xl": "1400px",
+        '2xl': '1400px',
       },
     },
     extend: {
@@ -82,7 +81,7 @@ const config = {
         'pulse-slow': {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.85' },
-        }
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',

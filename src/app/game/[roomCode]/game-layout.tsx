@@ -1,4 +1,3 @@
-
 'use client';
 
 import { type ReactNode } from 'react';
@@ -7,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import type { GameState } from '@/lib/game-types';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Users } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { cn } from '@/lib/utils';
@@ -32,7 +31,7 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
 
   const progress = (() => {
     if (step === 'summary') return 100;
-    if (step === 'game' && totalQuestions > 0) return ((currentQuestionIndex) / totalQuestions) * 100;
+    if (step === 'game' && totalQuestions > 0) return (currentQuestionIndex / totalQuestions) * 100;
     if (step === 'spicy') return 20;
     if (step === 'categories') return 10;
     return 0;
@@ -42,10 +41,18 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
   const bgClass = backgroundColors[step] || 'bg-background';
 
   return (
-    <div className={cn("min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000", bgClass)}>
+    <div
+      className={cn(
+        'min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000',
+        bgClass
+      )}
+    >
       <div className="absolute top-0 left-0 right-0 p-4">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <Logo className="w-10 h-10 text-primary cursor-pointer" onClick={() => router.push('/')} />
+          <Logo
+            className="w-10 h-10 text-primary cursor-pointer"
+            onClick={() => router.push('/')}
+          />
           <div className="flex items-center gap-4">
             {players.length > 0 && (
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -57,7 +64,7 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
           </div>
         </div>
       </div>
-      
+
       {error && (
         <Alert variant="destructive" className="max-w-md mb-4">
           <AlertTriangle className="h-4 w-4" />

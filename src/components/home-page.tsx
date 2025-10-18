@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { generateRoomCode } from '@/lib/game-utils';
 import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { clientAuth, type User } from '@/lib/client-auth';
+import { clientGame } from '@/lib/client-game';
 
 export default function HomePageClient() {
   const router = useRouter();
@@ -19,6 +18,7 @@ export default function HomePageClient() {
   const [roomCode, setRoomCode] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [playerName, setPlayerName] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -31,11 +31,10 @@ export default function HomePageClient() {
   }, [searchParams]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    clientAuth.getCurrentUser().then((currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
-    return () => unsubscribe();
   }, []);
 
   const handleAuthAction = async (isSignUp: boolean) => {
@@ -47,136 +46,221 @@ export default function HomePageClient() {
       });
       return;
     }
-    setLoading(true);
-    try {
-      if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password);
-        toast({ title: 'Sign Up Successful!', description: "You're now logged in." });
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast({ title: 'Login Successful!' });
-      }
 
-      if (roomCode) {
-        router.push(`/game/${roomCode}`);
-      }
+    try {
+      const newUser = isSignUp
+        ? await clientAuth.signUp(email, password)
+        : await clientAuth.signIn(email, password);
+      setUser(newUser);
+      toast({
+        title: isSignUp ? 'Account Created' : 'Signed In',
+        description: `Welcome${isSignUp ? '' : ' back'}, ${newUser.email}!`,
+      });
     } catch (error: any) {
       toast({
-        title: 'Authentication Failed',
+        title: 'Authentication Error',
         description: error.message,
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleCreateRoom = () => {
-    if (!user) {
-      toast({ title: 'Please sign in to create a room.', variant: 'destructive' });
-      return;
-    }
-    const newRoomCode = generateRoomCode();
-    router.push(`/game/${newRoomCode}`);
-  };
-
-  const handleJoinRoom = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      toast({ title: 'Please sign in to join a room.', variant: 'destructive' });
-      return;
-    }
-    if (roomCode.trim()) {
-      router.push(`/game/${roomCode.trim()}`);
-    } else {
+  const handleLogout = async () => {
+    try {
+      await clientAuth.signOut();
+      setUser(null);
       toast({
-        title: 'Invalid Code',
-        description: 'Please enter a room code to join.',
+        title: 'Signed Out',
+        description: 'You have been signed out successfully.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
         variant: 'destructive',
       });
     }
   };
-  
-  const handleLogout = async () => {
-    await signOut(auth);
-    toast({ title: 'Logged Out' });
-  }
-  
+
+  const handleCreateRoom = async () => {
+    if (!user) return;
+    if (!playerName) {
+      toast({
+        title: 'Name Required',
+        description: 'Please enter your name to create a room.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const newRoomCode = generateRoomCode();
+      await clientGame.create(newRoomCode, playerName);
+      router.push(`/game/${newRoomCode}`);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!user) return;
+    if (!roomCode) {
+      toast({
+        title: 'Room Code Required',
+        description: 'Please enter a room code to join.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!playerName) {
+      toast({
+        title: 'Name Required',
+        description: 'Please enter your name to join a room.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await clientGame.join(roomCode.toUpperCase(), playerName);
+      router.push(`/game/${roomCode.toUpperCase()}`);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
-      <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-        <CardContent className="p-6">
-          <div className="flex justify-center items-center h-48">
-            <Sparkles className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        </CardContent>
-      </Card>
-    )
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
-  if (user) {
+  if (!user) {
     return (
-      <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-        <CardHeader>
-          <CardTitle>Welcome!</CardTitle>
-          <CardDescription>{user.email}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-           <Button size="lg" className="w-full font-bold" onClick={handleCreateRoom}>
-              <Sparkles className="mr-2 h-5 w-5" />
-              Create a New Room
-            </Button>
-            <form onSubmit={handleJoinRoom} className="space-y-2">
-               <Input
-                  id="room-code-authed"
-                  placeholder="Or enter a room code"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value)}
-                  className="text-center text-lg h-12"
-                />
-                <Button type="submit" size="lg" className="w-full font-bold" variant="secondary">
-                  Join Room
-                  <ArrowRight className="ml-2 h-5 w-5" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
+              <Sparkles className="inline-block w-8 h-8 mr-2" />
+              Whispers and Flames
+            </CardTitle>
+            <CardDescription>Sign in to start your journey</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              <TabsContent value="signin" className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button onClick={() => handleAuthAction(false)} className="w-full">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
                 </Button>
-            </form>
-             <Button size="lg" variant="outline" className="w-full" onClick={() => router.push('/profile')}>
-                <History className="mr-2 h-5 w-5" />
-                My Session History
-            </Button>
-            <Button variant="link" onClick={handleLogout}>Logout</Button>
-        </CardContent>
-      </Card>
-    )
+              </TabsContent>
+              <TabsContent value="signup" className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Password (min 6 characters)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button onClick={() => handleAuthAction(true)} className="w-full">
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Create Account
+                </Button>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-      <Tabs defaultValue="login" className="w-full">
-        <CardHeader>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
+            <Sparkles className="inline-block w-8 h-8 mr-2" />
+            Whispers and Flames
+          </CardTitle>
+          <CardDescription>Welcome, {user.email}</CardDescription>
         </CardHeader>
-        <TabsContent value="login">
-          <form onSubmit={(e) => { e.preventDefault(); handleAuthAction(false); }} className="space-y-4 p-6 pt-0">
-            <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? 'Logging in...' : <><LogIn className="mr-2" /> Login & Join</>}
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <Input
+              placeholder="Your name"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button onClick={handleCreateRoom} className="w-full" size="lg">
+                <Play className="mr-2 h-5 w-5" />
+                Create New Room
+              </Button>
+              <Button onClick={() => router.push('/profile')} variant="outline" size="lg">
+                <History className="mr-2 h-5 w-5" />
+                View History
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground text-center">Or join an existing room</p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Room Code"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                maxLength={6}
+              />
+              <Button onClick={handleJoinRoom}>
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Join
+              </Button>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t">
+            <Button onClick={handleLogout} variant="ghost" className="w-full">
+              Sign Out
             </Button>
-          </form>
-        </TabsContent>
-        <TabsContent value="signup">
-          <form onSubmit={(e) => { e.preventDefault(); handleAuthAction(true); }} className="space-y-4 p-6 pt-0">
-            <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? 'Signing up...' : 'Sign Up & Join'}
-            </Button>
-          </form>
-        </TabsContent>
-      </Tabs>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

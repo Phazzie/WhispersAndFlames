@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { LoadingScreen } from '../loading-screen';
 export function SummaryStep({ gameState, me, handlers }: StepProps) {
   const { summary } = gameState;
   const { router } = handlers;
-  
+
   if (!summary) {
     return <LoadingScreen message="Ember is analyzing your answers..." />;
   }

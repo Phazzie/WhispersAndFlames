@@ -1,0 +1,24 @@
+name: whispersandflames
+region: nyc
+services:
+  - name: web
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    github:
+      repo: Phazzie/WhispersAndFlames
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    run_command: npm start
+    http_port: 3000
+    envs:
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
+      - key: XAI_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+      - key: NEXT_PUBLIC_APP_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${APP_URL}

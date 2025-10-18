@@ -1,17 +1,15 @@
-
-import type { DocumentReference, FieldValue } from 'firebase/firestore';
 import type { SPICY_LEVELS } from './constants';
 import type { generateQuestionAction, analyzeAndSummarizeAction } from '@/app/game/actions';
 
 export type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
-export type SpicyLevel = typeof SPICY_LEVELS[number];
-export type Player = { 
-  id: string; 
-  name: string; 
-  isReady: boolean; 
-  email: string; 
-  selectedCategories: string[], 
-  selectedSpicyLevel?: SpicyLevel['name'] 
+export type SpicyLevel = (typeof SPICY_LEVELS)[number];
+export type Player = {
+  id: string;
+  name: string;
+  isReady: boolean;
+  email: string;
+  selectedCategories: string[];
+  selectedSpicyLevel?: SpicyLevel['name'];
 };
 export type GameRound = { question: string; answers: Record<string, string> };
 
@@ -28,18 +26,22 @@ export type GameState = {
   totalQuestions: number;
   summary: string;
   roomCode: string;
-  createdAt?: FieldValue;
-  completedAt?: FieldValue;
+  createdAt?: Date;
+  completedAt?: Date;
 };
 
 export type StepProps = {
   gameState: GameState;
   me: Player;
   handlers: {
-    roomRef: DocumentReference;
+    roomCode: string;
     updateGameState: (newState: Partial<GameState>) => Promise<void>;
-    getDoc: (ref: DocumentReference) => Promise<any>;
-    toast: (options: { title: string; description?: string; variant?: 'default' | 'destructive'; duration?: number }) => void;
+    toast: (options: {
+      title: string;
+      description?: string;
+      variant?: 'default' | 'destructive';
+      duration?: number;
+    }) => void;
     setIsLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
     generateQuestionAction: typeof generateQuestionAction;
