@@ -10,6 +10,7 @@ import {
   generateQuestionAction,
   analyzeAndSummarizeAction,
   generateTherapistNotesAction,
+  generateVisualMemoryAction,
 } from '../actions';
 
 import { GameLayout } from './game-layout';
@@ -115,6 +116,7 @@ export default function GamePage() {
     generateQuestionAction,
     analyzeAndSummarizeAction,
     generateTherapistNotesAction,
+    generateVisualMemoryAction,
     router,
   };
 

@@ -15,11 +15,22 @@ import confetti from 'canvas-confetti';
 
 export function SummaryStep({ gameState, me, handlers }: StepProps) {
   const { summary } = gameState;
-  const { router, generateTherapistNotesAction, toast } = handlers;
+  const {
+    router,
+    generateTherapistNotesAction,
+    generateVisualMemoryAction,
+    updateGameState,
+    toast,
+  } = handlers;
   const [therapistNotes, setTherapistNotes] = useState<string | null>(null);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [achievementsRevealed, setAchievementsRevealed] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  const visualMemories = gameState.visualMemories || [];
+  const imageGenerationCount = gameState.imageGenerationCount || 0;
+  const remainingGenerations = Math.max(0, 3 - imageGenerationCount);
 
   useEffect(() => {
     if (summary && !achievementsRevealed) {
@@ -90,6 +101,61 @@ export function SummaryStep({ gameState, me, handlers }: StepProps) {
     URL.revokeObjectURL(url);
   };
 
+  const generateVisualMemory = async () => {
+    if (imageGenerationCount >= 3) {
+      toast({
+        title: 'Limit Reached',
+        description: 'You can generate up to 3 visual memories per session.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      // Extract themes from summary and categories
+      const sharedThemes = gameState.commonCategories;
+
+      const result = await generateVisualMemoryAction(
+        gameState.summary,
+        gameState.finalSpicyLevel,
+        sharedThemes
+      );
+
+      if ('imageUrl' in result) {
+        const newMemory = {
+          imageUrl: result.imageUrl,
+          prompt: result.prompt,
+          timestamp: Date.now(),
+        };
+
+        await updateGameState({
+          visualMemories: [...visualMemories, newMemory],
+          imageGenerationCount: imageGenerationCount + 1,
+        });
+
+        toast({
+          title: 'Visual Memory Created',
+          description: 'Your artistic memory has been generated!',
+        });
+      } else {
+        toast({
+          title: 'Generation Failed',
+          description: result.error,
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Could not generate visual memory',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   if (!summary) {
     return <LoadingScreen message="Ember is analyzing your answers..." />;
   }
@@ -117,6 +183,74 @@ export function SummaryStep({ gameState, me, handlers }: StepProps) {
             <TabsContent value="summary" className="mt-6">
               <div className="prose prose-invert prose-p:text-foreground/90 prose-headings:text-primary max-w-none text-base whitespace-pre-wrap p-4 bg-secondary rounded-md">
                 {summary}
+              </div>
+
+              {/* Visual Memories Section */}
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Visual Memories</h3>
+                  <Button
+                    onClick={generateVisualMemory}
+                    disabled={isGeneratingImage || remainingGenerations === 0}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {isGeneratingImage ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>Generate Visual Memory ({remainingGenerations} left)</>
+                    )}
+                  </Button>
+                </div>
+
+                {visualMemories.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {visualMemories.map((memory, index) => (
+                      <motion.div
+                        key={memory.timestamp}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.2 }}
+                        className="relative group rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={memory.imageUrl}
+                          alt="Visual Memory"
+                          className="w-full h-64 object-cover"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                          <p className="text-white text-sm line-clamp-2">{memory.prompt}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = memory.imageUrl;
+                            a.download = `visual-memory-${memory.timestamp}.svg`;
+                            a.click();
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                    <p className="text-muted-foreground">
+                      Generate artistic visual memories of your session
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      (Ephemeral - will expire with session)
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
             <TabsContent value="achievements" className="mt-6">

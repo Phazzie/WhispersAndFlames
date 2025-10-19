@@ -9,6 +9,7 @@ import {
   AnalyzeAnswersInput,
 } from '@/ai/flows/analyze-answers-and-generate-summary';
 import { generateTherapistNotes, TherapistNotesInput } from '@/ai/flows/generate-therapist-notes';
+import { generateSessionImage } from '@/lib/image-generation';
 
 function getFallbackQuestion(): string {
   // This provides a simple, generic fallback that is unlikely to have been asked.
@@ -126,5 +127,39 @@ export async function generateTherapistNotesAction(
     }
     console.error('AI therapist notes generation failed:', error);
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
+  }
+}
+
+export async function generateVisualMemoryAction(
+  summary: string,
+  spicyLevel: string,
+  sharedThemes: string[]
+): Promise<{ imageUrl: string; prompt: string } | { error: string }> {
+  const isDev = process.env.NODE_ENV === 'development';
+  const startTime = isDev ? Date.now() : 0;
+
+  try {
+    if (isDev) console.log('[AI] Starting visual memory generation...');
+
+    const result = await withTimeout(
+      generateSessionImage(summary, spicyLevel, sharedThemes),
+      20000
+    ); // 20-second timeout
+
+    if (result !== null) {
+      if (isDev) {
+        const elapsed = Date.now() - startTime;
+        console.log(`[AI] Visual memory generated successfully in ${elapsed}ms`);
+      }
+      return result;
+    }
+    throw new Error('Failed to generate visual memory.');
+  } catch (error: any) {
+    if (isDev) {
+      const elapsed = Date.now() - startTime;
+      console.error(`[AI] Visual memory generation failed after ${elapsed}ms:`, error);
+    }
+    console.error('AI visual memory generation failed:', error);
+    return { error: 'Could not generate visual memory at this time. Please try again later.' };
   }
 }

@@ -55,6 +55,8 @@ export async function POST(request: Request) {
       currentQuestionIndex: 0,
       totalQuestions: 0,
       summary: '',
+      visualMemories: [],
+      imageGenerationCount: 0,
       roomCode,
     };
 

@@ -3,6 +3,7 @@ import type {
   generateQuestionAction,
   analyzeAndSummarizeAction,
   generateTherapistNotesAction,
+  generateVisualMemoryAction,
 } from '@/app/game/actions';
 
 export type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
@@ -30,6 +31,12 @@ export type GameState = {
   currentQuestionIndex: number;
   totalQuestions: number;
   summary: string;
+  visualMemories?: Array<{
+    imageUrl: string;
+    prompt: string;
+    timestamp: number;
+  }>;
+  imageGenerationCount: number;
   roomCode: string;
   createdAt?: Date;
   completedAt?: Date;
@@ -52,6 +59,7 @@ export type StepProps = {
     generateQuestionAction: typeof generateQuestionAction;
     analyzeAndSummarizeAction: typeof analyzeAndSummarizeAction;
     generateTherapistNotesAction: typeof generateTherapistNotesAction;
+    generateVisualMemoryAction: typeof generateVisualMemoryAction;
     router: any; // Simplified NextRouter
   };
 };
