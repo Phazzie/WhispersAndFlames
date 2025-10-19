@@ -116,7 +116,7 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
 
   if (avgAnswerLengths.size > 0 && gameRounds.length > 0) {
     avgAnswerLengths.forEach((total, playerId) => {
-      const count = gameRounds.filter((r) => r.answers[playerId]).length;
+      const count = gameRounds.filter((r) => Object.prototype.hasOwnProperty.call(r.answers, playerId)).length;
       avgAnswerLengths.set(playerId, total / count);
     });
 
