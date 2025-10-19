@@ -12,16 +12,37 @@ export interface Achievement {
 
 export function calculateAchievements(gameState: GameState): Achievement[] {
   const achievements: Achievement[] = [];
-  const { players, gameRounds, finalSpicyLevel } = gameState;
+  
+  try {
+    const { players, gameRounds, finalSpicyLevel } = gameState;
 
-  // Heart-Thrower - Player who gave the longest answer
-  const answerLengths = new Map<string, number>();
-  gameRounds.forEach((round) => {
-    Object.entries(round.answers).forEach(([playerId, answer]) => {
-      const currentLength = answerLengths.get(playerId) || 0;
-      answerLengths.set(playerId, currentLength + answer.length);
+    // Validate input
+    if (!players || players.length === 0) {
+      console.warn('[Achievements] No players found in game state');
+      return achievements;
+    }
+
+    if (!gameRounds || gameRounds.length === 0) {
+      console.warn('[Achievements] No game rounds found in game state');
+      return achievements;
+    }
+
+    // Heart-Thrower - Player who gave the longest answer
+    const answerLengths = new Map<string, number>();
+    gameRounds.forEach((round) => {
+      if (!round.answers) {
+        console.warn('[Achievements] Round missing answers:', round);
+        return;
+      }
+      Object.entries(round.answers).forEach(([playerId, answer]) => {
+        if (typeof answer !== 'string') {
+          console.warn('[Achievements] Invalid answer type for player:', playerId);
+          return;
+        }
+        const currentLength = answerLengths.get(playerId) || 0;
+        answerLengths.set(playerId, currentLength + answer.length);
+      });
     });
-  });
 
   if (answerLengths.size > 0) {
     const heartThrowerId = Array.from(answerLengths.entries()).reduce((a, b) =>
@@ -38,15 +59,17 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
     });
   }
 
-  // Plot-Twist Picasso - Player with most unique/creative answers (heuristic: variety of words)
-  const wordVariety = new Map<string, number>();
-  gameRounds.forEach((round) => {
-    Object.entries(round.answers).forEach(([playerId, answer]) => {
-      const words = new Set(answer.toLowerCase().split(/\s+/));
-      const currentVariety = wordVariety.get(playerId) || 0;
-      wordVariety.set(playerId, currentVariety + words.size);
+    // Plot-Twist Picasso - Player with most unique/creative answers (heuristic: variety of words)
+    const wordVariety = new Map<string, number>();
+    gameRounds.forEach((round) => {
+      if (!round.answers) return;
+      Object.entries(round.answers).forEach(([playerId, answer]) => {
+        if (typeof answer !== 'string') return;
+        const words = new Set(answer.toLowerCase().split(/\s+/));
+        const currentVariety = wordVariety.get(playerId) || 0;
+        wordVariety.set(playerId, currentVariety + words.size);
+      });
     });
-  });
 
   if (wordVariety.size > 0) {
     const picassoId = Array.from(wordVariety.entries()).reduce((a, b) => (a[1] > b[1] ? a : b))[0];
@@ -102,39 +125,50 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
     });
   });
 
-  // Vulnerability Champion - Player with shortest average answer (being concise takes courage)
-  const avgAnswerLengths = new Map<string, number>();
-  gameRounds.forEach((round) => {
-    Object.entries(round.answers).forEach(([playerId, answer]) => {
-      if (!avgAnswerLengths.has(playerId)) {
-        avgAnswerLengths.set(playerId, 0);
-      }
-      const current = avgAnswerLengths.get(playerId)!;
-      avgAnswerLengths.set(playerId, current + answer.length);
-    });
-  });
-
-  if (avgAnswerLengths.size > 0 && gameRounds.length > 0) {
-    avgAnswerLengths.forEach((total, playerId) => {
-      const count = gameRounds.filter((r) => Object.prototype.hasOwnProperty.call(r.answers, playerId)).length;
-      avgAnswerLengths.set(playerId, total / count);
+    // Vulnerability Champion - Player with shortest average answer (being concise takes courage)
+    const avgAnswerLengths = new Map<string, number>();
+    gameRounds.forEach((round) => {
+      if (!round.answers) return;
+      Object.entries(round.answers).forEach(([playerId, answer]) => {
+        if (typeof answer !== 'string') return;
+        if (!avgAnswerLengths.has(playerId)) {
+          avgAnswerLengths.set(playerId, 0);
+        }
+        const current = avgAnswerLengths.get(playerId)!;
+        avgAnswerLengths.set(playerId, current + answer.length);
+      });
     });
 
-    const shortestAvgId = Array.from(avgAnswerLengths.entries()).reduce((a, b) =>
-      a[1] < b[1] ? a : b
-    )[0];
-    achievements.push({
-      id: 'vulnerability-champion',
-      name: 'Vulnerability Champion',
-      description: 'Brave enough to be concise',
-      icon: '🎯',
-      playerId: shortestAvgId,
-      rarity: 'common',
-      color: '#4A90E2',
-    });
+    if (avgAnswerLengths.size > 0 && gameRounds.length > 0) {
+      avgAnswerLengths.forEach((total, playerId) => {
+        const count = gameRounds.filter((r) =>
+          Object.prototype.hasOwnProperty.call(r.answers, playerId)
+        ).length;
+        if (count > 0) {
+          avgAnswerLengths.set(playerId, total / count);
+        }
+      });
+
+      const shortestAvgId = Array.from(avgAnswerLengths.entries()).reduce((a, b) =>
+        a[1] < b[1] ? a : b
+      )[0];
+      achievements.push({
+        id: 'vulnerability-champion',
+        name: 'Vulnerability Champion',
+        description: 'Brave enough to be concise',
+        icon: '🎯',
+        playerId: shortestAvgId,
+        rarity: 'common',
+        color: '#4A90E2',
+      });
+    }
+
+    console.log(`[Achievements] Calculated ${achievements.length} achievements`);
+    return achievements;
+  } catch (error) {
+    console.error('[Achievements] Error calculating achievements:', error);
+    return achievements; // Return empty or partial achievements on error
   }
-
-  return achievements;
 }
 
 export function getPlayerName(gameState: GameState, playerId: string): string {
