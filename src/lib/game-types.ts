@@ -1,5 +1,9 @@
 import type { SPICY_LEVELS } from './constants';
-import type { generateQuestionAction, analyzeAndSummarizeAction } from '@/app/game/actions';
+import type {
+  generateQuestionAction,
+  analyzeAndSummarizeAction,
+  generateTherapistNotesAction,
+} from '@/app/game/actions';
 
 export type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
 export type SpicyLevel = (typeof SPICY_LEVELS)[number];
@@ -46,6 +50,7 @@ export type StepProps = {
     setError: (error: string | null) => void;
     generateQuestionAction: typeof generateQuestionAction;
     analyzeAndSummarizeAction: typeof analyzeAndSummarizeAction;
+    generateTherapistNotesAction: typeof generateTherapistNotesAction;
     router: any; // Simplified NextRouter
   };
 };

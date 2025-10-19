@@ -6,7 +6,11 @@ import { clientGame } from '@/lib/client-game';
 import { clientAuth } from '@/lib/client-auth';
 import { useToast } from '@/hooks/use-toast';
 import type { GameState, Player } from '@/lib/game-types';
-import { generateQuestionAction, analyzeAndSummarizeAction } from '../actions';
+import {
+  generateQuestionAction,
+  analyzeAndSummarizeAction,
+  generateTherapistNotesAction,
+} from '../actions';
 
 import { GameLayout } from './game-layout';
 import { LobbyStep } from './steps/lobby-step';
@@ -110,6 +114,7 @@ export default function GamePage() {
     setError,
     generateQuestionAction,
     analyzeAndSummarizeAction,
+    generateTherapistNotesAction,
     router,
   };
 
