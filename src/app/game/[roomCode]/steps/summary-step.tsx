@@ -1,18 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PartyPopper, Clipboard, Download, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { PartyPopper, Clipboard, Download, Loader2, Trophy } from 'lucide-react';
 import type { StepProps } from '@/lib/game-types';
 import { LoadingScreen } from '../loading-screen';
+import { calculateAchievements, getPlayerName, type Achievement } from '@/lib/achievements';
+import { cn } from '@/lib/utils';
+import confetti from 'canvas-confetti';
 
 export function SummaryStep({ gameState, me, handlers }: StepProps) {
   const { summary } = gameState;
   const { router, generateTherapistNotesAction, toast } = handlers;
   const [therapistNotes, setTherapistNotes] = useState<string | null>(null);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [achievementsRevealed, setAchievementsRevealed] = useState(false);
+
+  useEffect(() => {
+    if (summary && !achievementsRevealed) {
+      // Calculate achievements when summary is available
+      const calculatedAchievements = calculateAchievements(gameState);
+      setAchievements(calculatedAchievements);
+      setAchievementsRevealed(true);
+
+      // Fire confetti for legendary achievements
+      const legendaryCount = calculatedAchievements.filter((a) => a.rarity === 'legendary').length;
+      if (legendaryCount > 0) {
+        setTimeout(() => {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#A93226', '#D46A4E', '#FFD700'],
+          });
+        }, 500);
+      }
+    }
+  }, [summary, achievementsRevealed, gameState]);
 
   const loadTherapistNotes = async () => {
     if (therapistNotes) return; // Already loaded
@@ -75,8 +104,12 @@ export function SummaryStep({ gameState, me, handlers }: StepProps) {
         </CardHeader>
         <CardContent className="pt-6">
           <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="summary">Playful Summary</TabsTrigger>
+              <TabsTrigger value="achievements">
+                <Trophy className="w-4 h-4 mr-2" />
+                Achievements
+              </TabsTrigger>
               <TabsTrigger value="therapist" onClick={loadTherapistNotes}>
                 Dr. Ember&apos;s Notes
               </TabsTrigger>
@@ -84,6 +117,62 @@ export function SummaryStep({ gameState, me, handlers }: StepProps) {
             <TabsContent value="summary" className="mt-6">
               <div className="prose prose-invert prose-p:text-foreground/90 prose-headings:text-primary max-w-none text-base whitespace-pre-wrap p-4 bg-secondary rounded-md">
                 {summary}
+              </div>
+            </TabsContent>
+            <TabsContent value="achievements" className="mt-6">
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {achievements.map((achievement, index) => (
+                    <motion.div
+                      key={achievement.id}
+                      initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: index * 0.3, type: 'spring', stiffness: 100 }}
+                      className={cn(
+                        'relative rounded-lg border-2 p-6 bg-card overflow-hidden',
+                        achievement.rarity === 'legendary' && 'legendary-glow border-accent',
+                        achievement.rarity === 'rare' && 'border-primary',
+                        achievement.rarity === 'common' && 'border-border'
+                      )}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="text-6xl flex-shrink-0">{achievement.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold mb-1">{achievement.name}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {achievement.description}
+                          </p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge
+                              variant={achievement.rarity === 'legendary' ? 'default' : 'outline'}
+                              style={{
+                                backgroundColor:
+                                  achievement.rarity === 'legendary'
+                                    ? achievement.color
+                                    : 'transparent',
+                                borderColor: achievement.color,
+                                color:
+                                  achievement.rarity === 'legendary' ? 'white' : achievement.color,
+                              }}
+                            >
+                              {achievement.rarity}
+                            </Badge>
+                            {achievement.playerId && (
+                              <Badge variant="secondary">
+                                {getPlayerName(gameState, achievement.playerId)}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {achievements.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No achievements yet. Complete a session to earn them!
+                  </p>
+                )}
               </div>
             </TabsContent>
             <TabsContent value="therapist" className="mt-6">
