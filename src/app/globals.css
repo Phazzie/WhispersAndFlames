@@ -57,3 +57,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .legendary-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 20px rgba(169, 50, 38, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(169, 50, 38, 0.8);
+    }
+  }
+}

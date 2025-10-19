@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Loader2, Sparkles, Zap } from 'lucide-react';
 import { SPICY_LEVELS } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
@@ -15,6 +17,7 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
   const [selectedLevel, setSelectedLevel] = useState<SpicyLevel['name'] | undefined>(
     me.selectedSpicyLevel
   );
+  const [chaosMode, setChaosMode] = useState(gameState.chaosMode || false);
 
   const startFirstQuestion = async (level: SpicyLevel['name'], categories: string[]) => {
     setIsLoading(true);
@@ -58,7 +61,7 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
       p.id === me.id ? { ...p, selectedSpicyLevel: value, isReady: true } : p
     );
 
-    await updateGameState({ players: updatedPlayers });
+    await updateGameState({ players: updatedPlayers, chaosMode });
 
     const allReady = updatedPlayers.every((p) => p.isReady);
 
@@ -72,6 +75,12 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
       await updateGameState({ finalSpicyLevel: finalLevel });
       await startFirstQuestion(finalLevel, gameState.commonCategories);
     }
+  };
+
+  const handleChaosToggle = async (checked: boolean) => {
+    if (me.isReady) return;
+    setChaosMode(checked);
+    await updateGameState({ chaosMode: checked });
   };
 
   const containerVariants = {
@@ -164,6 +173,22 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
           );
         })}
       </motion.div>
+
+      <div className="flex items-center gap-3 mt-8 justify-center">
+        <Switch
+          id="chaos-mode"
+          checked={chaosMode}
+          onCheckedChange={handleChaosToggle}
+          disabled={me.isReady}
+        />
+        <Label
+          htmlFor="chaos-mode"
+          className={cn('cursor-pointer flex items-center gap-2', me.isReady && 'opacity-60')}
+        >
+          <Zap className="w-4 h-4" />
+          <span>Chaos Mode: Surprise spicy upgrades (1 in 5 chance)</span>
+        </Label>
+      </div>
 
       {me.isReady && (
         <div className="mt-8">

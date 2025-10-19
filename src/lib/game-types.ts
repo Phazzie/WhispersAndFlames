@@ -1,5 +1,10 @@
 import type { SPICY_LEVELS } from './constants';
-import type { generateQuestionAction, analyzeAndSummarizeAction } from '@/app/game/actions';
+import type {
+  generateQuestionAction,
+  analyzeAndSummarizeAction,
+  generateTherapistNotesAction,
+  generateVisualMemoryAction,
+} from '@/app/game/actions';
 
 export type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
 export type SpicyLevel = (typeof SPICY_LEVELS)[number];
@@ -20,11 +25,18 @@ export type GameState = {
   hostId: string;
   commonCategories: string[];
   finalSpicyLevel: SpicyLevel['name'];
+  chaosMode: boolean;
   gameRounds: GameRound[];
   currentQuestion: string;
   currentQuestionIndex: number;
   totalQuestions: number;
   summary: string;
+  visualMemories?: Array<{
+    imageUrl: string;
+    prompt: string;
+    timestamp: number;
+  }>;
+  imageGenerationCount: number;
   roomCode: string;
   createdAt?: Date;
   completedAt?: Date;
@@ -46,6 +58,8 @@ export type StepProps = {
     setError: (error: string | null) => void;
     generateQuestionAction: typeof generateQuestionAction;
     analyzeAndSummarizeAction: typeof analyzeAndSummarizeAction;
+    generateTherapistNotesAction: typeof generateTherapistNotesAction;
+    generateVisualMemoryAction: typeof generateVisualMemoryAction;
     router: any; // Simplified NextRouter
   };
 };

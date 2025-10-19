@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, Zap } from 'lucide-react';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
 import { LoadingScreen } from '../loading-screen';
+import { applyChaosMode } from '@/lib/game-utils';
 
 export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const {
@@ -23,6 +25,16 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
 
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [chaosUpgraded, setChaosUpgraded] = useState(false);
+
+  useEffect(() => {
+    if (chaosUpgraded) {
+      const timer = setTimeout(() => {
+        setChaosUpgraded(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [chaosUpgraded]);
 
   const currentRound = gameRounds.find((r) => r.question === currentQuestion);
   const myAnswer = currentRound?.answers[me.id];
@@ -104,9 +116,16 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
           const nextQuestionIndex = gameState.currentQuestionIndex + 1;
           const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
 
+          // Apply chaos mode if enabled
+          const chaosResult = applyChaosMode(gameState.finalSpicyLevel, gameState.chaosMode);
+
+          if (chaosResult.wasUpgraded) {
+            setChaosUpgraded(true);
+          }
+
           const result = await generateQuestionAction({
             categories: [gameState.commonCategories[categoryIndex]],
-            spicyLevel: gameState.finalSpicyLevel,
+            spicyLevel: chaosResult.level,
             previousQuestions: gameState.gameRounds.map((r) => r.question),
           });
 
@@ -187,7 +206,20 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   }
 
   return (
-    <div className="w-full max-w-xl">
+    <div className="w-full max-w-xl relative">
+      <AnimatePresence>
+        {chaosUpgraded && (
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0, rotate: 180 }}
+            className="absolute top-4 right-4 bg-accent text-white px-4 py-2 rounded-full shadow-lg z-10 flex items-center gap-2"
+          >
+            <Zap className="w-4 h-4" />
+            Chaos! Spicy level upgraded
+          </motion.div>
+        )}
+      </AnimatePresence>
       <p className="text-center text-primary font-semibold mb-4">
         Question {currentQuestionIndex} of {totalQuestions}
       </p>

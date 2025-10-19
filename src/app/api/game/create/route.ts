@@ -49,11 +49,14 @@ export async function POST(request: Request) {
       hostId: user.id,
       commonCategories: [],
       finalSpicyLevel: 'Mild',
+      chaosMode: false,
       gameRounds: [],
       currentQuestion: '',
       currentQuestionIndex: 0,
       totalQuestions: 0,
       summary: '',
+      visualMemories: [],
+      imageGenerationCount: 0,
       roomCode,
     };
 
