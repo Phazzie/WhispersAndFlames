@@ -24,6 +24,7 @@ export type GameState = {
   hostId: string;
   commonCategories: string[];
   finalSpicyLevel: SpicyLevel['name'];
+  chaosMode: boolean;
   gameRounds: GameRound[];
   currentQuestion: string;
   currentQuestionIndex: number;

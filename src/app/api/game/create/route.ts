@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       hostId: user.id,
       commonCategories: [],
       finalSpicyLevel: 'Mild',
+      chaosMode: false,
       gameRounds: [],
       currentQuestion: '',
       currentQuestionIndex: 0,
