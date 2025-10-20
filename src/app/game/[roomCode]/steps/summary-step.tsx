@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Clipboard, Download, Loader2, Trophy } from 'lucide-react';
+import { Clipboard, Download, Loader2, PartyPopper, Trophy } from 'lucide-react';
 import type { StepProps } from '@/lib/game-types';
 import { LoadingScreen } from '../loading-screen';
 import { calculateAchievements, getPlayerName, type Achievement } from '@/lib/achievements';
