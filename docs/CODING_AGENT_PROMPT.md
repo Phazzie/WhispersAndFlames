@@ -233,14 +233,22 @@ Implement four advanced features for "Whispers and Flames" - an intimate convers
 
 ## 🏆 Feature 4: Achievement System Enhancement
 
-**Status:** Base system exists in `/src/lib/achievements.ts`
+**Status:** Enhanced system exists in `/src/lib/achievements.ts` with personality-driven descriptions
 
 **What:** Add visual achievement unlocking with animations and session persistence
 
 **Implementation Details:**
 
-1. **Update `/src/lib/achievements.ts`:**
-   - Existing achievements are good, keep them
+1. **Achievement Personalities (COMPLETED):**
+   - **Heart-Thrower**: "Lobbed their heart into the ring and it stuck — brave, bright, and beautifully unignorable."
+   - **Plot-Twist Picasso**: "Painted the conversation with a left-field brushstroke — deliciously unpredictable."
+   - **Telepathic Wink**: "Finished each other's sentences like a psychic sitcom — eerie, delightful, and slightly illegal in three states."
+   - **Fire Walker/Heat Seeker**: Spicy level achievements with seductive descriptions
+   - **Depth Charger**: "Didn't just scratch the surface — brought scuba gear and snacks."
+   - **Precision Poet**: "Said more with less — every word a calculated strike to the heart."
+   - **Vault Cracker**: "Specialized in unlocking what was meant to stay locked — deliciously dangerous."
+   - **Visual Storyteller**: "Painted emotions in tiny pictures — when words weren't quite enough."
+   - **Curious Cat**: "Answered questions with more questions — beautifully, maddeningly inquisitive."
    - Add metadata:
      ```typescript
      export interface Achievement {

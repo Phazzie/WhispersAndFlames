@@ -6,6 +6,17 @@ An intimate conversation experience designed to foster deeper connections throug
 
 Whispers and Flames creates a safe, private space for couples to explore their relationship through thoughtful, context-aware questions. Players select categories and "spicy levels," then answer AI-generated questions designed to spark meaningful conversations.
 
+### ✨ Key Features
+
+- **AI-Powered Questions**: Contextual questions that adapt to your choices and conversation flow
+- **Personality-Driven Achievements**: Unlock playful achievements with descriptions that match our witty, intimate tone:
+  - 🏆 **Heart-Thrower**: "Lobbed their heart into the ring and it stuck — brave, bright, and beautifully unignorable."
+  - 🎨 **Plot-Twist Picasso**: "Painted the conversation with a left-field brushstroke — deliciously unpredictable."
+  - 😉 **Telepathic Wink**: "Finished each other's sentences like a psychic sitcom — eerie, delightful, and slightly illegal in three states."
+- **Therapist's Notes**: Get insights from "Dr. Ember" with professional observations delivered with playful wit
+- **Visual Memories**: AI-generated abstract art based on your session's emotional themes
+- **Chaos Mode**: Random spicy level upgrades for the adventurous
+
 ## 🚀 Quick Start
 
 ### Prerequisites
