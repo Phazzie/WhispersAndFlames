@@ -5,8 +5,9 @@
  * analyzes a completed game session and generates a personalized summary.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const AnalyzeAnswersInputSchema = z.object({
   questions: z.array(z.string()).describe('The questions asked during the session.'),

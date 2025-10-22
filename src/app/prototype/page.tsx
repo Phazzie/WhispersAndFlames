@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, Wind, Sunrise, Sparkles, Zap, Ghost, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+
 import { Logo } from '@/components/icons/logo';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const spicyLevels = [
   { name: 'Mild', icon: Wind, description: 'A gentle breeze. Flirty, fun, and easy.' },

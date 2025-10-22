@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ArrowRight, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowRight, Zap } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
-import { LoadingScreen } from '../loading-screen';
 import { applyChaosMode } from '@/lib/game-utils';
+
+import { LoadingScreen } from '../loading-screen';
 
 export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const {
@@ -49,7 +51,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
 
     setIsSubmitting(true);
     try {
-      let updatedGameRounds = [...gameState.gameRounds];
+      const updatedGameRounds = [...gameState.gameRounds];
       const currentRoundIndexInState = updatedGameRounds.findIndex(
         (r) => r.question === gameState.currentQuestion
       );
@@ -167,7 +169,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {players.map((player) => (
                 <div key={player.id} className="space-y-2">
-                  <Label className="font-semibold text-base">{player.name}'s Answer:</Label>
+                  <Label className="font-semibold text-base">{player.name}&apos;s Answer:</Label>
                   <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap h-full">
                     {currentRound.answers[player.id]}
                   </p>

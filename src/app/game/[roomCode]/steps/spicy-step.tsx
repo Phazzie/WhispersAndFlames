@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Loader2, Sparkles, Zap } from 'lucide-react';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { SPICY_LEVELS } from '@/lib/constants';
 import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
+
 import { LoadingScreen } from '../loading-screen';
 
 export function SpicyStep({ gameState, me, handlers }: StepProps) {

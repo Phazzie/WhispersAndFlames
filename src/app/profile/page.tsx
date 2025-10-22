@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Loader2, Home, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { clientAuth } from '@/lib/client-auth';
+import { useEffect, useState } from 'react';
+
+import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Home, LogOut } from 'lucide-react';
-import { Logo } from '@/components/icons/logo';
 import { useToast } from '@/hooks/use-toast';
+import { clientAuth } from '@/lib/client-auth';
 
 export default function ProfilePage() {
   const router = useRouter();

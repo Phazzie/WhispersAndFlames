@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { generateRoomCode } from '@/lib/game-utils';
-import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { clientAuth, type User } from '@/lib/client-auth';
 import { clientGame } from '@/lib/client-game';
+import { generateRoomCode } from '@/lib/game-utils';
 
 export default function HomePageClient() {
   const router = useRouter();

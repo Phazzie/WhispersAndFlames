@@ -4,8 +4,6 @@
 
 import { storage } from './storage';
 
-const SALT_ROUNDS = 10;
-
 // Simple password hashing (in production, use bcrypt or similar)
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();

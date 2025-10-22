@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
-import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+
+import { auth } from '@/lib/auth';
+import { storage } from '@/lib/storage';
 
 export async function GET(request: Request, { params }: { params: Promise<{ roomCode: string }> }) {
   try {

@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const LOADING_MESSAGES = [
   'Fanning the flames...',

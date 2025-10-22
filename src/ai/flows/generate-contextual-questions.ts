@@ -9,8 +9,9 @@
  * - GenerateContextualQuestionsOutput - The return type for the generateContextualQuestions function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const GenerateContextualQuestionsInputSchema = z.object({
   categories: z.array(z.string()).describe('The intimacy categories selected by the users.'),

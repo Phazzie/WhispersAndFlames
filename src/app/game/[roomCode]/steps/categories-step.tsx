@@ -1,8 +1,9 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
 import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
 
@@ -49,7 +50,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       return;
     }
 
-    let updatedPlayers = gameState.players.map((p) =>
+    const updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
     await updateGameState({ players: updatedPlayers });
