@@ -5,23 +5,84 @@
 /**
  * Sanitizes user input to prevent XSS attacks
  * Removes potentially dangerous HTML tags and attributes
+ *
+ * ⚠️ SECURITY NOTE: This is a basic implementation.
+ * For production use with untrusted HTML, use DOMPurify library instead.
+ * Current implementation strips all HTML to plain text as safest approach.
+ *
+ * @param input - The input string to sanitize
+ * @returns Plain text with HTML tags removed
  */
 export function sanitizeHtml(input: string): string {
   if (!input) return '';
 
-  // Remove script tags and event handlers
-  let sanitized = input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    .replace(/<embed\b[^<]*>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/on\w+\s*=\s*[^\s>]*/gi, '');
+  // Use DOMParser for safer HTML parsing (browser only)
+  if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(input, 'text/html');
 
-  // Remove javascript: and data: URLs
-  sanitized = sanitized.replace(/javascript:/gi, '').replace(/data:text\/html/gi, '');
+      // Remove all potentially dangerous tags
+      const dangerousTags = doc.querySelectorAll(
+        'script, iframe, object, embed, link, style, form'
+      );
+      dangerousTags.forEach((el) => el.remove());
 
-  return sanitized;
+      // Remove event handlers and dangerous URLs
+      const allElements = doc.querySelectorAll('*');
+      allElements.forEach((el) => {
+        Array.from(el.attributes).forEach((attr) => {
+          if (
+            attr.name.startsWith('on') ||
+            attr.value.toLowerCase().includes('javascript:') ||
+            attr.value.toLowerCase().includes('data:') ||
+            attr.value.toLowerCase().includes('vbscript:')
+          ) {
+            el.removeAttribute(attr.name);
+          }
+        });
+      });
+
+      return doc.body.textContent || '';
+    } catch (e) {
+      return input.replace(/<[^>]*>/g, '');
+    }
+  }
+
+  // Server-side: Strip ALL HTML tags for maximum safety
+  // This avoids regex-based sanitization issues identified by CodeQL
+  let text = input;
+
+  // First pass: Remove entire dangerous tag blocks
+  const dangerousPatterns = [
+    /<script[\s\S]*?<\/script>/gi,
+    /<iframe[\s\S]*?<\/iframe>/gi,
+    /<object[\s\S]*?<\/object>/gi,
+    /<embed[\s\S]*?>/gi,
+    /<link[\s\S]*?>/gi,
+    /<style[\s\S]*?<\/style>/gi,
+    /<form[\s\S]*?<\/form>/gi,
+  ];
+
+  dangerousPatterns.forEach((pattern) => {
+    // Run multiple times to handle nested tags
+    for (let i = 0; i < 3; i++) {
+      text = text.replace(pattern, '');
+    }
+  });
+
+  // Second pass: Strip ALL remaining HTML tags (safest approach)
+  for (let i = 0; i < 3; i++) {
+    text = text.replace(/<[^>]*>/g, '');
+  }
+
+  // Third pass: Remove dangerous URL schemes
+  text = text
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/vbscript:/gi, '');
+
+  return text;
 }
 
 /**
