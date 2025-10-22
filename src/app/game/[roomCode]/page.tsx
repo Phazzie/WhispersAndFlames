@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { clientGame } from '@/lib/client-game';
-import { clientAuth } from '@/lib/client-auth';
+import { useState, useEffect, useCallback } from 'react';
+
 import { useToast } from '@/hooks/use-toast';
+import { clientAuth } from '@/lib/client-auth';
+import { clientGame } from '@/lib/client-game';
 import type { GameState, Player } from '@/lib/game-types';
+
 import {
   generateQuestionAction,
   analyzeAndSummarizeAction,
@@ -14,12 +16,12 @@ import {
 } from '../actions';
 
 import { GameLayout } from './game-layout';
-import { LobbyStep } from './steps/lobby-step';
-import { CategoriesStep } from './steps/categories-step';
-import { SpicyStep } from './steps/spicy-step';
-import { GamePlayStep } from './steps/game-step';
-import { SummaryStep } from './steps/summary-step';
 import { LoadingScreen } from './loading-screen';
+import { CategoriesStep } from './steps/categories-step';
+import { GamePlayStep } from './steps/game-step';
+import { LobbyStep } from './steps/lobby-step';
+import { SpicyStep } from './steps/spicy-step';
+import { SummaryStep } from './steps/summary-step';
 
 export default function GamePage() {
   const params = useParams();

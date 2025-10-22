@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { z } from 'zod';
+
+import { auth } from '@/lib/auth';
+import { checkRateLimit, getClientIp } from '@/lib/utils/security';
 
 const signinSchema = z.object({
   email: z.string().email(),
@@ -9,6 +11,15 @@ const signinSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting: 5 attempts per minute per IP
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(`signin:${clientIp}`, 5, 60000)) {
+      return NextResponse.json(
+        { error: 'Too many sign in attempts. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { email, password } = signinSchema.parse(body);
 

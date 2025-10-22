@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ArrowRight, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Loader2, ArrowRight, Zap } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
-import { LoadingScreen } from '../loading-screen';
 import { applyChaosMode } from '@/lib/game-utils';
+
+import { LoadingScreen } from '../loading-screen';
 
 export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const {
@@ -49,7 +51,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
 
     setIsSubmitting(true);
     try {
-      let updatedGameRounds = [...gameState.gameRounds];
+      const updatedGameRounds = [...gameState.gameRounds];
       const currentRoundIndexInState = updatedGameRounds.findIndex(
         (r) => r.question === gameState.currentQuestion
       );

@@ -1,4 +1,5 @@
 import Image from 'next/image';
+
 import HomePageClient from '@/components/home-page';
 import { Logo } from '@/components/icons/logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';

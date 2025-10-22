@@ -4,6 +4,7 @@
  */
 
 import { Pool, PoolClient } from 'pg';
+
 import type { GameState, Player } from './game-types';
 
 // Create connection pool

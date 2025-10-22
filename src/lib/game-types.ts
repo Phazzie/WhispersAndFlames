@@ -1,10 +1,11 @@
-import type { SPICY_LEVELS } from './constants';
 import type {
   generateQuestionAction,
   analyzeAndSummarizeAction,
   generateTherapistNotesAction,
   generateVisualMemoryAction,
 } from '@/app/game/actions';
+
+import type { SPICY_LEVELS } from './constants';
 
 export type GameStep = 'lobby' | 'categories' | 'spicy' | 'game' | 'summary';
 export type SpicyLevel = (typeof SPICY_LEVELS)[number];
