@@ -1,19 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { Playfair_Display } from 'next/font/google';
-import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Whispers and Flames',
   description: 'Explore intimacy through guided conversations.',
 };
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-playfair',
-});
 
 export default function RootLayout({
   children,
@@ -21,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn('antialiased', playfair.variable)}>
+    <html lang="en" className="antialiased">
       <body>
         {children}
         <Toaster />
