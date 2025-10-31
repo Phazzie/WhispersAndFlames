@@ -1,8 +1,9 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
 import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
 

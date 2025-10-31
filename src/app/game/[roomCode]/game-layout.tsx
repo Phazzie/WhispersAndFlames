@@ -1,14 +1,14 @@
 'use client';
 
-import { type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-
-import type { GameState } from '@/lib/game-types';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { type ReactNode } from 'react';
+
 import { Logo } from '@/components/icons/logo';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import type { GameState } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
 type GameLayoutProps = {

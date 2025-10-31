@@ -5,8 +5,9 @@
  * which generates clinical-style notes with personality based on a completed session.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+
+import { ai } from '@/ai/genkit';
 
 const TherapistNotesInputSchema = z.object({
   questions: z.array(z.string()).describe('The questions asked during the session.'),

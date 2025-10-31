@@ -1,11 +1,12 @@
 'use client';
 
+import { Loader2, ClipboardCopy } from 'lucide-react';
 import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, ClipboardCopy } from 'lucide-react';
 import type { StepProps, Player } from '@/lib/game-types';
 
 const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (

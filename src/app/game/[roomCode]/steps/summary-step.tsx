@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Clipboard, Download, Loader2, Trophy, PartyPopper } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Clipboard, Download, Loader2, PartyPopper, Trophy } from 'lucide-react';
-import type { StepProps } from '@/lib/game-types';
-import { LoadingScreen } from '../loading-screen';
 import { calculateAchievements, getPlayerName, type Achievement } from '@/lib/achievements';
+import type { StepProps } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
-import confetti from 'canvas-confetti';
+
+import { LoadingScreen } from '../loading-screen';
 
 export function SummaryStep({ gameState, me, handlers }: StepProps) {
   const { summary } = gameState;

@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import type { GameState } from '@/lib/game-types';
+import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
 const updateGameSchema = z.object({
   roomCode: z.string().min(4),
@@ -37,7 +38,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not in this game' }, { status: 403 });
     }
 
-    const updatedGame = await storage.games.update(roomCode, updates as Partial<GameState>);
+    // Sanitize game rounds to prevent XSS
+    const sanitizedUpdates = { ...updates };
+    if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
+      sanitizedUpdates.gameRounds = updates.gameRounds.map((round: any) => {
+        if (round.answers && typeof round.answers === 'object') {
+          const sanitizedAnswers: Record<string, string> = {};
+          for (const [playerId, answer] of Object.entries(round.answers)) {
+            if (typeof answer === 'string') {
+              // Truncate to prevent DoS and sanitize HTML
+              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, 5000));
+            } else {
+              sanitizedAnswers[playerId] = answer as string;
+            }
+          }
+          return { ...round, answers: sanitizedAnswers };
+        }
+        return round;
+      });
+    }
+
+    const updatedGame = await storage.games.update(
+      roomCode,
+      sanitizedUpdates as Partial<GameState>
+    );
 
     return NextResponse.json({ game: updatedGame }, { status: 200 });
   } catch (error) {

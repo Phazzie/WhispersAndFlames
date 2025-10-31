@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+
 import { calculateAchievements, getPlayerName } from '@/lib/achievements';
 import type { GameState } from '@/lib/game-types';
 
@@ -113,6 +114,7 @@ describe('Achievement System', () => {
       const braveSoul = achievements.find((a) => a.id === 'brave-soul');
       expect(braveSoul).toBeDefined();
       expect(braveSoul?.rarity).toBe('rare');
+      expect(braveSoul?.name).toBe('Heat Seeker');
       expect(braveSoul?.description).toContain('temperature');
     });
     it('should award Brave Soul (legendary) for Extra-Hot spicy level', () => {
@@ -122,6 +124,7 @@ describe('Achievement System', () => {
       const braveSoul = achievements.find((a) => a.id === 'brave-soul');
       expect(braveSoul).toBeDefined();
       expect(braveSoul?.rarity).toBe('legendary');
+      expect(braveSoul?.name).toBe('Fire Walker');
       expect(braveSoul?.description).toContain('flames');
     });
     it('should NOT award Brave Soul for Mild or Medium', () => {
