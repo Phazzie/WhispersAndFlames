@@ -1,8 +1,9 @@
 /**
- * Authentication utilities for in-memory session management
+ * Authentication utilities for session management
+ * Supports both PostgreSQL and in-memory storage
  */
 
-import { storage } from './storage';
+import { storage } from './storage-adapter';
 
 const SALT_ROUNDS = 10;
 
@@ -23,7 +24,7 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 export const auth = {
   signUp: async (email: string, password: string): Promise<{ userId: string; token: string }> => {
     // Check if user exists
-    const existing = storage.users.findByEmail(email);
+    const existing = await storage.users.findByEmail(email);
     if (existing) {
       throw new Error('User already exists');
     }
@@ -40,16 +41,16 @@ export const auth = {
 
     // Create user
     const passwordHash = await hashPassword(password);
-    const user = storage.users.create(email, passwordHash);
+    const user = await storage.users.create(email, passwordHash);
 
     // Create session
-    const token = storage.sessions.create(user.id);
+    const token = await storage.sessions.create(user.id);
 
     return { userId: user.id, token };
   },
 
   signIn: async (email: string, password: string): Promise<{ userId: string; token: string }> => {
-    const user = storage.users.findByEmail(email);
+    const user = await storage.users.findByEmail(email);
     if (!user) {
       throw new Error('Invalid email or password');
     }
@@ -60,24 +61,24 @@ export const auth = {
     }
 
     // Create session
-    const token = storage.sessions.create(user.id);
+    const token = await storage.sessions.create(user.id);
 
     return { userId: user.id, token };
   },
 
   signOut: async (token: string): Promise<void> => {
-    storage.sessions.delete(token);
+    await storage.sessions.delete(token);
   },
 
-  validateSession: (token: string): string | null => {
-    return storage.sessions.validate(token);
+  validateSession: async (token: string): Promise<string | null> => {
+    return await storage.sessions.validate(token);
   },
 
-  getCurrentUser: (token: string) => {
-    const userId = storage.sessions.validate(token);
+  getCurrentUser: async (token: string) => {
+    const userId = await storage.sessions.validate(token);
     if (!userId) return null;
 
-    const user = storage.users.findById(userId);
+    const user = await storage.users.findById(userId);
     if (!user) return null;
 
     return {

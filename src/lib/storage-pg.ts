@@ -29,7 +29,7 @@ interface Session {
 }
 
 // Initialize database schema
-async function initSchema() {
+export async function initSchema() {
   const client = await pool.connect();
   try {
     await client.query(`
@@ -69,15 +69,11 @@ async function initSchema() {
       END;
       $$ LANGUAGE plpgsql;
     `);
+    console.log('✅ Database schema initialized successfully');
   } finally {
     client.release();
   }
 }
-
-// Run schema initialization on startup
-initSchema().catch((err) => {
-  console.error('Failed to initialize database schema:', err);
-});
 
 // Cleanup expired data every 5 minutes
 setInterval(
@@ -225,13 +221,30 @@ export const storage = {
       }
     },
 
-    update: async (roomCode: string, state: GameState): Promise<void> => {
+    update: async (
+      roomCode: string,
+      updates: Partial<GameState>
+    ): Promise<GameState | undefined> => {
       const client = await pool.connect();
       try {
+        // Get current state
+        const result = await client.query(
+          'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW()',
+          [roomCode]
+        );
+        if (result.rows.length === 0) return undefined;
+
+        // Merge updates with current state
+        const currentState = result.rows[0].state as GameState;
+        const updatedState = { ...currentState, ...updates };
+
+        // Save updated state
         await client.query('UPDATE games SET state = $1, updated_at = NOW() WHERE room_code = $2', [
-          JSON.stringify(state),
+          JSON.stringify(updatedState),
           roomCode,
         ]);
+
+        return updatedState;
       } finally {
         client.release();
       }
@@ -251,6 +264,27 @@ export const storage = {
       // We'll use polling on the client side instead
       // This is a no-op for compatibility with the in-memory implementation
       return () => {};
+    },
+
+    list: async (userId: string, filter?: { step?: string }): Promise<GameState[]> => {
+      const client = await pool.connect();
+      try {
+        const result = await client.query('SELECT state FROM games WHERE expires_at > NOW()', []);
+
+        // Filter games where user is a player
+        let userGames = result.rows
+          .map((row) => row.state as GameState)
+          .filter((game) => game.playerIds.includes(userId));
+
+        // Apply additional filters
+        if (filter?.step) {
+          userGames = userGames.filter((game) => game.step === filter.step);
+        }
+
+        return userGames;
+      } finally {
+        client.release();
+      }
     },
   },
 };

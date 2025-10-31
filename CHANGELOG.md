@@ -2,14 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-10-31
+
+### Added
+
+- **PostgreSQL Support**: Full database integration for production deployments
+  - Created `storage-pg.ts` with connection pooling and automatic schema initialization
+  - Implemented TTL-based game expiration (24 hours)
+  - Automatic cleanup of expired sessions and games
+- **Storage Adapter Pattern**: Seamless switching between PostgreSQL and in-memory storage
+  - Automatically selects storage backend based on `DATABASE_URL` environment variable
+  - Falls back to in-memory storage for development
+  - Clear logging of active storage backend
+- **Database Schema**: PostgreSQL tables for users, sessions, and games
+  - Users table with email and password hash
+  - Sessions table with expiration tracking
+  - Games table with JSONB state storage
+
+### Changed
+
+- Made all storage methods properly async across both implementations
+- Updated all API routes to use storage adapter instead of direct storage
+- Added `DATABASE_URL` to environment configuration
+- Updated DigitalOcean App Platform configuration with PostgreSQL database
+
+### Fixed
+
+- Added missing `await` keywords in authentication and storage calls
+- Removed unused variables in API routes
+- Fixed test expectations for achievement descriptions
+- Fixed apostrophe encoding in game UI components
+
 ## [0.3.0] - 2025-10-17
 
 ### Removed
+
 - **Firebase Integration**: Completely removed Firebase (Firestore and Authentication)
 - Firebase npm package and all related dependencies
 - `.firebaserc` configuration file
 
 ### Added
+
 - **In-Memory Storage**: New storage layer for games and user sessions
 - **Session-Based Authentication**: Custom authentication system using HTTP-only cookies
 - **API Routes**: Complete set of REST API endpoints for auth and game management:
@@ -25,6 +58,7 @@ All notable changes to this project will be documented in this file.
 - **Polling-Based Updates**: Real-time game updates via 2-second polling interval
 
 ### Changed
+
 - Game state management now uses in-memory storage instead of Firestore
 - Authentication switched from Firebase Auth to custom session-based system
 - Updated all game step components to use new API-based architecture
@@ -32,6 +66,7 @@ All notable changes to this project will be documented in this file.
 - Game types updated to remove Firebase-specific types (DocumentReference, FieldValue)
 
 ### Technical Details
+
 - Storage is ephemeral - all data resets on server restart
 - Sessions stored in memory with 7-day expiration
 - SHA-256 hashing for passwords (suitable for demo, not production)

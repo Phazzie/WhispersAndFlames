@@ -37,7 +37,7 @@ setInterval(() => {
 export const storage = {
   // User methods
   users: {
-    create: (email: string, passwordHash: string): User => {
+    create: async (email: string, passwordHash: string): Promise<User> => {
       const id = crypto.randomUUID();
       const user: User = {
         id,
@@ -49,18 +49,18 @@ export const storage = {
       return user;
     },
 
-    findByEmail: (email: string): User | undefined => {
+    findByEmail: async (email: string): Promise<User | undefined> => {
       return Array.from(users.values()).find((u) => u.email === email);
     },
 
-    findById: (id: string): User | undefined => {
+    findById: async (id: string): Promise<User | undefined> => {
       return users.get(id);
     },
   },
 
   // Session methods
   sessions: {
-    create: (userId: string): string => {
+    create: async (userId: string): Promise<string> => {
       const token = crypto.randomUUID();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
@@ -73,7 +73,7 @@ export const storage = {
       return token;
     },
 
-    validate: (token: string): string | null => {
+    validate: async (token: string): Promise<string | null> => {
       const session = sessions.get(token);
       if (!session) return null;
 
@@ -85,23 +85,26 @@ export const storage = {
       return session.userId;
     },
 
-    delete: (token: string): void => {
+    delete: async (token: string): Promise<void> => {
       sessions.delete(token);
     },
   },
 
   // Game methods
   games: {
-    create: (roomCode: string, initialState: GameState): GameState => {
+    create: async (roomCode: string, initialState: GameState): Promise<GameState> => {
       games.set(roomCode, initialState);
       return initialState;
     },
 
-    get: (roomCode: string): GameState | undefined => {
+    get: async (roomCode: string): Promise<GameState | undefined> => {
       return games.get(roomCode);
     },
 
-    update: (roomCode: string, updates: Partial<GameState>): GameState | undefined => {
+    update: async (
+      roomCode: string,
+      updates: Partial<GameState>
+    ): Promise<GameState | undefined> => {
       const game = games.get(roomCode);
       if (!game) return undefined;
 
@@ -117,7 +120,7 @@ export const storage = {
       return updated;
     },
 
-    delete: (roomCode: string): void => {
+    delete: async (roomCode: string): Promise<void> => {
       games.delete(roomCode);
       gameSubscribers.delete(roomCode);
     },
@@ -139,7 +142,7 @@ export const storage = {
       };
     },
 
-    list: (userId: string, filter?: { step?: string }): GameState[] => {
+    list: async (userId: string, filter?: { step?: string }): Promise<GameState[]> => {
       const userGames = Array.from(games.values()).filter((game) =>
         game.playerIds.includes(userId)
       );

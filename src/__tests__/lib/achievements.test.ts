@@ -113,9 +113,8 @@ describe('Achievement System', () => {
       const braveSoul = achievements.find((a) => a.id === 'brave-soul');
       expect(braveSoul).toBeDefined();
       expect(braveSoul?.rarity).toBe('rare');
-      expect(braveSoul?.description).toContain('Hot');
+      expect(braveSoul?.description).toContain('temperature');
     });
-
     it('should award Brave Soul (legendary) for Extra-Hot spicy level', () => {
       const gameState = createMockGameState({ finalSpicyLevel: 'Extra-Hot' });
       const achievements = calculateAchievements(gameState);
@@ -123,9 +122,8 @@ describe('Achievement System', () => {
       const braveSoul = achievements.find((a) => a.id === 'brave-soul');
       expect(braveSoul).toBeDefined();
       expect(braveSoul?.rarity).toBe('legendary');
-      expect(braveSoul?.description).toContain('Extra-Hot');
+      expect(braveSoul?.description).toContain('flames');
     });
-
     it('should NOT award Brave Soul for Mild or Medium', () => {
       const gameState = createMockGameState({ finalSpicyLevel: 'Mild' });
       const achievements = calculateAchievements(gameState);

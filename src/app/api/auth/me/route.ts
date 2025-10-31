@@ -10,6 +10,6 @@ export async function GET() {
     return NextResponse.json({ user: null });
   }
 
-  const user = auth.getCurrentUser(session.value);
+  const user = await auth.getCurrentUser(session.value);
   return NextResponse.json({ user: user || null });
 }

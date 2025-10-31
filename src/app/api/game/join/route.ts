@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { storage } from '@/lib/storage-adapter';
 import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = auth.getCurrentUser(session.value);
+    const user = await auth.getCurrentUser(session.value);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { roomCode, playerName } = joinGameSchema.parse(body);
 
-    const game = storage.games.get(roomCode);
+    const game = await storage.games.get(roomCode);
     if (!game) {
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     }
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // Add player to game
-    const updatedGame = storage.games.update(roomCode, {
+    const updatedGame = await storage.games.update(roomCode, {
       players: [
         ...game.players,
         {

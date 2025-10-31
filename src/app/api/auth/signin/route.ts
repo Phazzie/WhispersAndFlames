@@ -12,8 +12,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password } = signinSchema.parse(body);
 
-    const { userId, token } = await auth.signIn(email, password);
-    const user = auth.getCurrentUser(token);
+    const { token } = await auth.signIn(email, password);
+    const user = await auth.getCurrentUser(token);
 
     const response = NextResponse.json({ user }, { status: 200 });
 

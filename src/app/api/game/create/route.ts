@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { storage } from '@/lib/storage-adapter';
 import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = auth.getCurrentUser(session.value);
+    const user = await auth.getCurrentUser(session.value);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const { roomCode, playerName } = createGameSchema.parse(body);
 
     // Check if room already exists
-    const existing = storage.games.get(roomCode);
+    const existing = await storage.games.get(roomCode);
     if (existing) {
       return NextResponse.json({ error: 'Room code already in use' }, { status: 400 });
     }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       roomCode,
     };
 
-    const game = storage.games.create(roomCode, initialState);
+    const game = await storage.games.create(roomCode, initialState);
 
     return NextResponse.json({ game }, { status: 201 });
   } catch (error) {

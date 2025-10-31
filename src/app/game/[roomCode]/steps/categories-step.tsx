@@ -49,7 +49,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
       return;
     }
 
-    let updatedPlayers = gameState.players.map((p) =>
+    const updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
     await updateGameState({ players: updatedPlayers });
