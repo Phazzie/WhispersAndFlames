@@ -1,5 +1,11 @@
 # Digital Ocean Deployment Guide
 
+## Deployment Method: Buildpack (Not Docker)
+
+This app uses Digital Ocean's **Node.js buildpack** rather than Docker deployment. While we have a Dockerfile for local development and other platforms, the buildpack approach works better on Digital Ocean App Platform.
+
+**Key Configuration**: The `NPM_CONFIG_PRODUCTION=false` environment variable prevents the buildpack from pruning devDependencies before the build, which is critical for Next.js 15 with TypeScript and Tailwind CSS.
+
 ## Prerequisites
 
 1. **Digital Ocean Account**: Sign up at https://digitalocean.com
@@ -19,11 +25,13 @@
 
 ### Step 2: Configure Build Settings
 
-Digital Ocean will auto-detect the Dockerfile. Verify:
+Digital Ocean will auto-detect Node.js and suggest buildpack settings. Configure:
 
-- **Build Command**: (detected automatically from Dockerfile)
-- **Run Command**: (detected automatically from Dockerfile CMD)
+- **Build Command**: `npm run build`
+- **Run Command**: `npm run start`
 - **HTTP Port**: 3000
+
+**Important**: Make sure to add `NPM_CONFIG_PRODUCTION=false` as a BUILD_TIME environment variable (see Step 4)
 
 ### Step 3: Add Database
 
@@ -37,6 +45,14 @@ Digital Ocean will auto-detect the Dockerfile. Verify:
 
 Add these in the "Environment Variables" section:
 
+**Critical for Build Success:**
+
+```
+NPM_CONFIG_PRODUCTION = false (scope: BUILD_TIME)
+```
+
+This prevents the buildpack from removing devDependencies before the build.
+
 **Required:**
 
 ```
@@ -44,6 +60,7 @@ GEMINI_API_KEY = <your_gemini_api_key>
 SESSION_SECRET = <generate_random_32char_string>
 NEXT_PUBLIC_APP_URL = https://your-app.ondigitalocean.app
 STORAGE_MODE = postgres
+NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
 ```
 
 **Optional:**
@@ -206,7 +223,32 @@ doctl apps update APP_ID --instance-count 2
 
 ## Troubleshooting
 
-### Build Fails
+### Build Fails with "devDependencies" Error
+
+**Problem**: Digital Ocean buildpack prunes devDependencies before running the build, causing Next.js build to fail because TypeScript, Tailwind, and other build tools are missing.
+
+**Solution**: The app.yaml already includes `NPM_CONFIG_PRODUCTION=false` which prevents pruning devDependencies:
+
+```yaml
+envs:
+  - key: NPM_CONFIG_PRODUCTION
+    scope: BUILD_TIME
+    value: 'false'
+```
+
+This tells npm/yarn to keep devDependencies during the build phase, allowing Next.js to compile successfully.
+
+**Verify it's working:**
+
+```bash
+# Check build logs
+doctl apps logs APP_ID --type BUILD --follow
+
+# You should see devDependencies being installed
+# Look for: "added XXX packages" including typescript, tailwindcss, etc.
+```
+
+### Other Build Failures
 
 ```bash
 # Check build logs
