@@ -258,6 +258,7 @@ Select from the 10 patterns above based on:
 - Spicy level (Observation-Based for Mild, Power Play for Hot, etc.)
 - Where you are in the session (start with Observation, build to Vulnerability)
 - Variety (don't repeat patterns from {previous_questions})
+- Variety (don't repeat patterns from {previous_questions}, and ensure the question fits the current {category})
 
 STEP 3: APPLY THE PATTERN
 

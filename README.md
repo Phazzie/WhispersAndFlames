@@ -66,7 +66,7 @@ Whispers and Flames creates a safe, private space for couples to explore their r
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS with shadcn/ui components
-- **Backend**: In-memory storage with session-based authentication
+- **Backend**: PostgreSQL or in-memory storage with session-based authentication
 - **AI**: Google's Gemini via Genkit
 - **Testing**: Vitest (unit/integration), Playwright (e2e)
 - **Linting**: ESLint + Prettier
@@ -98,12 +98,12 @@ npm run genkit:watch     # Start Genkit with watch mode
 
 ## 🔐 Environment Variables
 
-| Variable              | Required | Default                 | Description                  |
-| --------------------- | -------- | ----------------------- | ---------------------------- |
-| `XAI_API_KEY`         | No       | -                       | API key for AI services      |
-| `GEMINI_API_KEY`      | No       | -                       | Alternative API key (legacy) |
-| `NODE_ENV`            | No       | `development`           | Environment mode             |
-| `NEXT_PUBLIC_APP_URL` | No       | `http://localhost:9002` | Public app URL               |
+| Variable                          | Required | Default                 | Description                                             |
+| --------------------------------- | -------- | ----------------------- | ------------------------------------------------------- |
+| `GEMINI_API_KEY` or `XAI_API_KEY` | Yes      | -                       | API key for AI services. `GEMINI_API_KEY` is preferred. |
+| `DATABASE_URL`                    | No       | -                       | Postgres connection string                              |
+| `NODE_ENV`                        | No       | `development`           | Environment mode                                        |
+| `NEXT_PUBLIC_APP_URL`             | No       | `http://localhost:9002` | Public app URL                                          |
 
 ## 🧪 Testing
 
@@ -165,7 +165,7 @@ src/
 
 ## ⚠️ Known Limitations
 
-- **Storage**: In-memory only (no database, data resets on restart)
+- **Storage**: Data resets on restart when using in-memory storage
 - **Sessions**: Session-based authentication (stored in memory)
 - **Scaling**: No horizontal scaling support - single instance only
 - **Rate Limiting**: Per-instance only (not distributed)

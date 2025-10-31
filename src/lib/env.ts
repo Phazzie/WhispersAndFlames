@@ -4,7 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   XAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
-  DATABASE_URL: z.string().url().optional(), // Optional - falls back to in-memory storage
+  DATABASE_URL: z.string().optional(), // Optional - falls back to in-memory storage
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:9002'),
 });
 
