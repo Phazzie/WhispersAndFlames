@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Suspense } from 'react';
 
 import HomePageClient from '@/components/home-page';
 import { Logo } from '@/components/icons/logo';
@@ -44,7 +45,15 @@ export default function Home() {
             Ready to find out what you both really want? <br />
             Ember is waiting.
           </p>
-          <HomePageClient />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            }
+          >
+            <HomePageClient />
+          </Suspense>
         </div>
       </div>
     </main>

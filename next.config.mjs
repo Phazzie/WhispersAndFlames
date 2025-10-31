@@ -1,6 +1,8 @@
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Output standalone for Docker deployment
+  output: 'standalone',
+  
   // Skip type checking and linting during production builds
   // These are already validated in CI/CD pipeline
   typescript: {

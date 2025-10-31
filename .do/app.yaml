@@ -1,43 +1,65 @@
 name: whispers-and-flames
 region: nyc
+
 databases:
   - name: whispers-flames-db
     engine: PG
     production: true
-features:
-  - buildpack-stack=ubuntu-22
+    cluster_name: whispers-flames-db
+
 services:
   - name: web
-    environment_slug: node-js
-    instance_count: 1
-    instance_size_slug: basic-xxs
+    # Use Docker instead of buildpack for better control
+    dockerfile_path: Dockerfile
+    source_dir: /
+    
     github:
       repo: Phazzie/WhispersAndFlames
       branch: main
       deploy_on_push: true
-    build_command: npm run build
-    run_command: npm start
-    http_port: 3000
+    
+    # Instance configuration
+    instance_count: 1
+    instance_size_slug: basic-xxs  # $5/month - upgrade to basic-xs ($12) if needed
+    
+    # Health check - increased initial delay for Docker builds
     health_check:
       http_path: /api/health
-      initial_delay_seconds: 20
-      period_seconds: 10
-      timeout_seconds: 5
+      initial_delay_seconds: 40
+      period_seconds: 30
+      timeout_seconds: 3
       success_threshold: 1
       failure_threshold: 3
+    
+    # HTTP configuration
+    http_port: 3000
+    
+    # Environment variables
     envs:
       - key: NODE_ENV
         scope: RUN_AND_BUILD_TIME
-        value: production
+        value: "production"
+      - key: NEXT_TELEMETRY_DISABLED
+        scope: RUN_AND_BUILD_TIME
+        value: "1"
+      - key: STORAGE_MODE
+        scope: RUN_TIME
+        value: "postgres"
       - key: DATABASE_URL
-        scope: RUN_AND_BUILD_TIME
+        scope: RUN_TIME
         value: ${whispers-flames-db.DATABASE_URL}
-      - key: XAI_API_KEY
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
       - key: GEMINI_API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
+        value: EV[1:BsodkXig5aY/QNhzPJ/CcGLVM1/AehIe:K2asQ1kisC8HkhVaVEuD9A==]
+      - key: XAI_API_KEY
+        scope: RUN_AND_BUILD_TIME
+        type: SECRET
+        value: EV[1:ZTIQ6qCDYRD+O7DGCY3zSCBe5tPLN0JR:UojT5daWzVjLXRLBg02q1A==]
+      - key: SESSION_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:aRLpk70PX1BEDmKhxECGYuVrf1zWDDPv:OlJt+SLhlNd4rlaRX9TD0g==]
       - key: NEXT_PUBLIC_APP_URL
         scope: RUN_AND_BUILD_TIME
         value: ${APP_URL}

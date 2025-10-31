@@ -36,9 +36,14 @@ jobs:
       - name: Run tests
         run: npm run test
 
+      - name: Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
   e2e:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e')
+    if: github.event_name == 'pull_request'
 
     strategy:
       matrix:

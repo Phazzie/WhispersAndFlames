@@ -32,7 +32,23 @@ This document provides instructions for Gemini, the AI coding assistant, on how 
 - `agents.md`: High-level overview of the AI agent personas used in the app.
 - `package.json`: Project dependencies. Any new packages added here will be auto-installed.
 
-## 4. Coding & Development Guidelines
+## 4. DigitalOcean MCP Server
+
+This project is configured to use the `@digitalocean/mcp` tool, which allows the AI assistant to manage DigitalOcean resources using natural language commands.
+
+- **Configuration:** The configuration is stored in the `.mcprc.json` file in the project root.
+- **Authentication:** It requires the `DIGITALOCEAN_API_TOKEN` environment variable to be set with a valid DigitalOcean API token.
+- **Capabilities:** The MCP server is configured to manage the following services:
+  - `apps`: Manage DigitalOcean App Platform applications.
+  - `droplets`: Manage DigitalOcean Droplets (virtual machines).
+  - `insights`: Monitor resources and endpoints.
+  - `spaces`: Manage DigitalOcean Spaces object storage.
+  - `databases`: Manage managed database clusters.
+  - `marketplace`: Manage DigitalOcean Marketplace applications.
+
+This allows the assistant to perform tasks such as deploying applications, managing servers, and monitoring services directly through natural language commands.
+
+## 5. Coding & Development Guidelines
 
 ### General
 
@@ -59,7 +75,7 @@ This document provides instructions for Gemini, the AI coding assistant, on how 
 - **Schemas:** Use Zod (`z`) to define input and output schemas for all flows. This ensures type safety and predictable AI outputs.
 - **Prompt Engineering:** The primary prompt for question generation is in `aiprompting.md`. Refer to this for AI behavior changes.
 
-## 5. Responding to User Requests
+## 6. Responding to User Requests
 
 - **Clarify Ambiguity:** If a user request is unclear, ask clarifying questions before writing code.
 - **Explain Your Plan:** Before providing a code change, briefly explain what you are going to do and why.

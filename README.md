@@ -123,15 +123,27 @@ npm run test:coverage     # Generate coverage report
 
 ## 🚢 Deployment
 
-This application is configured for deployment to DigitalOcean App Platform.
+### Docker + Digital Ocean (Recommended)
 
-See [DEPLOY.md](./DEPLOY.md) for detailed deployment instructions.
+This app is containerized with Docker and optimized for Digital Ocean App Platform.
 
-### Quick Deploy
+**Quick Start:**
 
 ```bash
-doctl apps create --spec .do/app.yaml
+# Test locally with Docker
+docker-compose --env-file .env.docker up --build
+
+# Deploy to Digital Ocean (via dashboard)
+# See: https://cloud.digitalocean.com/apps
 ```
+
+**Documentation:**
+
+- **[DOCKER.md](./DOCKER.md)** - Docker setup, local testing, troubleshooting
+- **[.do/deploy.md](./.do/deploy.md)** - Complete Digital Ocean deployment guide
+- **[DEPLOY.md](./DEPLOY.md)** - Alternative deployment options
+
+**Cost:** Starting at ~$12/month (app + database)
 
 ## 📊 Architecture
 
@@ -149,6 +161,10 @@ src/
 │   ├── constants.ts # Game constants
 │   ├── env.ts       # Environment validation
 │   ├── game-types.ts # Type definitions
+│   ├── storage.ts   # Storage interface
+│   ├── storage-adapter.ts # Storage adapter
+│   ├── storage-memory.ts # In-memory storage
+│   ├── storage-pg.ts # PostgreSQL storage
 │   └── utils/       # Utility functions
 ├── ai/              # AI flows and prompts (DO NOT MODIFY)
 │   └── flows/       # Genkit AI flows
