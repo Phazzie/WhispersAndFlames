@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { QRCodeShare } from '@/components/qr-code-share';
 import type { StepProps, Player } from '@/lib/game-types';
 
 const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
@@ -83,60 +84,67 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     allPlayers.push(null as any);
   }
 
+  // Generate game URL for sharing
+  const gameUrl = typeof window !== 'undefined' ? `${window.location.origin}/game/${roomCode}` : '';
+
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Your Private Room</CardTitle>
-        <CardDescription>Share the code, choose your name, and get ready.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center space-x-2 rounded-lg border border-dashed p-4 justify-between">
-          <span className="font-mono text-lg font-bold text-primary">{roomCode}</span>
-          <Button variant="ghost" size="icon" onClick={copyRoomCode}>
-            <ClipboardCopy className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="playerName">Your Name</Label>
-          <div className="flex space-x-2">
-            <Input
-              id="playerName"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              onBlur={handleNameChange} // Update name on blur
-              placeholder="Enter your name"
-              disabled={me.isReady}
-            />
+    <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Your Private Room</CardTitle>
+          <CardDescription>Share the code, choose your name, and get ready.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2 rounded-lg border border-dashed p-4 justify-between">
+            <span className="font-mono text-lg font-bold text-primary">{roomCode}</span>
+            <Button variant="ghost" size="icon" onClick={copyRoomCode}>
+              <ClipboardCopy className="h-5 w-5" />
+            </Button>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          {allPlayers.map((player, index) =>
-            player ? (
-              <PlayerDisplay key={player.id} player={player} isMe={player.id === me.id} />
+          <div className="space-y-2">
+            <Label htmlFor="playerName">Your Name</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="playerName"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                onBlur={handleNameChange} // Update name on blur
+                placeholder="Enter your name"
+                disabled={me.isReady}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {allPlayers.map((player, index) =>
+              player ? (
+                <PlayerDisplay key={player.id} player={player} isMe={player.id === me.id} />
+              ) : (
+                <EmptyPlayerSlot key={`empty-${index}`} />
+              )
+            )}
+          </div>
+          <Button
+            onClick={handlePlayerReady}
+            className="w-full"
+            size="lg"
+            disabled={me.isReady || players.length < 3}
+          >
+            {me.isReady ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
+              </>
+            ) : players.length < 3 ? (
+              'Waiting for 3 players...'
             ) : (
-              <EmptyPlayerSlot key={`empty-${index}`} />
-            )
-          )}
-        </div>
-        <Button
-          onClick={handlePlayerReady}
-          className="w-full"
-          size="lg"
-          disabled={me.isReady || players.length < 3}
-        >
-          {me.isReady ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
-            </>
-          ) : players.length < 3 ? (
-            'Waiting for 3 players...'
-          ) : (
-            "I'm Ready!"
-          )}
-        </Button>
-      </CardContent>
-    </Card>
+              "I'm Ready!"
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {gameUrl && <QRCodeShare roomCode={roomCode} gameUrl={gameUrl} />}
+    </div>
   );
 }

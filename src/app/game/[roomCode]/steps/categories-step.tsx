@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
-import type { StepProps, GameState } from '@/lib/game-types';
+import type { StepProps } from '@/lib/game-types';
 
 const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
 const getPlayerColor = (playerIndex: number) => PLAYER_COLORS[playerIndex] || 'bg-gray-400';

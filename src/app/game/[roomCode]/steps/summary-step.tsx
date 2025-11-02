@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
 
-export function SummaryStep({ gameState, me, handlers }: StepProps) {
+export function SummaryStep({ gameState, me: _me, handlers }: StepProps) {
   const { summary } = gameState;
   const {
     router,

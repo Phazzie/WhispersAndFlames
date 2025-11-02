@@ -16,15 +16,18 @@ let initSchema: (() => Promise<void>) | undefined;
 if (usePostgres) {
   try {
     // Dynamic import to avoid loading pg module when not needed
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const pgModule = require('./storage-pg');
     storage = pgModule.storage;
     initSchema = pgModule.initSchema;
 
     // Initialize database schema
-    initSchema().catch((err: Error) => {
-      console.error('❌ Failed to initialize database schema:', err);
-      console.error('Falling back to in-memory storage may not be possible at runtime');
-    });
+    if (initSchema) {
+      initSchema().catch((err: Error) => {
+        console.error('❌ Failed to initialize database schema:', err);
+        console.error('Falling back to in-memory storage may not be possible at runtime');
+      });
+    }
 
     console.log('🗄️  Using PostgreSQL storage (DATABASE_URL configured)');
   } catch (err) {

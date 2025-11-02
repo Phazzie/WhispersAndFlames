@@ -1,8 +1,10 @@
-import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage-adapter';
-import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { auth } from '@/lib/auth';
+import { storage } from '@/lib/storage-adapter';
+import { checkRateLimit, getClientIp } from '@/lib/utils/security';
 
 const joinGameSchema = z.object({
   roomCode: z.string().min(4),
@@ -11,6 +13,15 @@ const joinGameSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting: 20 join attempts per minute per IP
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(`game-join:${clientIp}`, 20, 60000)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const cookieStore = await cookies();
     const session = cookieStore.get('session');
 

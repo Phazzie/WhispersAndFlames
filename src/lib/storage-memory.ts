@@ -3,7 +3,7 @@
  * For production with DigitalOcean, this would be replaced with a database
  */
 
-import type { GameState, Player } from './game-types';
+import type { GameState } from './game-types';
 
 // User storage
 interface User {
