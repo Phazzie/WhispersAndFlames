@@ -5,18 +5,94 @@
 
 import { storage } from './storage-adapter';
 
-// Simple password hashing (in production, use bcrypt or similar)
+// Secure password hashing using PBKDF2 with salt
 async function hashPassword(password: string): Promise<string> {
+  // Generate a random salt
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+
+  // Convert password to key material
   const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  const passwordData = encoder.encode(password);
+
+  const keyMaterial = await crypto.subtle.importKey('raw', passwordData, 'PBKDF2', false, [
+    'deriveBits',
+  ]);
+
+  // Derive key using PBKDF2 with 100,000 iterations
+  const hashBuffer = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256
+  );
+
+  // Combine salt and hash
+  const hashArray = new Uint8Array(hashBuffer);
+  const combined = new Uint8Array(salt.length + hashArray.length);
+  combined.set(salt);
+  combined.set(hashArray, salt.length);
+
+  // Convert to hex string
+  return Array.from(combined)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password);
-  return passwordHash === hash;
+async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  try {
+    // Convert stored hash from hex to bytes
+    const combined = new Uint8Array(
+      storedHash.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
+    );
+
+    if (combined.length < 16) {
+      return false; // Invalid hash format
+    }
+
+    // Extract salt and hash
+    const salt = combined.slice(0, 16);
+    const hash = combined.slice(16);
+
+    // Hash the provided password with the same salt
+    const encoder = new TextEncoder();
+    const passwordData = encoder.encode(password);
+
+    const keyMaterial = await crypto.subtle.importKey('raw', passwordData, 'PBKDF2', false, [
+      'deriveBits',
+    ]);
+
+    const newHashBuffer = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      256
+    );
+
+    const newHash = new Uint8Array(newHashBuffer);
+
+    // Constant-time comparison
+    if (newHash.length !== hash.length) {
+      return false;
+    }
+
+    let result = 0;
+    for (let i = 0; i < newHash.length; i++) {
+      result |= newHash[i] ^ hash[i];
+    }
+
+    return result === 0;
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
 }
 
 export const auth = {
@@ -27,14 +103,24 @@ export const auth = {
       throw new Error('User already exists');
     }
 
-    // Validate email
-    if (!email || !email.includes('@')) {
-      throw new Error('Invalid email');
+    // Validate email with proper regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      throw new Error('Invalid email address');
     }
 
-    // Validate password
-    if (!password || password.length < 6) {
-      throw new Error('Password must be at least 6 characters');
+    // Validate password strength
+    if (!password || password.length < 8) {
+      throw new Error('Password must be at least 8 characters');
+    }
+
+    // Check password complexity
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+      throw new Error('Password must contain uppercase, lowercase, and numbers');
     }
 
     // Create user

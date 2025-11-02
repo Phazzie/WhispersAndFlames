@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import type { GameState } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
-import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
+import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
 const updateGameSchema = z.object({
   roomCode: z.string().min(4),
@@ -14,6 +14,12 @@ const updateGameSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting: 60 updates per minute per IP (allows rapid gameplay)
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(`game-update:${clientIp}`, 60, 60000)) {
+      return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
+    }
+
     const cookieStore = await cookies();
     const session = cookieStore.get('session');
 

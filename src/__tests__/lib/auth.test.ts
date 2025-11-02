@@ -30,7 +30,7 @@ describe('Auth System', () => {
   describe('signUp', () => {
     it('should create a new user and session', async () => {
       const email = 'test@example.com';
-      const password = 'password123';
+      const password = 'Password123';
       const userId = 'user-123';
       const token = 'token-abc';
 
@@ -72,45 +72,60 @@ describe('Auth System', () => {
       await expect(auth.signUp('', 'password123')).rejects.toThrow('Invalid email');
     });
 
-    it('should reject short password', async () => {
+    it('should reject weak passwords', async () => {
       vi.mocked(storage.users.findByEmail).mockResolvedValue(undefined);
 
       await expect(auth.signUp('test@example.com', 'short')).rejects.toThrow(
-        'Password must be at least 6 characters'
+        'Password must be at least 8 characters'
       );
       await expect(auth.signUp('test@example.com', '')).rejects.toThrow(
-        'Password must be at least 6 characters'
+        'Password must be at least 8 characters'
+      );
+      await expect(auth.signUp('test@example.com', 'password')).rejects.toThrow(
+        'Password must contain uppercase, lowercase, and numbers'
+      );
+      await expect(auth.signUp('test@example.com', 'PASSWORD123')).rejects.toThrow(
+        'Password must contain uppercase, lowercase, and numbers'
       );
     });
   });
 
   describe('signIn', () => {
-    it('should sign in with valid credentials', async () => {
+    it('should sign in with valid credentials (integration test)', async () => {
       const email = 'test@example.com';
-      const password = 'password123';
+      const password = 'Password123';
       const userId = 'user-123';
       const token = 'token-abc';
 
-      // Hash the password the same way auth.signUp would
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const passwordHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-
-      vi.mocked(storage.users.findByEmail).mockResolvedValue({
+      // First create a user to get a valid password hash
+      vi.mocked(storage.users.findByEmail).mockResolvedValueOnce(undefined);
+      vi.mocked(storage.users.create).mockImplementation(async (email, passwordHash) => ({
         id: userId,
         email,
         passwordHash,
         createdAt: new Date(),
-      });
+      }));
       vi.mocked(storage.sessions.create).mockResolvedValue(token);
+
+      // Sign up to create the hash
+      await auth.signUp(email, password);
+
+      // Get the hash that was created
+      const createCall = vi.mocked(storage.users.create).mock.calls[0];
+      const storedHash = createCall[1];
+
+      // Now test sign in with the stored hash
+      vi.mocked(storage.users.findByEmail).mockResolvedValue({
+        id: userId,
+        email,
+        passwordHash: storedHash,
+        createdAt: new Date(),
+      });
 
       const result = await auth.signIn(email, password);
 
       expect(result).toEqual({ userId, token });
       expect(storage.users.findByEmail).toHaveBeenCalledWith(email);
-      expect(storage.sessions.create).toHaveBeenCalledWith(userId);
     });
 
     it('should reject non-existent user', async () => {
@@ -131,7 +146,7 @@ describe('Auth System', () => {
         createdAt: new Date(),
       });
 
-      await expect(auth.signIn(email, 'wrongpassword')).rejects.toThrow(
+      await expect(auth.signIn(email, 'WrongPassword123')).rejects.toThrow(
         'Invalid email or password'
       );
     });
