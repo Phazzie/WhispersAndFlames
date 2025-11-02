@@ -4,12 +4,11 @@ This guide covers multiple deployment options for Whispers and Flames. Choose th
 
 ## Quick Comparison
 
-| Platform          | Cost/Month    | Deployment Method | Best For                        |
-| ----------------- | ------------- | ----------------- | ------------------------------- |
-| **Netlify**       | Free - $19    | Git push          | Fastest setup, serverless       |
-| **Digital Ocean** | $12 - $27     | Docker/Buildpack  | Full control, database included |
-| **Vercel**        | Free - $20    | Git push          | Next.js optimized               |
-| **Firebase**      | Pay as you go | Firebase CLI      | Google ecosystem                |
+| Platform          | Cost/Month | Deployment Method | Best For                        |
+| ----------------- | ---------- | ----------------- | ------------------------------- |
+| **Netlify**       | Free - $19 | Git push          | Fastest setup, serverless       |
+| **Digital Ocean** | $12 - $27  | Docker/Buildpack  | Full control, database included |
+| **Vercel**        | Free - $20 | Git push          | Next.js optimized               |
 
 ## Prerequisites
 
@@ -217,19 +216,6 @@ doctl apps logs <APP_ID> --type BUILD --follow
 
 ---
 
-## Option 4: Firebase App Hosting
-
-### Why Firebase?
-
-- ✅ Google Cloud integration
-- ✅ Generous free tier
-- ✅ Global CDN
-- ⚠️ In-memory storage
-
-See [docs/deployment.md](./docs/deployment.md) for detailed Firebase instructions.
-
----
-
 ## Environment Variables Reference
 
 ### Required for All Platforms
@@ -398,7 +384,6 @@ Security headers are configured in:
 - **Netlify**: [docs.netlify.com](https://docs.netlify.com)
 - **Digital Ocean**: [docs.digitalocean.com](https://docs.digitalocean.com)
 - **Vercel**: [vercel.com/docs](https://vercel.com/docs)
-- **Firebase**: [firebase.google.com/docs](https://firebase.google.com/docs)
 
 ### Project Resources
 
@@ -414,16 +399,14 @@ Security headers are configured in:
 
 - **Netlify**: 100GB bandwidth, 300 build minutes
 - **Vercel**: 100GB bandwidth, serverless functions
-- **Firebase**: 10GB storage, 360MB/day network
 
 ### Paid Options
 
-| Platform      | Entry Tier    | Production Tier   |
-| ------------- | ------------- | ----------------- |
-| Netlify       | $19/month     | $99/month (Pro)   |
-| Digital Ocean | $12/month     | $27/month         |
-| Vercel        | $20/month     | $150/month (Team) |
-| Firebase      | Pay-as-you-go | Pay-as-you-go     |
+| Platform      | Entry Tier | Production Tier   |
+| ------------- | ---------- | ----------------- |
+| Netlify       | $19/month  | $99/month (Pro)   |
+| Digital Ocean | $12/month  | $27/month         |
+| Vercel        | $20/month  | $150/month (Team) |
 
 **Recommendation**:
 

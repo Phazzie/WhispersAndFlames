@@ -40,7 +40,7 @@ This document summarizes all the fixes and improvements made to prepare the code
 6. **Missing Deployment Documentation**
    - **Issue**: Deployment documentation scattered across multiple files
    - **Fix**: Created comprehensive `DEPLOYMENT_GUIDE.md` covering:
-     - Platform comparison (Netlify, Digital Ocean, Vercel, Firebase)
+     - Platform comparison (Netlify, Digital Ocean, Vercel)
      - Cost breakdown
      - Step-by-step deployment instructions
      - Troubleshooting guide
@@ -136,13 +136,6 @@ The codebase is now production-ready and can be deployed to any of these platfor
 - **Deployment**: `vercel` command
 - **Cost**: Free tier available
 - **Best for**: Next.js optimized hosting
-
-### Firebase
-
-- **Config**: `apphosting.yaml` ✅
-- **Deployment**: Firebase CLI
-- **Cost**: Pay-as-you-go
-- **Best for**: Google Cloud ecosystem
 
 ## 📚 Next Steps
 

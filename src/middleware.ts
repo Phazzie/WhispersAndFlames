@@ -16,7 +16,7 @@ export function middleware(_request: NextRequest) {
       "style-src 'self' 'unsafe-inline'; " + // Required for styled-components/CSS-in-JS
       "img-src 'self' data: https://placehold.co https://images.unsplash.com https://picsum.photos https://storage.googleapis.com; " +
       "font-src 'self' data:; " +
-      "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com; " +
+      "connect-src 'self'; " +
       "object-src 'none'; " +
       "base-uri 'self'; " +
       "form-action 'self'; " +
