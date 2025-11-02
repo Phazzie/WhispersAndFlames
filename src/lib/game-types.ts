@@ -13,7 +13,6 @@ export type Player = {
   id: string;
   name: string;
   isReady: boolean;
-  email: string;
   selectedCategories: string[];
   selectedSpicyLevel?: SpicyLevel['name'];
 };
@@ -39,8 +38,8 @@ export type GameState = {
   }>;
   imageGenerationCount: number;
   roomCode: string;
-  createdAt?: Date;
-  completedAt?: Date;
+  createdAt?: string;
+  completedAt?: string;
 };
 
 export type StepProps = {

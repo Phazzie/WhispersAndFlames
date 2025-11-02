@@ -1,55 +1,54 @@
 'use client';
 
-import { Loader2, Home, LogOut } from 'lucide-react';
+import { Loader2, Home, RotateCcw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { usePlayerIdentity } from '@/hooks/use-player-identity';
 import { useToast } from '@/hooks/use-toast';
-import { clientAuth } from '@/lib/client-auth';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { identity, hydrated, setName, resetIdentity } = usePlayerIdentity();
+  const [name, setLocalName] = useState('');
 
   useEffect(() => {
-    clientAuth.getCurrentUser().then((currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        router.push('/');
-      }
-      setLoading(false);
-    });
-  }, [router]);
+    if (identity?.name) {
+      setLocalName(identity.name);
+    }
+  }, [identity?.name]);
 
-  const handleSignOut = async () => {
-    try {
-      await clientAuth.signOut();
-      router.push('/');
-    } catch (error: any) {
+  const handleSave = () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Name required',
+        description: 'Give yourself a nickname so your partner knows who joined.',
         variant: 'destructive',
       });
+      return;
     }
+    setName(trimmed);
+    toast({ title: 'Profile updated', description: 'Your name is saved on this device.' });
   };
 
-  if (loading) {
+  const handleReset = () => {
+    resetIdentity();
+    setLocalName('');
+    toast({ title: 'Profile reset', description: 'A fresh anonymous identity has been created.' });
+  };
+
+  if (!hydrated || !identity) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (
@@ -62,28 +61,41 @@ export default function ProfilePage() {
               <Home className="mr-2 h-4 w-4" />
               Home
             </Button>
-            <Button onClick={handleSignOut} variant="ghost">
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+            <Button onClick={handleReset} variant="ghost">
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset identity
             </Button>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Your account information</CardDescription>
+            <CardTitle>Anonymous Profile</CardTitle>
+            <CardDescription>Saved securely on this device only.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{user.email}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">User ID</p>
-                <p className="font-mono text-xs">{user.id}</p>
-              </div>
+              <label className="text-sm text-muted-foreground" htmlFor="profile-name">
+                Display name
+              </label>
+              <Input
+                id="profile-name"
+                value={name}
+                onChange={(event) => setLocalName(event.target.value)}
+                maxLength={32}
+                placeholder="E.g. Starlit Muse"
+              />
+            </div>
+            <Button onClick={handleSave} className="w-full md:w-auto">
+              Save changes
+            </Button>
+            <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">Anonymous ID</p>
+              <code className="text-xs font-mono break-all">{identity.id}</code>
+              <p>
+                Share this ID only if you want to reconnect progress on the same device. We never
+                upload it to a server.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -91,13 +103,12 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Game History</CardTitle>
-            <CardDescription>Your past and ongoing games</CardDescription>
+            <CardDescription>Coming soon</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-center py-8">
-              Game history will be available in a future update.
-              <br />
-              For now, games are stored in-memory only.
+              Game history will be available in a future update. For now, rooms stay active while at
+              least one player keeps the tab open.
             </p>
           </CardContent>
         </Card>

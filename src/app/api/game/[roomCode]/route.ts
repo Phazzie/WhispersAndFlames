@@ -1,20 +1,12 @@
 import { NextResponse } from 'next/server';
+
 import { storage } from '@/lib/storage-adapter';
-import { auth } from '@/lib/auth';
-import { cookies } from 'next/headers';
 
 export async function GET(request: Request, { params }: { params: Promise<{ roomCode: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session?.value) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await auth.getCurrentUser(session.value);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const playerId = request.headers.get('x-player-id');
+    if (!playerId) {
+      return NextResponse.json({ error: 'Missing player identifier' }, { status: 400 });
     }
 
     const { roomCode } = await params;
@@ -22,6 +14,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
 
     if (!game) {
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+    }
+
+    if (!game.playerIds.includes(playerId)) {
+      return NextResponse.json({ error: 'Not in this game' }, { status: 403 });
     }
 
     return NextResponse.json({ game }, { status: 200 });

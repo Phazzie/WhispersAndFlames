@@ -102,14 +102,15 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
           if ('summary' in summaryResult) {
             await updateGameState({
               summary: summaryResult.summary,
-              completedAt: new Date(),
+              completedAt: new Date().toISOString(),
             });
           } else {
             setError(summaryResult.error);
             await updateGameState({ step: 'game' }); // Go back if summary fails
           }
-        } catch (e: any) {
-          setError(e.message || 'Could not generate summary.');
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : 'Could not generate summary.';
+          setError(message);
           await updateGameState({ step: 'game' });
         }
       } else {
@@ -140,8 +141,10 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
           } else {
             setError(result.error);
           }
-        } catch (e: any) {
-          setError(e.message || 'Could not generate next question.');
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : 'Could not generate next question.';
+          setError(message);
         }
       }
     }

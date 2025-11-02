@@ -1,263 +1,236 @@
 'use client';
 
-import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
+import { ArrowRight, Link2, Sparkles, Users } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { usePlayerIdentity } from '@/hooks/use-player-identity';
 import { useToast } from '@/hooks/use-toast';
-import { clientAuth, type User } from '@/lib/client-auth';
 import { clientGame } from '@/lib/client-game';
 import { generateRoomCode } from '@/lib/game-utils';
+
+const MIN_PLAYER_NAME_LENGTH = 2;
 
 export default function HomePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [roomCode, setRoomCode] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [playerName, setPlayerName] = useState('');
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { identity, hydrated, setName, resetIdentity } = usePlayerIdentity();
+
+  const [playerName, setPlayerName] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
 
   useEffect(() => {
     const joinCode = searchParams.get('join');
     if (joinCode) {
-      setRoomCode(joinCode);
+      setRoomCode(joinCode.toUpperCase());
     }
   }, [searchParams]);
 
   useEffect(() => {
-    clientAuth.getCurrentUser().then((currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-  }, []);
+    if (identity?.name) {
+      setPlayerName(identity.name);
+    }
+  }, [identity?.name]);
 
-  const handleAuthAction = async (isSignUp: boolean) => {
-    if (!email || !password) {
+  const readyIdentity = useMemo(() => {
+    if (!identity) return null;
+    const trimmedName = playerName.trim();
+    return { ...identity, name: trimmedName };
+  }, [identity, playerName]);
+
+  const ensureValidName = () => {
+    const trimmed = playerName.trim();
+    if (trimmed.length < MIN_PLAYER_NAME_LENGTH) {
       toast({
-        title: 'Authentication Error',
-        description: 'Please provide both email and password.',
+        title: 'Choose a name',
+        description: 'Use at least two characters so other players can recognise you.',
         variant: 'destructive',
       });
-      return;
+      return null;
     }
-
-    try {
-      const newUser = isSignUp
-        ? await clientAuth.signUp(email, password)
-        : await clientAuth.signIn(email, password);
-      setUser(newUser);
-      toast({
-        title: isSignUp ? 'Account Created' : 'Signed In',
-        description: `Welcome${isSignUp ? '' : ' back'}, ${newUser.email}!`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Authentication Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await clientAuth.signOut();
-      setUser(null);
-      toast({
-        title: 'Signed Out',
-        description: 'You have been signed out successfully.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
+    setPlayerName(trimmed);
+    setName(trimmed);
+    return trimmed;
   };
 
   const handleCreateRoom = async () => {
-    if (!user) return;
-    if (!playerName) {
-      toast({
-        title: 'Name Required',
-        description: 'Please enter your name to create a room.',
-        variant: 'destructive',
-      });
+    if (!readyIdentity) {
+      toast({ title: 'Loading identity', description: 'Please try again in a moment.' });
       return;
     }
 
+    const trimmedName = ensureValidName();
+    if (!trimmedName) return;
+
     try {
+      setIsBusy(true);
       const newRoomCode = generateRoomCode();
-      await clientGame.create(newRoomCode, playerName);
+      await clientGame.create(newRoomCode, { ...readyIdentity, name: trimmedName });
       router.push(`/game/${newRoomCode}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Could not create room',
+        description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsBusy(false);
     }
   };
 
   const handleJoinRoom = async () => {
-    if (!user) return;
-    if (!roomCode) {
-      toast({
-        title: 'Room Code Required',
-        description: 'Please enter a room code to join.',
-        variant: 'destructive',
-      });
+    if (!readyIdentity) {
+      toast({ title: 'Loading identity', description: 'Please try again in a moment.' });
       return;
     }
-    if (!playerName) {
+
+    const trimmedName = ensureValidName();
+    if (!trimmedName) return;
+
+    if (!roomCode || roomCode.trim().length < 4) {
       toast({
-        title: 'Name Required',
-        description: 'Please enter your name to join a room.',
+        title: 'Room code required',
+        description: 'Enter the four-letter code shared by the host.',
         variant: 'destructive',
       });
       return;
     }
 
     try {
-      await clientGame.join(roomCode.toUpperCase(), playerName);
-      router.push(`/game/${roomCode.toUpperCase()}`);
-    } catch (error: any) {
+      setIsBusy(true);
+      const code = roomCode.trim().toUpperCase();
+      await clientGame.join(code, { ...readyIdentity, name: trimmedName });
+      router.push(`/game/${code}`);
+    } catch (error: unknown) {
       toast({
-        title: 'Error',
-        description: error.message,
+        title: 'Could not join room',
+        description: error instanceof Error ? error.message : 'Check the room code and try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsBusy(false);
     }
   };
 
-  if (loading) {
+  const handleResetIdentity = () => {
+    resetIdentity();
+    setPlayerName('');
+    toast({
+      title: 'Identity reset',
+      description: 'Start fresh with a new anonymous profile.',
+    });
+  };
+
+  if (!hydrated || !identity) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
-              <Sparkles className="inline-block w-8 h-8 mr-2" />
-              Whispers and Flames
-            </CardTitle>
-            <CardDescription>Sign in to start your journey</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin" className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button onClick={() => handleAuthAction(false)} className="w-full">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
-                </Button>
-              </TabsContent>
-              <TabsContent value="signup" className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Password (min 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button onClick={() => handleAuthAction(true)} className="w-full">
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Create Account
-                </Button>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-3xl">
+        <CardHeader className="text-center space-y-4">
           <CardTitle className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
             <Sparkles className="inline-block w-8 h-8 mr-2" />
             Whispers and Flames
           </CardTitle>
-          <CardDescription>Welcome, {user.email}</CardDescription>
+          <CardDescription>
+            Start a new adventure or jump back into a room with nothing but your name.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <Input
-              placeholder="Your name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button onClick={handleCreateRoom} className="w-full" size="lg">
-                <Play className="mr-2 h-5 w-5" />
-                Create New Room
+          <Tabs defaultValue={roomCode ? 'join' : 'create'} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="create">Create a room</TabsTrigger>
+              <TabsTrigger value="join">Join a room</TabsTrigger>
+            </TabsList>
+            <TabsContent value="create" className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground" htmlFor="creator-name">
+                  Your name
+                </label>
+                <Input
+                  id="creator-name"
+                  value={playerName}
+                  maxLength={32}
+                  disabled={isBusy}
+                  placeholder="E.g. Starry Ember"
+                  onChange={(event) => setPlayerName(event.target.value)}
+                  onBlur={() => {
+                    const trimmed = playerName.trim();
+                    setPlayerName(trimmed);
+                    setName(trimmed);
+                  }}
+                />
+              </div>
+              <Button onClick={handleCreateRoom} className="w-full" size="lg" disabled={isBusy}>
+                <Users className="mr-2 h-4 w-4" />
+                Launch a private room
               </Button>
-              <Button onClick={() => router.push('/profile')} variant="outline" size="lg">
-                <History className="mr-2 h-5 w-5" />
-                View History
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground text-center">Or join an existing room</p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Room Code"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                maxLength={6}
-              />
-              <Button onClick={handleJoinRoom}>
+            </TabsContent>
+            <TabsContent value="join" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground" htmlFor="join-name">
+                    Your name
+                  </label>
+                  <Input
+                    id="join-name"
+                    value={playerName}
+                    maxLength={32}
+                    disabled={isBusy}
+                    placeholder="E.g. Starry Ember"
+                    onChange={(event) => setPlayerName(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground" htmlFor="room-code">
+                    Room code
+                  </label>
+                  <Input
+                    id="room-code"
+                    value={roomCode}
+                    maxLength={6}
+                    disabled={isBusy}
+                    placeholder="ABCD"
+                    onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleJoinRoom} className="w-full" size="lg" disabled={isBusy}>
                 <ArrowRight className="mr-2 h-4 w-4" />
-                Join
+                Join room
               </Button>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
 
-          <div className="pt-4 border-t">
-            <Button onClick={handleLogout} variant="ghost" className="w-full">
-              Sign Out
+          <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground space-y-2">
+            <div className="flex items-center gap-2 font-medium text-foreground">
+              <Link2 className="h-4 w-4" />
+              Share this device?
+            </div>
+            <p>
+              You are playing anonymously as{' '}
+              <span className="font-semibold">{identity.id.slice(0, 8)}</span>. Resetting your
+              identity clears local progress and gives you a new anonymous ID.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-1"
+              onClick={handleResetIdentity}
+              disabled={isBusy}
+            >
+              Reset anonymous profile
             </Button>
           </div>
         </CardContent>

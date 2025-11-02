@@ -1,52 +1,41 @@
 import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage-adapter';
-import { auth } from '@/lib/auth';
-import { cookies } from 'next/headers';
 import { z } from 'zod';
+
+import { storage } from '@/lib/storage-adapter';
 import type { GameState } from '@/lib/game-types';
 
 const createGameSchema = z.object({
   roomCode: z.string().min(4),
+  playerId: z.string().min(1),
   playerName: z.string().min(1),
 });
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
-
-    if (!session?.value) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = await auth.getCurrentUser(session.value);
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
-    const { roomCode, playerName } = createGameSchema.parse(body);
+    const { roomCode, playerId, playerName } = createGameSchema.parse(body);
+    const trimmedName = playerName.trim();
+    if (!trimmedName) {
+      return NextResponse.json({ error: 'Player name is required' }, { status: 400 });
+    }
 
-    // Check if room already exists
     const existing = await storage.games.get(roomCode);
     if (existing) {
       return NextResponse.json({ error: 'Room code already in use' }, { status: 400 });
     }
 
-    // Create initial game state
     const initialState: GameState = {
       step: 'lobby',
       players: [
         {
-          id: user.id,
-          name: playerName,
-          email: user.email,
+          id: playerId,
+          name: trimmedName,
           isReady: false,
           selectedCategories: [],
         },
       ],
-      playerIds: [user.id],
-      hostId: user.id,
+      playerIds: [playerId],
+      hostId: playerId,
       commonCategories: [],
       finalSpicyLevel: 'Mild',
       chaosMode: false,
@@ -58,6 +47,7 @@ export async function POST(request: Request) {
       visualMemories: [],
       imageGenerationCount: 0,
       roomCode,
+      createdAt: new Date().toISOString(),
     };
 
     const game = await storage.games.create(roomCode, initialState);

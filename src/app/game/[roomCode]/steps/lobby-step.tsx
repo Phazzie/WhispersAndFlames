@@ -15,7 +15,6 @@ const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
       <span className="font-semibold">
         {player.name} {isMe && '(You)'}
       </span>
-      <span className="text-xs text-muted-foreground">{player.email}</span>
     </div>
     {player.isReady ? (
       <span className="text-sm text-green-400">Ready</span>
@@ -49,7 +48,6 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   };
 
   const handlePlayerReady = async () => {
-    // Check if we have at least 2 players before allowing ready-up.
     if (gameState.players.length < 2) {
       toast({
         title: 'Waiting for more players',
@@ -104,7 +102,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
               id="playerName"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              onBlur={handleNameChange} // Update name on blur
+              onBlur={handleNameChange}
               placeholder="Enter your name"
               disabled={me.isReady}
             />

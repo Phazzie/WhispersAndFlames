@@ -10,14 +10,12 @@ describe('Achievement System', () => {
       {
         id: 'player-1',
         name: 'Alice',
-        email: 'alice@example.com',
         isReady: false,
         selectedCategories: [],
       },
       {
         id: 'player-2',
         name: 'Bob',
-        email: 'bob@example.com',
         isReady: false,
         selectedCategories: [],
       },
@@ -189,7 +187,6 @@ describe('Achievement System', () => {
           {
             id: 'player-1',
             name: 'Alice',
-            email: 'alice@example.com',
             isReady: false,
             selectedCategories: [],
           },

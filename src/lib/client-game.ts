@@ -2,83 +2,99 @@
  * Client-side game management utilities
  */
 
+import type { PlayerIdentity } from '@/hooks/use-player-identity';
 import type { GameState } from './game-types';
 
+type GameError = Error & { status?: number };
+
+async function handleResponse(response: Response) {
+  if (response.ok) {
+    return response.json();
+  }
+
+  let errorMessage = 'Request failed';
+  try {
+    const data = await response.json();
+    if (data?.error) {
+      errorMessage = data.error;
+    }
+  } catch {
+    // ignore JSON parsing errors
+  }
+
+  const error = new Error(errorMessage) as GameError;
+  error.status = response.status;
+  throw error;
+}
+
 export const clientGame = {
-  create: async (roomCode: string, playerName: string): Promise<GameState> => {
+  create: async (roomCode: string, player: PlayerIdentity): Promise<GameState> => {
+    const payload = {
+      roomCode,
+      playerId: player.id,
+      playerName: player.name.trim(),
+    };
     const response = await fetch('/api/game/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, playerName }),
-      credentials: 'include',
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create game');
-    }
-
-    const data = await response.json();
-    return data.game;
+    const data = await handleResponse(response);
+    return data.game as GameState;
   },
 
-  join: async (roomCode: string, playerName: string): Promise<GameState> => {
+  join: async (roomCode: string, player: PlayerIdentity): Promise<GameState> => {
+    const payload = {
+      roomCode,
+      playerId: player.id,
+      playerName: player.name.trim(),
+    };
     const response = await fetch('/api/game/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, playerName }),
-      credentials: 'include',
+      body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to join game');
-    }
-
-    const data = await response.json();
-    return data.game;
+    const data = await handleResponse(response);
+    return data.game as GameState;
   },
 
-  get: async (roomCode: string): Promise<GameState> => {
+  get: async (roomCode: string, playerId: string): Promise<GameState> => {
     const response = await fetch(`/api/game/${roomCode}`, {
       method: 'GET',
-      credentials: 'include',
+      headers: {
+        'x-player-id': playerId,
+      },
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch game');
-    }
-
-    const data = await response.json();
-    return data.game;
+    const data = await handleResponse(response);
+    return data.game as GameState;
   },
 
-  update: async (roomCode: string, updates: Partial<GameState>): Promise<GameState> => {
+  update: async (
+    roomCode: string,
+    playerId: string,
+    updates: Partial<GameState>
+  ): Promise<GameState> => {
     const response = await fetch('/api/game/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, updates }),
-      credentials: 'include',
+      body: JSON.stringify({ roomCode, playerId, updates }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update game');
-    }
-
-    const data = await response.json();
-    return data.game;
+    const data = await handleResponse(response);
+    return data.game as GameState;
   },
 
   subscribe: (
     roomCode: string,
+    playerId: string,
     callback: (state: GameState) => void
   ): { unsubscribe: () => void } => {
-    // Poll for updates every 2 seconds
     const intervalId = setInterval(async () => {
       try {
-        const game = await clientGame.get(roomCode);
+        const game = await clientGame.get(roomCode, playerId);
         callback(game);
       } catch (error) {
         console.error('Failed to fetch game state:', error);
