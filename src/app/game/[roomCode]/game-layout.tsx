@@ -8,6 +8,7 @@ import { type ReactNode } from 'react';
 import { Logo } from '@/components/icons/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import { MAX_PLAYERS } from '@/lib/constants';
 import type { GameState } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
@@ -57,7 +58,9 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
             {players.length > 0 && (
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-5 h-5" />
-                <span>{players.length} / 3</span>
+                <span>
+                  {players.length} / {MAX_PLAYERS}
+                </span>
               </div>
             )}
             {step !== 'lobby' && <Progress value={progress} className="w-32 sm:w-64" />}

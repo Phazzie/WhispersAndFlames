@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
+import { CATEGORIES, QUESTIONS_PER_CATEGORY, MIN_PLAYERS } from '@/lib/constants';
 import type { StepProps, GameState } from '@/lib/game-types';
 
 const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
@@ -40,10 +40,10 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     }
 
     // Check if we have at least 2 players
-    if (gameState.players.length < 2) {
+    if (gameState.players.length < MIN_PLAYERS) {
       toast({
         title: 'Waiting for Players',
-        description: 'You need at least 2 players to start the game.',
+        description: `You need at least ${MIN_PLAYERS} players to start the game.`,
         variant: 'destructive',
         duration: 5000,
       });
@@ -101,7 +101,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
         {CATEGORIES.map((cat) => {
           const isSelectedByMe = me.selectedCategories.includes(cat.name);
           const selections = players.filter((p) => p.selectedCategories?.includes(cat.name));
-          const isCommon = selections.length === players.length && players.length === 3;
+          const isCommon = selections.length === players.length && players.length >= MIN_PLAYERS;
 
           return (
             <Card

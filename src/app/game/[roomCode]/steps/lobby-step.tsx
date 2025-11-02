@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MAX_PLAYERS, MIN_PLAYERS } from '@/lib/constants';
 import type { StepProps, Player } from '@/lib/game-types';
 
 const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
@@ -48,10 +49,10 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   };
 
   const handlePlayerReady = async () => {
-    if (gameState.players.length < 2) {
+    if (gameState.players.length < MIN_PLAYERS) {
       toast({
         title: 'Waiting for more players',
-        description: 'You need at least 2 players to start.',
+        description: `You need at least ${MIN_PLAYERS} players to start.`,
         variant: 'destructive',
       });
       return;
@@ -77,9 +78,11 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   };
 
   const allPlayers = [...players];
-  while (allPlayers.length < 3) {
+  while (allPlayers.length < MAX_PLAYERS) {
     allPlayers.push(null as any);
   }
+
+  const remainingPlayers = Math.max(MIN_PLAYERS - players.length, 0);
 
   return (
     <Card className="w-full max-w-md">
@@ -122,14 +125,18 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
           onClick={handlePlayerReady}
           className="w-full"
           size="lg"
-          disabled={me.isReady || players.length < 3}
+          disabled={me.isReady || players.length < MIN_PLAYERS}
         >
           {me.isReady ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
             </>
-          ) : players.length < 3 ? (
-            'Waiting for 3 players...'
+          ) : players.length < MIN_PLAYERS ? (
+            remainingPlayers === 1 ? (
+              'Waiting for another player...'
+            ) : (
+              `Waiting for ${remainingPlayers} more players...`
+            )
           ) : (
             "I'm Ready!"
           )}

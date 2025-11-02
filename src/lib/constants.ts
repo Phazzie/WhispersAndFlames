@@ -84,3 +84,6 @@ export const SPICY_LEVELS: SpicyLevel[] = [
 ];
 
 export const QUESTIONS_PER_CATEGORY = 2;
+
+export const MIN_PLAYERS = 2;
+export const MAX_PLAYERS = 3;

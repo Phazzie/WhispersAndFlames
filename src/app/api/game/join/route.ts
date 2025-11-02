@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { MAX_PLAYERS } from '@/lib/constants';
 import { storage } from '@/lib/storage-adapter';
 
 const joinGameSchema = z.object({
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ game }, { status: 200 });
     }
 
-    if (game.players.length >= 3) {
+    if (game.players.length >= MAX_PLAYERS) {
       return NextResponse.json({ error: 'Room is already full' }, { status: 403 });
     }
 
