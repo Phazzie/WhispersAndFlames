@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage-adapter';
-import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { auth } from '@/lib/auth';
+import { storage } from '@/lib/storage-adapter';
 
 const joinGameSchema = z.object({
   roomCode: z.string().min(4),

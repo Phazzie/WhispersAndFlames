@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage-adapter';
-import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
+import { auth } from '@/lib/auth';
 import type { GameState } from '@/lib/game-types';
+import { storage } from '@/lib/storage-adapter';
 import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
 const updateGameSchema = z.object({

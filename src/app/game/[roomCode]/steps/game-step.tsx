@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
-import type { StepProps, GameState } from '@/lib/game-types';
+import type { StepProps } from '@/lib/game-types';
 import { applyChaosMode } from '@/lib/game-utils';
 
 import { LoadingScreen } from '../loading-screen';

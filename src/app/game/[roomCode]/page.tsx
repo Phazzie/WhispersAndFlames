@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { clientAuth } from '@/lib/client-auth';
 import { clientGame } from '@/lib/client-game';
-import type { GameState, Player } from '@/lib/game-types';
+import type { GameState } from '@/lib/game-types';
 
 import {
   generateQuestionAction,

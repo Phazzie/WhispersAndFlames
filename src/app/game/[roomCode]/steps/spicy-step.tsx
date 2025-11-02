@@ -4,11 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Sparkles, Zap } from 'lucide-react';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { SPICY_LEVELS } from '@/lib/constants';
-import type { StepProps, GameState, SpicyLevel } from '@/lib/game-types';
+import type { StepProps, SpicyLevel } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
