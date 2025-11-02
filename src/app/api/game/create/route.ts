@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       ],
       playerIds: [user.id],
       hostId: user.id,
+      gameMode: 'online',
       commonCategories: [],
       finalSpicyLevel: 'Mild',
       chaosMode: false,

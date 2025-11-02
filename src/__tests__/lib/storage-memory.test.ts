@@ -125,6 +125,7 @@ describe('In-Memory Storage', () => {
         roomCode,
         step: 'lobby',
         playerIds: ['player-1'],
+        gameMode: 'online',
         hostId: 'player-1',
         players: [
           {
@@ -158,6 +159,7 @@ describe('In-Memory Storage', () => {
         roomCode,
         step: 'lobby',
         playerIds: ['player-1'],
+        gameMode: 'online',
         hostId: 'player-1',
         players: [
           {
@@ -198,6 +200,7 @@ describe('In-Memory Storage', () => {
         roomCode,
         step: 'lobby',
         playerIds: ['player-1'],
+        gameMode: 'online',
         hostId: 'player-1',
         players: [
           {
@@ -235,6 +238,7 @@ describe('In-Memory Storage', () => {
         roomCode: roomCode1,
         step: 'lobby',
         playerIds: [userId],
+        gameMode: 'online',
         hostId: userId,
         players: [],
         commonCategories: [],
@@ -252,6 +256,7 @@ describe('In-Memory Storage', () => {
         roomCode: roomCode2,
         step: 'lobby',
         playerIds: [userId],
+        gameMode: 'online',
         hostId: userId,
         players: [],
         commonCategories: [],

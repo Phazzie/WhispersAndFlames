@@ -18,12 +18,15 @@ export type Player = {
   selectedSpicyLevel?: SpicyLevel['name'];
 };
 export type GameRound = { question: string; answers: Record<string, string> };
+export type GameMode = 'online' | 'local'; // online = multi-device, local = single-device
 
 export type GameState = {
   step: GameStep;
   players: Player[];
   playerIds: string[];
   hostId: string;
+  gameMode: GameMode; // Determines if game is online or local multi-player
+  currentPlayerIndex?: number; // For local mode: which player's turn it is
   commonCategories: string[];
   finalSpicyLevel: SpicyLevel['name'];
   chaosMode: boolean;

@@ -24,6 +24,7 @@ describe('Achievement System', () => {
     ],
     playerIds: ['player-1', 'player-2'],
     hostId: 'player-1',
+    gameMode: 'online',
     commonCategories: ['Hidden Attractions', 'Emotional Depths'],
     finalSpicyLevel: 'Medium',
     chaosMode: false,
