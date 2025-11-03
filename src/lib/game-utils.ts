@@ -1,31 +1,33 @@
 const ANIMALS: string[] = [
-  'Lion',
-  'Tiger',
-  'Bear',
-  'Wolf',
-  'Fox',
-  'Eagle',
-  'Shark',
-  'Panther',
-  'Leopard',
-  'Jaguar',
-  'Cobra',
-  'Viper',
-  'Dragon',
-  'Phoenix',
-  'Griffin',
-  'Hydra',
-  'Stallion',
-  'Hawk',
-  'Falcon',
-  'Owl',
-  'Raven',
-  'Crow',
-  'Bull',
-  'Stag',
-  'Boar',
-  'Rhino',
+  'LION',
+  'TIGER',
+  'BEAR',
+  'WOLF',
+  'FOX',
+  'EAGLE',
+  'SHARK',
+  'PANTHER',
+  'LEOPARD',
+  'JAGUAR',
+  'COBRA',
+  'VIPER',
+  'DRAGON',
+  'PHOENIX',
+  'GRIFFIN',
+  'HYDRA',
+  'STALLION',
+  'HAWK',
+  'FALCON',
+  'OWL',
+  'RAVEN',
+  'CROW',
+  'BULL',
+  'STAG',
+  'BOAR',
+  'RHINO',
 ];
+
+const ROOM_CODE_PATTERN = /^[A-Z0-9-]{4,64}$/;
 
 function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -39,6 +41,19 @@ export function generateRoomCode(): string {
   const number = Math.floor(10 + Math.random() * 90); // 10-99
 
   return `${[...parts].join('-')}-${number}`;
+}
+
+export function normalizeRoomCode(roomCode: string): string {
+  const cleaned = roomCode
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '');
+  return cleaned.replace(/^-+/, '').replace(/-+$/, '');
+}
+
+export function isValidRoomCode(roomCode: string): boolean {
+  const normalized = normalizeRoomCode(roomCode);
+  return ROOM_CODE_PATTERN.test(normalized);
 }
 
 export function applyChaosMode(
@@ -62,7 +77,7 @@ export function applyChaosMode(
       'Extra-Hot',
     ];
     const currentIndex = levels.indexOf(baseLevel);
-    
+
     if (currentIndex === -1) {
       console.error('[ChaosMode] Invalid base level:', baseLevel);
       return { level: baseLevel, wasUpgraded: false };
