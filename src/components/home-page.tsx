@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePlayerIdentity } from '@/hooks/use-player-identity';
 import { useToast } from '@/hooks/use-toast';
 import { clientGame } from '@/lib/client-game';
-import { generateRoomCode } from '@/lib/game-utils';
+import { generateRoomCode, normalizeRoomCode } from '@/lib/game-utils';
+import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 
 const MIN_PLAYER_NAME_LENGTH = 2;
 
@@ -28,7 +29,7 @@ export default function HomePageClient() {
   useEffect(() => {
     const joinCode = searchParams.get('join');
     if (joinCode) {
-      setRoomCode(joinCode.toUpperCase());
+      setRoomCode(normalizeRoomCode(joinCode));
     }
   }, [searchParams]);
 
@@ -45,8 +46,8 @@ export default function HomePageClient() {
   }, [identity, playerName]);
 
   const ensureValidName = () => {
-    const trimmed = playerName.trim();
-    if (trimmed.length < MIN_PLAYER_NAME_LENGTH) {
+    const sanitized = sanitizePlayerName(playerName);
+    if (sanitized.length < MIN_PLAYER_NAME_LENGTH) {
       toast({
         title: 'Choose a name',
         description: 'Use at least two characters so other players can recognise you.',
@@ -54,9 +55,9 @@ export default function HomePageClient() {
       });
       return null;
     }
-    setPlayerName(trimmed);
-    setName(trimmed);
-    return trimmed;
+    setPlayerName(sanitized);
+    setName(sanitized);
+    return sanitized;
   };
 
   const handleCreateRoom = async () => {
@@ -93,10 +94,11 @@ export default function HomePageClient() {
     const trimmedName = ensureValidName();
     if (!trimmedName) return;
 
-    if (!roomCode || roomCode.trim().length < 4) {
+    const normalizedCode = normalizeRoomCode(roomCode);
+    if (!normalizedCode || normalizedCode.length < 4) {
       toast({
         title: 'Room code required',
-        description: 'Enter the four-letter code shared by the host.',
+        description: 'Enter the code shared by the host (for example LION-WOLF-FOX-42).',
         variant: 'destructive',
       });
       return;
@@ -104,9 +106,8 @@ export default function HomePageClient() {
 
     try {
       setIsBusy(true);
-      const code = roomCode.trim().toUpperCase();
-      await clientGame.join(code, { ...readyIdentity, name: trimmedName });
-      router.push(`/game/${code}`);
+      await clientGame.join(normalizedCode, { ...readyIdentity, name: trimmedName });
+      router.push(`/game/${normalizedCode}`);
     } catch (error: unknown) {
       toast({
         title: 'Could not join room',
@@ -144,7 +145,8 @@ export default function HomePageClient() {
             Whispers and Flames
           </CardTitle>
           <CardDescription>
-            Start a new adventure or jump back into a room with nothing but your name.
+            Start a new adventure or jump back into a room with nothing but your name. Room codes
+            look like <span className="font-medium">LION-WOLF-FOX-42</span>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -161,14 +163,14 @@ export default function HomePageClient() {
                 <Input
                   id="creator-name"
                   value={playerName}
-                  maxLength={32}
+                  maxLength={PLAYER_NAME_MAX_LENGTH}
                   disabled={isBusy}
                   placeholder="E.g. Starry Ember"
                   onChange={(event) => setPlayerName(event.target.value)}
                   onBlur={() => {
-                    const trimmed = playerName.trim();
-                    setPlayerName(trimmed);
-                    setName(trimmed);
+                    const sanitized = sanitizePlayerName(playerName);
+                    setPlayerName(sanitized);
+                    setName(sanitized);
                   }}
                 />
               </div>
@@ -186,10 +188,15 @@ export default function HomePageClient() {
                   <Input
                     id="join-name"
                     value={playerName}
-                    maxLength={32}
+                    maxLength={PLAYER_NAME_MAX_LENGTH}
                     disabled={isBusy}
                     placeholder="E.g. Starry Ember"
                     onChange={(event) => setPlayerName(event.target.value)}
+                    onBlur={() => {
+                      const sanitized = sanitizePlayerName(playerName);
+                      setPlayerName(sanitized);
+                      setName(sanitized);
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -199,10 +206,14 @@ export default function HomePageClient() {
                   <Input
                     id="room-code"
                     value={roomCode}
-                    maxLength={6}
+                    maxLength={48}
                     disabled={isBusy}
-                    placeholder="ABCD"
-                    onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
+                    placeholder="E.g. LION-WOLF-FOX-42"
+                    onChange={(event) => {
+                      const raw = event.target.value.toUpperCase();
+                      const sanitized = raw.replace(/[^A-Z0-9-]/g, '');
+                      setRoomCode(sanitized);
+                    }}
                   />
                 </div>
               </div>

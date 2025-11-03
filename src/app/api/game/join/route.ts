@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { MAX_PLAYERS } from '@/lib/constants';
+import { normalizeRoomCode, isValidRoomCode } from '@/lib/game-utils';
+import { isValidPlayerId, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
 
 const joinGameSchema = z.object({
@@ -14,17 +16,27 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { roomCode, playerId, playerName } = joinGameSchema.parse(body);
-    const trimmedName = playerName.trim();
-    if (!trimmedName) {
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    if (!isValidRoomCode(normalizedRoomCode)) {
+      return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
+    }
+
+    const trimmedPlayerId = playerId.trim();
+    if (!isValidPlayerId(trimmedPlayerId)) {
+      return NextResponse.json({ error: 'Invalid player identifier' }, { status: 400 });
+    }
+
+    const sanitizedName = sanitizePlayerName(playerName);
+    if (!sanitizedName) {
       return NextResponse.json({ error: 'Player name is required' }, { status: 400 });
     }
 
-    const game = await storage.games.get(roomCode);
+    const game = await storage.games.get(normalizedRoomCode);
     if (!game) {
       return NextResponse.json({ error: 'Room not found' }, { status: 404 });
     }
 
-    if (game.playerIds.includes(playerId)) {
+    if (game.playerIds.includes(trimmedPlayerId)) {
       return NextResponse.json({ game }, { status: 200 });
     }
 
@@ -32,17 +44,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Room is already full' }, { status: 403 });
     }
 
-    const updatedGame = await storage.games.update(roomCode, {
+    const updatedGame = await storage.games.update(normalizedRoomCode, {
       players: [
         ...game.players,
         {
-          id: playerId,
-          name: trimmedName,
+          id: trimmedPlayerId,
+          name: sanitizedName,
           isReady: false,
           selectedCategories: [],
         },
       ],
-      playerIds: [...game.playerIds, playerId],
+      playerIds: [...game.playerIds, trimmedPlayerId],
     });
 
     if (!updatedGame) {

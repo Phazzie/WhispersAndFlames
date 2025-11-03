@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { sanitizePlayerName } from '@/lib/player-validation';
+
 const STORAGE_KEY = 'whispers-and-flames/player-identity';
 
 type StoredIdentity = {
@@ -35,7 +37,7 @@ function readIdentity(): StoredIdentity | null {
     if (parsed && typeof parsed.id === 'string' && parsed.id) {
       return {
         id: parsed.id,
-        name: typeof parsed.name === 'string' ? parsed.name : '',
+        name: typeof parsed.name === 'string' ? sanitizePlayerName(parsed.name) : '',
       };
     }
   } catch (error) {
@@ -79,9 +81,9 @@ export function usePlayerIdentity() {
 
   const setName = useCallback((name: string) => {
     setIdentity((current) => {
-      const trimmed = name.trimStart();
-      const base = current ?? createIdentity(trimmed);
-      const updated = { ...base, name: trimmed };
+      const sanitized = sanitizePlayerName(name);
+      const base = current ?? createIdentity(sanitized);
+      const updated = { ...base, name: sanitized };
       persistIdentity(updated);
       return updated;
     });

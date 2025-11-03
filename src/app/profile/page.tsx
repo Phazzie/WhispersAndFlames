@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { usePlayerIdentity } from '@/hooks/use-player-identity';
 import { useToast } from '@/hooks/use-toast';
+import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -24,8 +25,8 @@ export default function ProfilePage() {
   }, [identity?.name]);
 
   const handleSave = () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
+    const sanitized = sanitizePlayerName(name);
+    if (!sanitized) {
       toast({
         title: 'Name required',
         description: 'Give yourself a nickname so your partner knows who joined.',
@@ -33,7 +34,8 @@ export default function ProfilePage() {
       });
       return;
     }
-    setName(trimmed);
+    setLocalName(sanitized);
+    setName(sanitized);
     toast({ title: 'Profile updated', description: 'Your name is saved on this device.' });
   };
 
@@ -82,8 +84,12 @@ export default function ProfilePage() {
                 id="profile-name"
                 value={name}
                 onChange={(event) => setLocalName(event.target.value)}
-                maxLength={32}
+                maxLength={PLAYER_NAME_MAX_LENGTH}
                 placeholder="E.g. Starlit Muse"
+                onBlur={(event) => {
+                  const sanitized = sanitizePlayerName(event.target.value);
+                  setLocalName(sanitized);
+                }}
               />
             </div>
             <Button onClick={handleSave} className="w-full md:w-auto">

@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2, ClipboardCopy } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MAX_PLAYERS, MIN_PLAYERS } from '@/lib/constants';
 import type { StepProps, Player } from '@/lib/game-types';
+import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 
 const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
   <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
@@ -36,9 +37,15 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   const { players, roomCode } = gameState;
   const [playerName, setPlayerName] = useState(me.name);
 
+  useEffect(() => {
+    setPlayerName(me.name);
+  }, [me.name]);
+
   const handleNameChange = async () => {
-    const newName = playerName.trim();
+    const newName = sanitizePlayerName(playerName);
     if (!newName || me.name === newName) return;
+
+    setPlayerName(newName);
 
     const updatedPlayers = gameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, name: newName } : p
@@ -108,6 +115,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
               onBlur={handleNameChange}
               placeholder="Enter your name"
               disabled={me.isReady}
+              maxLength={PLAYER_NAME_MAX_LENGTH}
             />
           </div>
         </div>

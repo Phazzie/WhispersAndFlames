@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { applyChaosMode } from '@/lib/game-utils';
+import {
+  applyChaosMode,
+  generateRoomCode,
+  isValidRoomCode,
+  normalizeRoomCode,
+} from '@/lib/game-utils';
 
 describe('Chaos Mode', () => {
   describe('applyChaosMode', () => {
@@ -96,5 +101,21 @@ describe('Chaos Mode', () => {
         expect(result.wasUpgraded).toBe(false);
       });
     });
+  });
+});
+
+describe('room codes', () => {
+  it('generates uppercase room codes using approved characters', () => {
+    const code = generateRoomCode();
+    expect(isValidRoomCode(code)).toBe(true);
+    expect(code).toEqual(code.toUpperCase());
+  });
+
+  it('normalizes arbitrary input into a valid code shape', () => {
+    const raw = ' lion-wolf-fox-42 ';
+    const normalized = normalizeRoomCode(raw);
+
+    expect(normalized).toBe('LION-WOLF-FOX-42');
+    expect(isValidRoomCode(normalized)).toBe(true);
   });
 });

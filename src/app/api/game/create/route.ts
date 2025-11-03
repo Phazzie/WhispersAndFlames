@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { storage } from '@/lib/storage-adapter';
 import type { GameState } from '@/lib/game-types';
+import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
+import { isValidPlayerId, sanitizePlayerName } from '@/lib/player-validation';
+import { storage } from '@/lib/storage-adapter';
 
 const createGameSchema = z.object({
   roomCode: z.string().min(4),
@@ -14,12 +16,22 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { roomCode, playerId, playerName } = createGameSchema.parse(body);
-    const trimmedName = playerName.trim();
-    if (!trimmedName) {
+    const normalizedRoomCode = normalizeRoomCode(roomCode);
+    if (!isValidRoomCode(normalizedRoomCode)) {
+      return NextResponse.json({ error: 'Invalid room code' }, { status: 400 });
+    }
+
+    const trimmedPlayerId = playerId.trim();
+    if (!isValidPlayerId(trimmedPlayerId)) {
+      return NextResponse.json({ error: 'Invalid player identifier' }, { status: 400 });
+    }
+
+    const sanitizedName = sanitizePlayerName(playerName);
+    if (!sanitizedName) {
       return NextResponse.json({ error: 'Player name is required' }, { status: 400 });
     }
 
-    const existing = await storage.games.get(roomCode);
+    const existing = await storage.games.get(normalizedRoomCode);
     if (existing) {
       return NextResponse.json({ error: 'Room code already in use' }, { status: 400 });
     }
@@ -28,14 +40,14 @@ export async function POST(request: Request) {
       step: 'lobby',
       players: [
         {
-          id: playerId,
-          name: trimmedName,
+          id: trimmedPlayerId,
+          name: sanitizedName,
           isReady: false,
           selectedCategories: [],
         },
       ],
-      playerIds: [playerId],
-      hostId: playerId,
+      playerIds: [trimmedPlayerId],
+      hostId: trimmedPlayerId,
       commonCategories: [],
       finalSpicyLevel: 'Mild',
       chaosMode: false,
@@ -46,11 +58,11 @@ export async function POST(request: Request) {
       summary: '',
       visualMemories: [],
       imageGenerationCount: 0,
-      roomCode,
+      roomCode: normalizedRoomCode,
       createdAt: new Date().toISOString(),
     };
 
-    const game = await storage.games.create(roomCode, initialState);
+    const game = await storage.games.create(normalizedRoomCode, initialState);
 
     return NextResponse.json({ game }, { status: 201 });
   } catch (error) {
