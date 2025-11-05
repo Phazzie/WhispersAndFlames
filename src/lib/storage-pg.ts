@@ -76,8 +76,8 @@ export async function initSchema() {
   }
 }
 
-// Cleanup expired data every 5 minutes
-setInterval(
+// Cleanup expired data every 5 minutes with proper lifecycle management
+const pgCleanupInterval = setInterval(
   async () => {
     try {
       const client = await pool.connect();
@@ -92,6 +92,25 @@ setInterval(
   },
   5 * 60 * 1000
 );
+
+// Graceful shutdown handling to prevent connection leaks
+if (typeof process !== 'undefined') {
+  const cleanup = async () => {
+    console.log('Shutting down PostgreSQL connection pool...');
+    clearInterval(pgCleanupInterval);
+
+    try {
+      await pool.end();
+      console.log('PostgreSQL connection pool closed successfully');
+    } catch (err) {
+      console.error('Error closing PostgreSQL pool:', err);
+    }
+  };
+
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
+  process.on('beforeExit', cleanup);
+}
 
 export const storage = {
   // User methods

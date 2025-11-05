@@ -6,19 +6,43 @@ import { auth } from '@/lib/auth';
 import type { GameState } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { checkRateLimit, getClientIp } from '@/lib/utils/security';
+import { validateCsrf } from '@/lib/middleware/csrf';
+import { logger } from '@/lib/utils/logger';
+import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
+import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
+
+const MAX_REQUEST_SIZE = 1_000_000; // 1MB
 
 const createGameSchema = z.object({
-  roomCode: z.string().min(4),
-  playerName: z.string().min(1),
+  roomCode: z
+    .string()
+    .min(4)
+    .max(64)
+    .transform(normalizeRoomCode)
+    .refine(isValidRoomCode, 'Invalid room code format'),
+  playerName: z
+    .string()
+    .min(1)
+    .max(PLAYER_NAME_MAX_LENGTH)
+    .transform(sanitizePlayerName),
 });
 
 export async function POST(request: Request) {
   try {
+    // Check request body size
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
+      return NextResponse.json(
+        { error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body too large' } },
+        { status: 413 }
+      );
+    }
+
     // Rate limiting: 10 game creations per minute per IP
     const clientIp = getClientIp(request);
     if (!checkRateLimit(`game-create:${clientIp}`, 10, 60000)) {
       return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please try again later.' } },
         { status: 429 }
       );
     }
@@ -27,12 +51,25 @@ export async function POST(request: Request) {
     const session = cookieStore.get('session');
 
     if (!session?.value) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
     }
 
     const user = await auth.getCurrentUser(session.value);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Invalid session' } },
+        { status: 401 }
+      );
+    }
+
+    // Validate CSRF token
+    const csrfError = validateCsrf(request, session.value);
+    if (csrfError) {
+      logger.warn('CSRF validation failed', { userId: user.id, endpoint: 'game/create' });
+      return csrfError;
     }
 
     const body = await request.json();
@@ -41,7 +78,11 @@ export async function POST(request: Request) {
     // Check if room already exists
     const existing = await storage.games.get(roomCode);
     if (existing) {
-      return NextResponse.json({ error: 'Room code already in use' }, { status: 400 });
+      logger.info('Game creation failed: room code in use', { roomCode, userId: user.id });
+      return NextResponse.json(
+        { error: { code: 'ROOM_CODE_IN_USE', message: 'Room code already in use' } },
+        { status: 400 }
+      );
     }
 
     // Create initial game state
@@ -74,11 +115,26 @@ export async function POST(request: Request) {
 
     const game = await storage.games.create(roomCode, initialState);
 
+    logger.info('Game created successfully', { roomCode, userId: user.id, playerName });
+
     return NextResponse.json({ game }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+      logger.warn('Game creation validation failed', { error: error.errors });
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: error.errors } },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ error: 'Failed to create game' }, { status: 500 });
+
+    logger.error('Game creation failed', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to create game' } },
+      { status: 500 }
+    );
   }
 }
