@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { auth } from '@/lib/auth';
 import { storage } from '@/lib/storage-adapter';
 
@@ -99,12 +100,14 @@ describe('Auth System', () => {
 
       // First create a user to get a valid password hash
       vi.mocked(storage.users.findByEmail).mockResolvedValueOnce(undefined);
-      vi.mocked(storage.users.create).mockImplementation(async (email, passwordHash) => ({
-        id: userId,
-        email,
-        passwordHash,
-        createdAt: new Date(),
-      }));
+      (vi.mocked(storage.users.create) as any).mockImplementation(
+        async (email: string, passwordHash: string) => ({
+          id: userId,
+          email,
+          passwordHash,
+          createdAt: new Date(),
+        })
+      );
       vi.mocked(storage.sessions.create).mockResolvedValue(token);
 
       // Sign up to create the hash

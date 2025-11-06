@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import type { GameState } from '@/lib/game-types';
 
 // Import directly to test the in-memory storage

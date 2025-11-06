@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import QRCode from 'qrcode';
 import { Download, Share2 } from 'lucide-react';
+import QRCode from 'qrcode';
+import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

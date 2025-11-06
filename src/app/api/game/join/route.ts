@@ -2,14 +2,14 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/lib/auth';
-import { storage } from '@/lib/storage-adapter';
-import { checkRateLimit, getClientIp } from '@/lib/utils/security';
-import { validateCsrf } from '@/lib/middleware/csrf';
-import { logger } from '@/lib/utils/logger';
-import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
-import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { MAX_REQUEST_SIZE, RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS } from '@/lib/api-constants';
+import { auth } from '@/lib/auth';
+import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
+import { validateCsrf } from '@/lib/middleware/csrf';
+import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
+import { storage } from '@/lib/storage-adapter';
+import { logger } from '@/lib/utils/logger';
+import { checkRateLimit, getClientIp } from '@/lib/utils/security';
 
 const joinGameSchema = z.object({
   roomCode: z
@@ -18,11 +18,7 @@ const joinGameSchema = z.object({
     .max(64)
     .transform(normalizeRoomCode)
     .refine(isValidRoomCode, 'Invalid room code format'),
-  playerName: z
-    .string()
-    .min(1)
-    .max(PLAYER_NAME_MAX_LENGTH)
-    .transform(sanitizePlayerName),
+  playerName: z.string().min(1).max(PLAYER_NAME_MAX_LENGTH).transform(sanitizePlayerName),
 });
 
 export async function POST(request: Request) {
@@ -40,7 +36,12 @@ export async function POST(request: Request) {
     const clientIp = getClientIp(request);
     if (!checkRateLimit(`game-join:${clientIp}`, RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS)) {
       return NextResponse.json(
-        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please try again later.' } },
+        {
+          error: {
+            code: 'RATE_LIMIT_EXCEEDED',
+            message: 'Too many requests. Please try again later.',
+          },
+        },
         { status: 429 }
       );
     }
