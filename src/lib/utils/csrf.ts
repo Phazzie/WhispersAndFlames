@@ -13,34 +13,33 @@ interface CsrfTokenEntry {
   createdAt: number;
 }
 
-// In-memory store for CSRF tokens (in production, use Redis or similar)
+// In-memory store for CSRF tokens
+// Note: In serverless environments (like Vercel), this map is per-instance
+// For production with multiple instances, consider using Vercel KV or database storage
 const csrfTokenStore = new Map<string, CsrfTokenEntry>();
 
-// Clean up expired tokens periodically with proper lifecycle management
-const csrfCleanupInterval = setInterval(() => {
+// Opportunistic cleanup function (serverless-compatible)
+function cleanupExpiredTokens() {
   const now = Date.now();
+  let cleaned = 0;
   for (const [key, entry] of csrfTokenStore.entries()) {
     if (now - entry.createdAt > CSRF_TOKEN_LIFETIME) {
       csrfTokenStore.delete(key);
+      cleaned++;
     }
+    // Limit cleanup to prevent blocking - max 50 per call
+    if (cleaned >= 50) break;
   }
-}, 300000); // Clean up every 5 minutes
-
-// Clean up interval on process exit to prevent memory leaks
-if (typeof process !== 'undefined') {
-  const cleanup = () => {
-    clearInterval(csrfCleanupInterval);
-  };
-
-  process.on('SIGTERM', cleanup);
-  process.on('SIGINT', cleanup);
-  process.on('beforeExit', cleanup);
+  return cleaned;
 }
 
 /**
  * Generates a new CSRF token for a session
  */
 export function generateCsrfToken(sessionId: string): string {
+  // Opportunistic cleanup (10% chance) - serverless-compatible
+  if (Math.random() < 0.1) cleanupExpiredTokens();
+
   const token = generateSecureToken(CSRF_TOKEN_LENGTH);
   csrfTokenStore.set(sessionId, {
     token,

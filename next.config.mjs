@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Output standalone for Docker deployment
-  output: 'standalone',
-  
+  // Use standalone for Docker, default for Vercel
+  // Vercel automatically optimizes the build
+  output: process.env.VERCEL ? undefined : 'standalone',
+
   // Skip type checking and linting during production builds
   // These are already validated in CI/CD pipeline
   typescript: {

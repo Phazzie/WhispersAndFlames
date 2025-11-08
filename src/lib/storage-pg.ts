@@ -123,41 +123,25 @@ export async function initSchema() {
   }
 }
 
-// Cleanup expired data every 5 minutes with proper lifecycle management
-const pgCleanupInterval = setInterval(
-  async () => {
+// Export cleanup function for Vercel Cron Job (serverless-compatible)
+// Instead of setInterval (which doesn't work in serverless), we use Vercel Cron
+export async function cleanupExpiredData(): Promise<void> {
+  try {
+    const client = await pool.connect();
     try {
-      const client = await pool.connect();
-      try {
-        await client.query('SELECT cleanup_expired_data()');
-      } finally {
-        client.release();
-      }
-    } catch (err) {
-      console.error('Cleanup failed:', err);
+      await client.query('SELECT cleanup_expired_data()');
+      console.log('✅ Database cleanup completed successfully');
+    } finally {
+      client.release();
     }
-  },
-  5 * 60 * 1000
-);
-
-// Graceful shutdown handling to prevent connection leaks
-if (typeof process !== 'undefined') {
-  const cleanup = async () => {
-    console.log('Shutting down PostgreSQL connection pool...');
-    clearInterval(pgCleanupInterval);
-
-    try {
-      await pool.end();
-      console.log('PostgreSQL connection pool closed successfully');
-    } catch (err) {
-      console.error('Error closing PostgreSQL pool:', err);
-    }
-  };
-
-  process.on('SIGTERM', cleanup);
-  process.on('SIGINT', cleanup);
-  process.on('beforeExit', cleanup);
+  } catch (err) {
+    console.error('❌ Database cleanup failed:', err);
+    throw err;
+  }
 }
+
+// Note: Graceful shutdown is not needed in serverless environments
+// Vercel automatically handles connection cleanup after function execution
 
 export const storage = {
   // User methods

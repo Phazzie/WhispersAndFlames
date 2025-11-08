@@ -45,10 +45,10 @@ Whispers and Flames creates a safe, private space for couples to explore their r
    cp .env.example .env.local
    ```
 
-   Edit `.env.local` and add your API keys:
+   Edit `.env.local` and add your XAI API key:
 
    ```
-   XAI_API_KEY=your_api_key_here
+   XAI_API_KEY=your_xai_api_key_here
    NEXT_PUBLIC_APP_URL=http://localhost:9002
    NODE_ENV=development
    ```
@@ -67,7 +67,7 @@ Whispers and Flames creates a safe, private space for couples to explore their r
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Backend**: PostgreSQL or in-memory storage with session-based authentication
-- **AI**: Google's Gemini via Genkit
+- **AI**: xAI Grok via Genkit
 - **Testing**: Vitest (unit/integration), Playwright (e2e)
 - **Linting**: ESLint + Prettier
 
@@ -98,12 +98,12 @@ npm run genkit:watch     # Start Genkit with watch mode
 
 ## 🔐 Environment Variables
 
-| Variable                          | Required | Default                 | Description                                             |
-| --------------------------------- | -------- | ----------------------- | ------------------------------------------------------- |
-| `GEMINI_API_KEY` or `XAI_API_KEY` | Yes      | -                       | API key for AI services. `GEMINI_API_KEY` is preferred. |
-| `DATABASE_URL`                    | No       | -                       | Postgres connection string                              |
-| `NODE_ENV`                        | No       | `development`           | Environment mode                                        |
-| `NEXT_PUBLIC_APP_URL`             | No       | `http://localhost:9002` | Public app URL                                          |
+| Variable              | Required | Default                 | Description                |
+| --------------------- | -------- | ----------------------- | -------------------------- |
+| `XAI_API_KEY`         | Yes      | -                       | xAI API key (console.x.ai) |
+| `DATABASE_URL`        | No       | -                       | Postgres connection string |
+| `NODE_ENV`            | No       | `development`           | Environment mode           |
+| `NEXT_PUBLIC_APP_URL` | No       | `http://localhost:9002` | Public app URL             |
 
 ## 🧪 Testing
 
@@ -123,9 +123,27 @@ npm run test:coverage     # Generate coverage report
 
 ## 🚢 Deployment
 
-### Docker + Digital Ocean (Recommended)
+### Vercel (Recommended)
 
-This app is containerized with Docker and optimized for Digital Ocean App Platform.
+The easiest way to deploy this Next.js app. **Zero configuration required!**
+
+**Quick Start:**
+
+1. Push to GitHub
+2. Import to Vercel: https://vercel.com/new
+3. Add environment variables (see `.env.vercel`)
+4. Deploy! 🚀
+
+**Documentation:**
+
+- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Complete Vercel deployment guide
+- **[.env.vercel](./.env.vercel)** - Environment variables template
+
+**Cost:** Free tier available, Pro starts at $20/month
+
+### Docker + Digital Ocean (Alternative)
+
+For those who prefer containerized deployments with full control.
 
 **Quick Start:**
 
