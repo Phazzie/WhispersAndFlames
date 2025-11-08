@@ -3,9 +3,27 @@
  * Replaces in-memory storage for production deployment
  */
 
-import { Pool, PoolClient } from 'pg';
+import { Pool } from 'pg';
 
-import type { GameState, Player } from './game-types';
+import type { GameState } from './game-types';
+
+// Connection pool metrics
+interface PoolMetrics {
+  totalConnections: number;
+  idleConnections: number;
+  waitingClients: number;
+  lastConnectionTime?: number;
+  connectionErrors: number;
+  connectionAttempts: number;
+}
+
+const poolMetrics: PoolMetrics = {
+  totalConnections: 0,
+  idleConnections: 0,
+  waitingClients: 0,
+  connectionErrors: 0,
+  connectionAttempts: 0,
+};
 
 // Create connection pool
 const pool = new Pool({
@@ -16,17 +34,44 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
+// Connection pool monitoring
+pool.on('connect', (_client) => {
+  poolMetrics.connectionAttempts++;
+  poolMetrics.lastConnectionTime = Date.now();
+  console.log('✅ New database connection established');
+});
+
+pool.on('error', (err, _client) => {
+  poolMetrics.connectionErrors++;
+  console.error('❌ Unexpected database error on idle client:', err);
+});
+
+pool.on('acquire', (_client) => {
+  console.log('🔒 Connection acquired from pool');
+});
+
+pool.on('remove', (_client) => {
+  console.log('🗑️  Connection removed from pool');
+});
+
+// Function to get current pool metrics
+export function getPoolMetrics(): PoolMetrics {
+  return {
+    totalConnections: pool.totalCount,
+    idleConnections: pool.idleCount,
+    waitingClients: pool.waitingCount,
+    lastConnectionTime: poolMetrics.lastConnectionTime,
+    connectionErrors: poolMetrics.connectionErrors,
+    connectionAttempts: poolMetrics.connectionAttempts,
+  };
+}
+
 // User storage
 interface User {
   id: string;
   email: string;
   passwordHash: string;
   createdAt: Date;
-}
-
-interface Session {
-  userId: string;
-  expiresAt: Date;
 }
 
 // Initialize database schema
@@ -59,7 +104,9 @@ export async function initSchema() {
         expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '24 hours'
       );
 
+      -- Performance indexes
       CREATE INDEX IF NOT EXISTS idx_games_expires_at ON games(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_games_player_ids ON games USING GIN ((state->'playerIds'));
 
       -- Cleanup expired sessions and games periodically
       CREATE OR REPLACE FUNCTION cleanup_expired_data()
@@ -76,8 +123,8 @@ export async function initSchema() {
   }
 }
 
-// Cleanup expired data every 5 minutes
-setInterval(
+// Cleanup expired data every 5 minutes with proper lifecycle management
+const pgCleanupInterval = setInterval(
   async () => {
     try {
       const client = await pool.connect();
@@ -92,6 +139,25 @@ setInterval(
   },
   5 * 60 * 1000
 );
+
+// Graceful shutdown handling to prevent connection leaks
+if (typeof process !== 'undefined') {
+  const cleanup = async () => {
+    console.log('Shutting down PostgreSQL connection pool...');
+    clearInterval(pgCleanupInterval);
+
+    try {
+      await pool.end();
+      console.log('PostgreSQL connection pool closed successfully');
+    } catch (err) {
+      console.error('Error closing PostgreSQL pool:', err);
+    }
+  };
+
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
+  process.on('beforeExit', cleanup);
+}
 
 export const storage = {
   // User methods
@@ -228,12 +294,19 @@ export const storage = {
     ): Promise<GameState | undefined> => {
       const client = await pool.connect();
       try {
-        // Get current state
+        // Use transaction with row-level locking to prevent race conditions
+        await client.query('BEGIN');
+
+        // Get current state with row lock (FOR UPDATE prevents concurrent modifications)
         const result = await client.query(
-          'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW()',
+          'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW() FOR UPDATE',
           [roomCode]
         );
-        if (result.rows.length === 0) return undefined;
+
+        if (result.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return undefined;
+        }
 
         // Merge updates with current state
         const currentState = result.rows[0].state as GameState;
@@ -245,7 +318,15 @@ export const storage = {
           roomCode,
         ]);
 
+        // Commit transaction
+        await client.query('COMMIT');
+
         return updatedState;
+      } catch (err) {
+        // Rollback on any error
+        await client.query('ROLLBACK');
+        console.error('Transaction error in games.update:', err);
+        throw err;
       } finally {
         client.release();
       }
@@ -260,7 +341,7 @@ export const storage = {
       }
     },
 
-    subscribe: (roomCode: string, callback: (state: GameState) => void): (() => void) => {
+    subscribe: (_roomCode: string, _callback: (state: GameState) => void): (() => void) => {
       // PostgreSQL doesn't support real-time subscriptions natively
       // We'll use polling on the client side instead
       // This is a no-op for compatibility with the in-memory implementation
@@ -270,19 +351,30 @@ export const storage = {
     list: async (userId: string, filter?: { step?: string }): Promise<GameState[]> => {
       const client = await pool.connect();
       try {
-        const result = await client.query('SELECT state FROM games WHERE expires_at > NOW()', []);
+        // Use GIN index for efficient player_id filtering
+        // The @> operator checks if the left JSONB contains the right JSONB
+        let query = `
+          SELECT state FROM games
+          WHERE state->'playerIds' @> $1::jsonb
+            AND expires_at > NOW()
+          LIMIT 50
+        `;
+        const params: any[] = [JSON.stringify([userId])];
 
-        // Filter games where user is a player
-        let userGames = result.rows
-          .map((row) => row.state as GameState)
-          .filter((game) => game.playerIds.includes(userId));
-
-        // Apply additional filters
+        // Apply step filter at database level if provided
         if (filter?.step) {
-          userGames = userGames.filter((game) => game.step === filter.step);
+          query = `
+            SELECT state FROM games
+            WHERE state->'playerIds' @> $1::jsonb
+              AND state->>'step' = $2
+              AND expires_at > NOW()
+            LIMIT 50
+          `;
+          params.push(filter.step);
         }
 
-        return userGames;
+        const result = await client.query(query, params);
+        return result.rows.map((row) => row.state as GameState);
       } finally {
         client.release();
       }

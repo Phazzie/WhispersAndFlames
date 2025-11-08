@@ -24,8 +24,8 @@ const sessions = new Map<string, Session>();
 const games = new Map<string, GameState>();
 const gameSubscribers = new Map<string, Set<(state: GameState) => void>>();
 
-// Cleanup expired sessions periodically
-setInterval(() => {
+// Cleanup expired sessions periodically with proper lifecycle management
+const cleanupSessionsInterval = setInterval(() => {
   const now = new Date();
   for (const [token, session] of sessions.entries()) {
     if (session.expiresAt < now) {
@@ -33,6 +33,17 @@ setInterval(() => {
     }
   }
 }, 60000); // Every minute
+
+// Clean up interval on process exit to prevent memory leaks
+if (typeof process !== 'undefined') {
+  const cleanup = () => {
+    clearInterval(cleanupSessionsInterval);
+  };
+
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
+  process.on('beforeExit', cleanup);
+}
 
 export const storage = {
   // User methods

@@ -3,7 +3,7 @@
  * based on environment configuration
  */
 
-import { storage as memoryStorage } from './storage';
+import { storage as memoryStorage } from './storage-memory';
 
 // Use PostgreSQL if DATABASE_URL is available, otherwise fall back to in-memory
 const usePostgres = Boolean(process.env.DATABASE_URL);

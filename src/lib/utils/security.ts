@@ -44,7 +44,7 @@ export function sanitizeHtml(input: string): string {
       });
 
       return doc.body.textContent || '';
-    } catch (e) {
+    } catch {
       return input.replace(/<[^>]*>/g, '');
     }
   }
@@ -155,10 +155,22 @@ interface RateLimitEntry {
 }
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
+let lastCleanup = Date.now();
+const cleanupIntervalMs = 60000; // Cleanup every 60 seconds
 
 /**
- * Simple rate limiting implementation
+ * Simple rate limiting implementation with deterministic cleanup
  * Returns true if request should be allowed, false if rate limited
+ *
+ * Changes from previous version:
+ * - Replaced Math.random() < 0.01 with deterministic time-based cleanup
+ * - Added lazy cleanup for expired entries on access
+ * - Cleanup now runs every 60 seconds instead of probabilistically
+ *
+ * @param identifier - Unique identifier for the client (e.g., IP address)
+ * @param maxRequests - Maximum number of requests allowed in the window
+ * @param windowMs - Time window in milliseconds
+ * @returns true if request is allowed, false if rate limited
  */
 export function checkRateLimit(
   identifier: string,
@@ -168,16 +180,25 @@ export function checkRateLimit(
   const now = Date.now();
   const entry = rateLimitStore.get(identifier);
 
-  // Clean up old entries periodically
-  if (Math.random() < 0.01) {
+  // Deterministic cleanup: Run cleanup if enough time has passed since last cleanup
+  // This replaces the inefficient Math.random() < 0.01 approach
+  if (now - lastCleanup > cleanupIntervalMs) {
     for (const [key, value] of rateLimitStore.entries()) {
       if (value.resetTime < now) {
         rateLimitStore.delete(key);
       }
     }
+    lastCleanup = now;
   }
 
-  if (!entry || entry.resetTime < now) {
+  // Lazy cleanup: If the specific entry is expired, clean it immediately
+  if (entry && entry.resetTime < now) {
+    rateLimitStore.delete(identifier);
+  }
+
+  const currentEntry = rateLimitStore.get(identifier);
+
+  if (!currentEntry) {
     // Create new entry or reset expired entry
     rateLimitStore.set(identifier, {
       count: 1,
@@ -186,11 +207,11 @@ export function checkRateLimit(
     return true;
   }
 
-  if (entry.count >= maxRequests) {
+  if (currentEntry.count >= maxRequests) {
     return false; // Rate limit exceeded
   }
 
-  entry.count++;
+  currentEntry.count++;
   return true;
 }
 

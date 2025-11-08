@@ -16,8 +16,8 @@ interface CsrfTokenEntry {
 // In-memory store for CSRF tokens (in production, use Redis or similar)
 const csrfTokenStore = new Map<string, CsrfTokenEntry>();
 
-// Clean up expired tokens periodically
-setInterval(() => {
+// Clean up expired tokens periodically with proper lifecycle management
+const csrfCleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of csrfTokenStore.entries()) {
     if (now - entry.createdAt > CSRF_TOKEN_LIFETIME) {
@@ -25,6 +25,17 @@ setInterval(() => {
     }
   }
 }, 300000); // Clean up every 5 minutes
+
+// Clean up interval on process exit to prevent memory leaks
+if (typeof process !== 'undefined') {
+  const cleanup = () => {
+    clearInterval(csrfCleanupInterval);
+  };
+
+  process.on('SIGTERM', cleanup);
+  process.on('SIGINT', cleanup);
+  process.on('beforeExit', cleanup);
+}
 
 /**
  * Generates a new CSRF token for a session

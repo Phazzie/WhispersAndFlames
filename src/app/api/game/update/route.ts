@@ -2,9 +2,17 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import {
+  MAX_REQUEST_SIZE,
+  RATE_LIMIT_GAME_UPDATE,
+  RATE_LIMIT_WINDOW_MS,
+  MAX_ANSWER_LENGTH,
+} from '@/lib/api-constants';
 import { auth } from '@/lib/auth';
 import type { GameState } from '@/lib/game-types';
+import { validateCsrf } from '@/lib/middleware/csrf';
 import { storage } from '@/lib/storage-adapter';
+import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
 const updateGameSchema = z.object({
@@ -14,22 +22,47 @@ const updateGameSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    // Check request body size
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_REQUEST_SIZE) {
+      return NextResponse.json(
+        { error: { code: 'PAYLOAD_TOO_LARGE', message: 'Request body too large' } },
+        { status: 413 }
+      );
+    }
+
     // Rate limiting: 60 updates per minute per IP (allows rapid gameplay)
     const clientIp = getClientIp(request);
-    if (!checkRateLimit(`game-update:${clientIp}`, 60, 60000)) {
-      return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 });
+    if (!checkRateLimit(`game-update:${clientIp}`, RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS)) {
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
+        { status: 429 }
+      );
     }
 
     const cookieStore = await cookies();
     const session = cookieStore.get('session');
 
     if (!session?.value) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
     }
 
     const user = await auth.getCurrentUser(session.value);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Invalid session' } },
+        { status: 401 }
+      );
+    }
+
+    // Validate CSRF token
+    const csrfError = validateCsrf(request, session.value);
+    if (csrfError) {
+      logger.warn('CSRF validation failed', { userId: user.id, endpoint: 'game/update' });
+      return csrfError;
     }
 
     const body = await request.json();
@@ -37,12 +70,20 @@ export async function POST(request: Request) {
 
     const game = await storage.games.get(roomCode);
     if (!game) {
-      return NextResponse.json({ error: 'Room not found' }, { status: 404 });
+      logger.info('Update failed: game not found', { roomCode, userId: user.id });
+      return NextResponse.json(
+        { error: { code: 'GAME_NOT_FOUND', message: 'Room not found' } },
+        { status: 404 }
+      );
     }
 
     // Verify user is in the game
     if (!game.playerIds.includes(user.id)) {
-      return NextResponse.json({ error: 'Not in this game' }, { status: 403 });
+      logger.warn('Unauthorized game update attempt', { roomCode, userId: user.id });
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: 'Not in this game' } },
+        { status: 403 }
+      );
     }
 
     // Sanitize game rounds to prevent XSS
@@ -54,7 +95,7 @@ export async function POST(request: Request) {
           for (const [playerId, answer] of Object.entries(round.answers)) {
             if (typeof answer === 'string') {
               // Truncate to prevent DoS and sanitize HTML
-              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, 5000));
+              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
             } else {
               sanitizedAnswers[playerId] = answer as string;
             }
@@ -70,11 +111,26 @@ export async function POST(request: Request) {
       sanitizedUpdates as Partial<GameState>
     );
 
+    logger.info('Game updated successfully', { roomCode, userId: user.id });
+
     return NextResponse.json({ game: updatedGame }, { status: 200 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+      logger.warn('Game update validation failed', { error: error.errors });
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: error.errors } },
+        { status: 400 }
+      );
     }
-    return NextResponse.json({ error: 'Failed to update game' }, { status: 500 });
+
+    logger.error('Failed to update game', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return NextResponse.json(
+      { error: { code: 'INTERNAL_ERROR', message: 'Failed to update game' } },
+      { status: 500 }
+    );
   }
 }
