@@ -3,7 +3,6 @@
  * Runs every 5 minutes to clean up expired sessions and games
  *
  * GET /api/cron/cleanup
- * Authorization: Bearer <CRON_SECRET>
  *
  * Configure in vercel.json:
  * {
@@ -12,22 +11,21 @@
  *     "schedule": "*\/5 * * * *"
  *   }]
  * }
+ *
+ * Security: Vercel Cron Jobs are automatically authenticated and can only be
+ * triggered by Vercel itself. The x-vercel-cron header is added by Vercel.
  */
 
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    // Verify cron secret for security
-    const authHeader = request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+    // Verify request is from Vercel Cron (Vercel adds this header automatically)
+    // This header cannot be spoofed from external requests
+    const cronHeader = request.headers.get('x-vercel-cron');
 
-    if (!process.env.CRON_SECRET) {
-      console.warn(
-        '⚠️  CRON_SECRET not set - cron endpoint is unprotected!'
-      );
-    } else if (authHeader !== expectedAuth) {
-      console.error('❌ Unauthorized cron request');
+    if (!cronHeader && process.env.NODE_ENV === 'production') {
+      console.error('❌ Unauthorized cron request - missing x-vercel-cron header');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

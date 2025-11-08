@@ -27,7 +27,7 @@ Complete guide to deploying **Whispers and Flames** to Vercel.
 
 1. Go to https://vercel.com/new
 2. Click **"Import Git Repository"**
-3. Select your GitHub repository: `Phazzie/WhispersAndFlames`
+3. Select your GitHub repository: `your-github-username/your-repo-name`
 4. Click **"Import"**
 
 ### Step 2: Configure Your Project
@@ -338,7 +338,7 @@ Vercel automatically deploys:
 
 ### Branch Deployments
 
-Your current branch `claude/switch-to-vercel-deployment-011CUvGSX2P11e1arsRb4HC3` will get a preview deployment:
+Your current branch (e.g., `feature/new-feature`) will get a preview deployment:
 ```
 https://whispers-and-flames-[branch-hash].vercel.app
 ```
@@ -381,7 +381,7 @@ Enable on the **Settings** → **Deployment Protection**:
 ### Project Documentation
 - Main README: [README.md](./README.md)
 - Docker Deployment: [DEPLOYMENT_COMPLETE.md](./DEPLOYMENT_COMPLETE.md)
-- Environment Variables: [.env.vercel](./.env.vercel)
+- Environment Variables: [.env.vercel.example](./.env.vercel.example)
 
 ---
 

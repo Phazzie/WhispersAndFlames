@@ -4,6 +4,11 @@
  */
 
 import type { GameState } from './game-types';
+import {
+  opportunisticCleanup,
+  isDateExpired,
+  shouldCleanup,
+} from './utils/cleanup';
 
 // User storage
 interface User {
@@ -23,22 +28,6 @@ const users = new Map<string, User>();
 const sessions = new Map<string, Session>();
 const games = new Map<string, GameState>();
 const gameSubscribers = new Map<string, Set<(state: GameState) => void>>();
-
-// Helper function for opportunistic cleanup (serverless-compatible)
-// Since we can't use setInterval in serverless, we clean up on-demand
-function cleanupExpiredSessions() {
-  const now = new Date();
-  let cleaned = 0;
-  for (const [token, session] of sessions.entries()) {
-    if (session.expiresAt < now) {
-      sessions.delete(token);
-      cleaned++;
-    }
-    // Limit cleanup to prevent blocking - max 50 per call
-    if (cleaned >= 50) break;
-  }
-  return cleaned;
-}
 
 export const storage = {
   // User methods
@@ -68,7 +57,9 @@ export const storage = {
   sessions: {
     create: (userId: string): string => {
       // Opportunistic cleanup when creating sessions (serverless-compatible)
-      if (Math.random() < 0.1) cleanupExpiredSessions(); // 10% chance
+      if (shouldCleanup()) {
+        opportunisticCleanup(sessions, (s) => isDateExpired(s.expiresAt));
+      }
 
       const token = crypto.randomUUID();
       const expiresAt = new Date();

@@ -4,6 +4,11 @@
  */
 
 import { generateSecureToken } from './security';
+import {
+  opportunisticCleanup,
+  isTimestampExpired,
+  shouldCleanup,
+} from './cleanup';
 
 const CSRF_TOKEN_LENGTH = 32;
 const CSRF_TOKEN_LIFETIME = 3600000; // 1 hour in milliseconds
@@ -18,27 +23,16 @@ interface CsrfTokenEntry {
 // For production with multiple instances, consider using Vercel KV or database storage
 const csrfTokenStore = new Map<string, CsrfTokenEntry>();
 
-// Opportunistic cleanup function (serverless-compatible)
-function cleanupExpiredTokens() {
-  const now = Date.now();
-  let cleaned = 0;
-  for (const [key, entry] of csrfTokenStore.entries()) {
-    if (now - entry.createdAt > CSRF_TOKEN_LIFETIME) {
-      csrfTokenStore.delete(key);
-      cleaned++;
-    }
-    // Limit cleanup to prevent blocking - max 50 per call
-    if (cleaned >= 50) break;
-  }
-  return cleaned;
-}
-
 /**
  * Generates a new CSRF token for a session
  */
 export function generateCsrfToken(sessionId: string): string {
   // Opportunistic cleanup (10% chance) - serverless-compatible
-  if (Math.random() < 0.1) cleanupExpiredTokens();
+  if (shouldCleanup()) {
+    opportunisticCleanup(csrfTokenStore, (entry) =>
+      isTimestampExpired(entry.createdAt, CSRF_TOKEN_LIFETIME)
+    );
+  }
 
   const token = generateSecureToken(CSRF_TOKEN_LENGTH);
   csrfTokenStore.set(sessionId, {
