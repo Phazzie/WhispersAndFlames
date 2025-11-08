@@ -3,7 +3,6 @@
  * Runs every 5 minutes to clean up expired sessions and games
  *
  * GET /api/cron/cleanup
- * Authorization: Bearer <CRON_SECRET>
  *
  * Configure in vercel.json:
  * {
@@ -12,22 +11,37 @@
  *     "schedule": "*\/5 * * * *"
  *   }]
  * }
+ *
+ * Security: Vercel automatically authenticates cron jobs via the CRON_SECRET
+ * environment variable. When deployed on Vercel, only requests from Vercel's
+ * cron system will have access to this endpoint.
  */
 
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    // Verify cron secret for security
+    // Verify this is a legitimate Vercel Cron request
+    // Vercel automatically sets CRON_SECRET and validates it
     const authHeader = request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
-
-    if (!process.env.CRON_SECRET) {
-      console.error('❌ CRON_SECRET not set - refusing to process unprotected cron endpoint!');
-      return NextResponse.json({ error: 'Forbidden: CRON_SECRET not set' }, { status: 403 });
-    } else if (authHeader !== expectedAuth) {
-      console.error('❌ Unauthorized cron request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // On Vercel, cron jobs are authenticated via CRON_SECRET
+    // In development/testing, we allow requests without auth
+    if (process.env.VERCEL === '1') {
+      const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+      
+      if (!process.env.CRON_SECRET) {
+        console.error('❌ CRON_SECRET not set in production - endpoint is unprotected!');
+        return NextResponse.json({ error: 'Configuration error' }, { status: 500 });
+      }
+      
+      if (authHeader !== expectedAuth) {
+        console.error('❌ Unauthorized cron request');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      // In development, log a warning but allow the request
+      console.log('⚠️  Running cron cleanup in development mode (no auth check)');
     }
 
     // Only run cleanup if DATABASE_URL is configured
