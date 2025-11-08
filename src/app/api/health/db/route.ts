@@ -4,17 +4,40 @@
  *
  * GET /api/health/db
  * Returns:
- * - 200: Database is healthy
+ * - 200: Database is healthy or not configured (using in-memory storage)
  * - 503: Database is degraded or unhealthy
  */
 
 import { NextResponse } from 'next/server';
 
-import { pool, getPoolMetrics } from '@/lib/storage-pg';
-import { checkDatabaseHealth, getPoolStats } from '@/lib/utils/db-health';
-
 export async function GET() {
   try {
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        {
+          database: {
+            status: 'not_configured',
+            message: 'DATABASE_URL not set - using in-memory storage',
+            timestamp: new Date().toISOString(),
+          },
+          storageMode: 'memory',
+          checks: {
+            connectivity: false,
+            performance: false,
+            poolHealth: false,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    // Dynamic import only when DATABASE_URL exists
+    const { pool, getPoolMetrics } = await import('@/lib/storage-pg');
+    const { checkDatabaseHealth, getPoolStats } = await import(
+      '@/lib/utils/db-health'
+    );
+
     // Perform comprehensive health check
     const health = await checkDatabaseHealth(pool, 5000);
 
@@ -27,6 +50,7 @@ export async function GET() {
     // Build response
     const response = {
       database: health,
+      storageMode: 'postgres',
       pool: {
         current: poolStats,
         metrics: {
@@ -57,6 +81,7 @@ export async function GET() {
           timestamp: new Date().toISOString(),
           error: error instanceof Error ? error.message : 'Unknown error',
         },
+        storageMode: process.env.DATABASE_URL ? 'postgres' : 'memory',
         checks: {
           connectivity: false,
           performance: false,

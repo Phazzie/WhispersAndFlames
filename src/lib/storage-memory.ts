@@ -24,25 +24,20 @@ const sessions = new Map<string, Session>();
 const games = new Map<string, GameState>();
 const gameSubscribers = new Map<string, Set<(state: GameState) => void>>();
 
-// Cleanup expired sessions periodically with proper lifecycle management
-const cleanupSessionsInterval = setInterval(() => {
+// Helper function for opportunistic cleanup (serverless-compatible)
+// Since we can't use setInterval in serverless, we clean up on-demand
+function cleanupExpiredSessions() {
   const now = new Date();
+  let cleaned = 0;
   for (const [token, session] of sessions.entries()) {
     if (session.expiresAt < now) {
       sessions.delete(token);
+      cleaned++;
     }
+    // Limit cleanup to prevent blocking - max 50 per call
+    if (cleaned >= 50) break;
   }
-}, 60000); // Every minute
-
-// Clean up interval on process exit to prevent memory leaks
-if (typeof process !== 'undefined') {
-  const cleanup = () => {
-    clearInterval(cleanupSessionsInterval);
-  };
-
-  process.on('SIGTERM', cleanup);
-  process.on('SIGINT', cleanup);
-  process.on('beforeExit', cleanup);
+  return cleaned;
 }
 
 export const storage = {
@@ -72,6 +67,9 @@ export const storage = {
   // Session methods
   sessions: {
     create: (userId: string): string => {
+      // Opportunistic cleanup when creating sessions (serverless-compatible)
+      if (Math.random() < 0.1) cleanupExpiredSessions(); // 10% chance
+
       const token = crypto.randomUUID();
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
