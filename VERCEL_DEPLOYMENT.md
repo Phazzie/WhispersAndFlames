@@ -380,7 +380,7 @@ Enable on the **Settings** → **Deployment Protection**:
 
 ### Project Documentation
 - Main README: [README.md](./README.md)
-- Docker Deployment: [DEPLOYMENT_COMPLETE.md](./DEPLOYMENT_COMPLETE.md)
+- Docker Deployment: [DOCKER.md](./DOCKER.md)
 - Environment Variables: [.env.vercel](./.env.vercel)
 
 ---
