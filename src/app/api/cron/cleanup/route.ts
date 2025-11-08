@@ -23,9 +23,8 @@ export async function GET(request: Request) {
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
 
     if (!process.env.CRON_SECRET) {
-      console.warn(
-        '⚠️  CRON_SECRET not set - cron endpoint is unprotected!'
-      );
+      console.error('❌ CRON_SECRET not set - refusing to process unprotected cron endpoint!');
+      return NextResponse.json({ error: 'Forbidden: CRON_SECRET not set' }, { status: 403 });
     } else if (authHeader !== expectedAuth) {
       console.error('❌ Unauthorized cron request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
