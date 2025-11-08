@@ -24,7 +24,7 @@ function getAI() {
         baseUrl: 'https://api.x.ai/v1', // xAI's OpenAI-compatible endpoint
       }),
     ],
-    model: 'openai/grok-beta', // xAI's Grok model
+    model: 'openai/grok-4-fast-reasoning', // xAI's Grok 4 fast reasoning model
   });
 
   return aiInstance;
