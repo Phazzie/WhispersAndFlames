@@ -15,26 +15,24 @@ export function sanitizeInput(input: string, maxLength = 1000): string {
   // Trim and limit length
   let sanitized = input.trim().slice(0, maxLength);
 
-  // Remove potential prompt injection patterns
-  // These patterns could be used to break out of the intended context
-  const dangerousPatterns = [
-    /\{\{.*?\}\}/g, // Handlebars template syntax
-    /\$\{.*?\}/g, // Template literals
-    /<script[^>]*>.*?<\/script>/gi, // Script tags
-    /<iframe[^>]*>.*?<\/iframe>/gi, // IFrame tags
-    /javascript:/gi, // JavaScript protocol
-    /on\w+\s*=/gi, // Event handlers (onclick, onerror, etc.)
-  ];
-
-  dangerousPatterns.forEach((pattern) => {
-    sanitized = sanitized.replace(pattern, '');
-  });
-
-  // Replace potentially dangerous characters but keep normal punctuation
+  // Remove potentially dangerous characters and patterns
+  // We remove angle brackets, backslashes, and common injection patterns
   sanitized = sanitized
-    .replace(/[<>]/g, '') // Remove angle brackets
+    .replace(/[<>]/g, '') // Remove angle brackets (prevents all HTML/XML tags)
     .replace(/\\/g, '') // Remove backslashes
+    .replace(/\{\{.*?\}\}/g, '') // Remove Handlebars template syntax
+    .replace(/\$\{.*?\}/g, '') // Remove template literals
+    .replace(/javascript:/gi, '') // Remove JavaScript protocol
+    .replace(/data:/gi, '') // Remove data: protocol
+    .replace(/vbscript:/gi, '') // Remove VBScript protocol
     .trim();
+
+  // Remove event handlers in a loop to catch all cases (including those formed after other replacements)
+  let previousLength = 0;
+  while (previousLength !== sanitized.length) {
+    previousLength = sanitized.length;
+    sanitized = sanitized.replace(/on\w+\s*=/gi, '');
+  }
 
   return sanitized;
 }
