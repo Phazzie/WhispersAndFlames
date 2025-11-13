@@ -41,8 +41,9 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
       } else {
         throw new Error(result.error);
       }
-    } catch (e: any) {
-      toast({ title: 'Error starting game', description: e.message, variant: 'destructive' });
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'An error occurred';
+      toast({ title: 'Error starting game', description: errorMessage, variant: 'destructive' });
       const unreadyPlayers = gameState.players.map((p) => ({
         ...p,
         isReady: false,

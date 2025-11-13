@@ -59,7 +59,7 @@ export function validateSpicyLevel(level: string): 'Mild' | 'Medium' | 'Hot' | '
   const validLevels = ['Mild', 'Medium', 'Hot', 'Extra-Hot'] as const;
   const sanitized = sanitizeInput(level, 20);
 
-  if (validLevels.includes(sanitized as any)) {
+  if ((validLevels as readonly string[]).includes(sanitized)) {
     return sanitized as 'Mild' | 'Medium' | 'Hot' | 'Extra-Hot';
   }
 

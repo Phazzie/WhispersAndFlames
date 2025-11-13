@@ -35,10 +35,11 @@ export default function HomePageClient() {
         title: 'Signed Out',
         description: 'You have been signed out successfully.',
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       toast({
         title: 'Error',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -59,10 +60,11 @@ export default function HomePageClient() {
       const newRoomCode = generateRoomCode();
       await clientGame.create(newRoomCode, playerName);
       router.push(`/game/${newRoomCode}`);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       toast({
         title: 'Error',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -90,10 +92,11 @@ export default function HomePageClient() {
     try {
       await clientGame.join(roomCode.toUpperCase(), playerName);
       router.push(`/game/${roomCode.toUpperCase()}`);
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       toast({
         title: 'Error',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       });
     }

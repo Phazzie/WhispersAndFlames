@@ -332,7 +332,7 @@ export const storage = {
             // Safe JSON parsing with fallback
             const rawState = result.rows[0].state;
             if (typeof rawState === 'string') {
-              return safeJsonParse<GameState>(rawState, undefined as any);
+              return safeJsonParse<GameState>(rawState, {} as GameState);
             }
             return rawState;
           }
@@ -428,7 +428,7 @@ export const storage = {
             AND expires_at > NOW()
           LIMIT 50
         `;
-        const params: any[] = [JSON.stringify([userId])];
+        const params: string[] = [JSON.stringify([userId])];
 
         // Apply step filter at database level if provided
         if (filter?.step) {

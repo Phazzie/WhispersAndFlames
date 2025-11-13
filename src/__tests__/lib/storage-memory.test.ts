@@ -5,9 +5,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import type { GameState } from '@/lib/game-types';
+import { storage as memoryStorage } from '@/lib/storage-memory';
 
 // Import directly to test the in-memory storage
-import { storage as memoryStorage } from '@/lib/storage-memory';
 
 describe('In-Memory Storage', () => {
   beforeEach(() => {

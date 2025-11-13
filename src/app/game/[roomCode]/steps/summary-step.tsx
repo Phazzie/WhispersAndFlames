@@ -78,10 +78,12 @@ export function SummaryStep({ gameState, me: _me, handlers }: StepProps) {
           variant: 'destructive',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Could not generate therapist notes';
       toast({
         title: 'Error',
-        description: error.message || 'Could not generate therapist notes',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -147,10 +149,12 @@ export function SummaryStep({ gameState, me: _me, handlers }: StepProps) {
           variant: 'destructive',
         });
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Could not generate visual memory';
       toast({
         title: 'Error',
-        description: error.message || 'Could not generate visual memory',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

@@ -79,9 +79,9 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     }
   };
 
-  const allPlayers = [...players];
+  const allPlayers: (Player | null)[] = [...players];
   while (allPlayers.length < 3) {
-    allPlayers.push(null as any);
+    allPlayers.push(null);
   }
 
   // Generate game URL for sharing

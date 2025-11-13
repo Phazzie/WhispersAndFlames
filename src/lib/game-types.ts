@@ -1,3 +1,5 @@
+import { useRouter } from 'next/navigation';
+
 import type {
   generateQuestionAction,
   analyzeAndSummarizeAction,
@@ -64,6 +66,6 @@ export type StepProps = {
     analyzeAndSummarizeAction: typeof analyzeAndSummarizeAction;
     generateTherapistNotesAction: typeof generateTherapistNotesAction;
     generateVisualMemoryAction: typeof generateVisualMemoryAction;
-    router: any; // Simplified NextRouter
+    router: ReturnType<typeof useRouter>;
   };
 };
