@@ -9,7 +9,7 @@ interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   error?: {
     message: string;
     stack?: string;
@@ -21,23 +21,23 @@ interface LogEntry {
  * Base logger class
  */
 class Logger {
-  private context: Record<string, any>;
+  private context: Record<string, unknown>;
 
-  constructor(defaultContext: Record<string, any> = {}) {
+  constructor(defaultContext: Record<string, unknown> = {}) {
     this.context = defaultContext;
   }
 
   /**
    * Creates a child logger with additional context
    */
-  child(additionalContext: Record<string, any>): Logger {
+  child(additionalContext: Record<string, unknown>): Logger {
     return new Logger({ ...this.context, ...additionalContext });
   }
 
   /**
    * Formats a log entry
    */
-  private formatLog(level: LogLevel, message: string, context?: Record<string, any>): LogEntry {
+  private formatLog(level: LogLevel, message: string, context?: Record<string, unknown>): LogEntry {
     return {
       timestamp: new Date().toISOString(),
       level,
@@ -105,7 +105,7 @@ class Logger {
   /**
    * Debug level logging
    */
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     if (process.env.NODE_ENV === 'development') {
       this.output(this.formatLog('debug', message, context));
     }
@@ -114,21 +114,21 @@ class Logger {
   /**
    * Info level logging
    */
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     this.output(this.formatLog('info', message, context));
   }
 
   /**
    * Warning level logging
    */
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     this.output(this.formatLog('warn', message, context));
   }
 
   /**
    * Error level logging
    */
-  error(message: string, error?: Error | unknown, context?: Record<string, any>): void {
+  error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
     const logEntry = this.formatLog('error', message, context);
 
     if (error instanceof Error) {
@@ -187,7 +187,7 @@ export function logApiRequest(
 export function logSecurityEvent(
   event: string,
   severity: 'low' | 'medium' | 'high' | 'critical',
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): void {
   logger.warn('Security Event', {
     event,
@@ -203,7 +203,7 @@ export function logPerformance(
   metric: string,
   value: number,
   unit: string = 'ms',
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): void {
   logger.info('Performance Metric', {
     metric,

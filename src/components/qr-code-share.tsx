@@ -117,6 +117,8 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex justify-center">
+          {/* Data URL from QR code generation - Next.js Image doesn't support data URLs */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={qrDataUrl}
             alt={`QR code for room ${roomCode}`}

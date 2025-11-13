@@ -72,10 +72,13 @@ export async function POST(request: Request) {
     // Sanitize game rounds to prevent XSS
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
-      sanitizedUpdates.gameRounds = updates.gameRounds.map((round: any) => {
-        if (round.answers && typeof round.answers === 'object') {
+      sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
+        const roundRecord = round as Record<string, unknown>;
+        if (roundRecord.answers && typeof roundRecord.answers === 'object') {
           const sanitizedAnswers: Record<string, string> = {};
-          for (const [playerId, answer] of Object.entries(round.answers)) {
+          for (const [playerId, answer] of Object.entries(
+            roundRecord.answers as Record<string, unknown>
+          )) {
             if (typeof answer === 'string') {
               // Truncate to prevent DoS and sanitize HTML
               sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
@@ -83,7 +86,7 @@ export async function POST(request: Request) {
               sanitizedAnswers[playerId] = answer as string;
             }
           }
-          return { ...round, answers: sanitizedAnswers };
+          return { ...roundRecord, answers: sanitizedAnswers };
         }
         return round;
       });

@@ -64,12 +64,13 @@ export async function generateQuestionAction(
     }
     // This part should be unreachable, but as a safeguard:
     return { question: getFallbackQuestion() };
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     if (isDev) {
       const elapsed = Date.now() - startTime;
-      console.error(`[AI] Question generation failed after ${elapsed}ms:`, error);
+      console.error(`[AI] Question generation failed after ${elapsed}ms:`, errorMessage);
     }
-    console.error('AI question generation failed permanently:', error);
+    console.error('AI question generation failed permanently:', errorMessage);
     return { error: 'The AI is taking too long to respond. Please try again in a moment.' };
   }
 }
@@ -92,12 +93,13 @@ export async function analyzeAndSummarizeAction(
       return { summary: result.summary };
     }
     throw new Error('Failed to get summary from AI.');
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     if (isDev) {
       const elapsed = Date.now() - startTime;
-      console.error(`[AI] Summary generation failed after ${elapsed}ms:`, error);
+      console.error(`[AI] Summary generation failed after ${elapsed}ms:`, errorMessage);
     }
-    console.error('AI summary generation failed:', error);
+    console.error('AI summary generation failed:', errorMessage);
     return { error: 'Could not generate a summary at this time. Please try again later.' };
   }
 }
@@ -120,12 +122,13 @@ export async function generateTherapistNotesAction(
       return { notes: result.notes };
     }
     throw new Error('Failed to get therapist notes from AI.');
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     if (isDev) {
       const elapsed = Date.now() - startTime;
-      console.error(`[AI] Therapist notes generation failed after ${elapsed}ms:`, error);
+      console.error(`[AI] Therapist notes generation failed after ${elapsed}ms:`, errorMessage);
     }
-    console.error('AI therapist notes generation failed:', error);
+    console.error('AI therapist notes generation failed:', errorMessage);
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
   }
 }
@@ -151,12 +154,13 @@ export async function generateVisualMemoryAction(
       return result;
     }
     throw new Error('Failed to generate visual memory.');
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     if (isDev) {
       const elapsed = Date.now() - startTime;
-      console.error(`[AI] Visual memory generation failed after ${elapsed}ms:`, error);
+      console.error(`[AI] Visual memory generation failed after ${elapsed}ms:`, errorMessage);
     }
-    console.error('AI visual memory generation failed:', error);
+    console.error('AI visual memory generation failed:', errorMessage);
     return { error: 'Could not generate visual memory at this time. Please try again later.' };
   }
 }
