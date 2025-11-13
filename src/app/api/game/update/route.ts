@@ -1,3 +1,4 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -7,7 +8,6 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_ANSWER_LENGTH,
 } from '@/lib/api-constants';
-import { auth } from '@clerk/nextjs/server';
 import type { GameState } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
