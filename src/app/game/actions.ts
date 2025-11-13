@@ -83,7 +83,7 @@ export async function analyzeAndSummarizeAction(
   try {
     if (isDev) console.log('[AI] Starting summary generation...');
 
-    const result = await withTimeout(analyzeAnswersAndGenerateSummary(input), 15000); // 15-second timeout
+    const result = await withTimeout(analyzeAnswersAndGenerateSummary(input), 8000); // 8-second timeout for Vercel limits
     if (result.summary) {
       if (isDev) {
         const elapsed = Date.now() - startTime;
@@ -111,7 +111,7 @@ export async function generateTherapistNotesAction(
   try {
     if (isDev) console.log('[AI] Starting therapist notes generation...');
 
-    const result = await withTimeout(generateTherapistNotes(input), 15000); // 15-second timeout
+    const result = await withTimeout(generateTherapistNotes(input), 8000); // 8-second timeout for Vercel limits
     if (result.notes) {
       if (isDev) {
         const elapsed = Date.now() - startTime;
@@ -141,10 +141,7 @@ export async function generateVisualMemoryAction(
   try {
     if (isDev) console.log('[AI] Starting visual memory generation...');
 
-    const result = await withTimeout(
-      generateSessionImage(summary, spicyLevel, sharedThemes),
-      20000
-    ); // 20-second timeout
+    const result = await withTimeout(generateSessionImage(summary, spicyLevel, sharedThemes), 8000); // 8-second timeout for Vercel limits
 
     if (result !== null) {
       if (isDev) {
