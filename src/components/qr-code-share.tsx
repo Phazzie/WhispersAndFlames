@@ -15,6 +15,7 @@ interface QRCodeShareProps {
 export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isSharing, setIsSharing] = useState(false);
+  const [qrError, setQrError] = useState<string>('');
 
   useEffect(() => {
     // Generate QR code
@@ -26,8 +27,15 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
         light: '#FFFFFF',
       },
     })
-      .then((url) => setQrDataUrl(url))
-      .catch((err) => console.error('Failed to generate QR code:', err));
+      .then((url) => {
+        setQrDataUrl(url);
+        setQrError('');
+      })
+      .catch((err) => {
+        console.error('Failed to generate QR code:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setQrError(`Failed to generate QR code: ${errorMessage}`);
+      });
   }, [gameUrl]);
 
   const handleShare = async () => {
@@ -59,6 +67,35 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
     link.href = qrDataUrl;
     link.click();
   };
+
+  if (qrError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg text-destructive">QR Code Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">{qrError}</p>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">You can still share the game manually:</p>
+            <p className="text-xs text-center text-muted-foreground">
+              Room Code: <span className="font-mono font-bold text-lg">{roomCode}</span>
+            </p>
+            <p className="text-xs break-all text-center">{gameUrl}</p>
+            <Button
+              onClick={handleShare}
+              disabled={isSharing}
+              variant="outline"
+              className="w-full mt-4"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Link
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!qrDataUrl) {
     return (
