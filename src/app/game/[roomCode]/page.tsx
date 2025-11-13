@@ -1,8 +1,8 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useToast } from '@/hooks/use-toast';

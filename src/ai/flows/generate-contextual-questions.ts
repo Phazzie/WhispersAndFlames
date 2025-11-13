@@ -12,6 +12,7 @@
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
+
 import { sanitizeArray, validateSpicyLevel, validateCategories } from './shared-utils';
 
 const GenerateContextualQuestionsInputSchema = z.object({

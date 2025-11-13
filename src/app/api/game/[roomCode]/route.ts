@@ -1,6 +1,6 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-import { auth } from '@clerk/nextjs/server';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 

@@ -1,9 +1,9 @@
 'use client';
 
+import { useUser, useClerk, SignInButton, SignUpButton } from '@clerk/nextjs';
 import { Sparkles, ArrowRight, LogOut, History, Play } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useUser, useClerk, SignInButton, SignUpButton } from '@clerk/nextjs';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

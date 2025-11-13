@@ -1,8 +1,8 @@
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { MAX_REQUEST_SIZE, RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS } from '@/lib/api-constants';
-import { auth } from '@clerk/nextjs/server';
 import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
 import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
