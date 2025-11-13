@@ -4,13 +4,13 @@ const nextConfig = {
   // Vercel automatically optimizes the build
   output: process.env.VERCEL ? undefined : 'standalone',
 
-  // Skip type checking and linting during production builds
-  // These are already validated in CI/CD pipeline
+  // Enable type checking and linting during builds for safety
+  // This ensures type errors are caught before deployment
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   images: {
     remotePatterns: [
