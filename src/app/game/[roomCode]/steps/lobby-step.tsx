@@ -129,14 +129,14 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
             onClick={handlePlayerReady}
             className="w-full"
             size="lg"
-            disabled={me.isReady || players.length < 3}
+            disabled={me.isReady || players.length < 2}
           >
             {me.isReady ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
               </>
-            ) : players.length < 3 ? (
-              'Waiting for 3 players...'
+            ) : players.length < 2 ? (
+              'Waiting for at least 2 players...'
             ) : (
               "I'm Ready!"
             )}

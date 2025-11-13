@@ -7,6 +7,63 @@ import { Pool } from 'pg';
 
 import type { GameState } from './game-types';
 
+// Exponential backoff retry utility
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  initialDelayMs = 100
+): Promise<T> {
+  let lastError: Error | unknown;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry on certain errors
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        // Don't retry on validation or constraint errors
+        if (
+          errorMessage.includes('duplicate') ||
+          errorMessage.includes('constraint') ||
+          errorMessage.includes('invalid')
+        ) {
+          throw error;
+        }
+      }
+
+      // Last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        throw error;
+      }
+
+      // Exponential backoff: wait 100ms, 200ms, 400ms, etc.
+      const delayMs = initialDelayMs * Math.pow(2, attempt);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError;
+}
+
+// Safe JSON parsing with validation
+function safeJsonParse<T>(jsonString: string, fallback: T): T {
+  try {
+    const parsed = JSON.parse(jsonString);
+    // Basic validation that we got an object
+    if (parsed && typeof parsed === 'object') {
+      return parsed as T;
+    }
+    console.error('JSON parse resulted in non-object value');
+    return fallback;
+  } catch (error) {
+    console.error('Failed to parse JSON:', error);
+    return fallback;
+  }
+}
+
 // Connection pool metrics
 interface PoolMetrics {
   totalConnections: number;
@@ -26,12 +83,14 @@ const poolMetrics: PoolMetrics = {
 };
 
 // Create connection pool
+// Note: Using max: 1 for serverless environments to prevent connection exhaustion
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
+  max: 1, // Reduced for serverless - prevents connection pool exhaustion
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  statement_timeout: 10000, // 10 second query timeout to prevent long-running queries
 });
 
 // Connection pool monitoring
@@ -247,73 +306,99 @@ export const storage = {
   // Game methods
   games: {
     create: async (roomCode: string, initialState: GameState): Promise<GameState> => {
-      const client = await pool.connect();
-      try {
-        await client.query('INSERT INTO games (room_code, state) VALUES ($1, $2)', [
-          roomCode,
-          JSON.stringify(initialState),
-        ]);
-        return initialState;
-      } finally {
-        client.release();
-      }
+      return withRetry(async () => {
+        const client = await pool.connect();
+        try {
+          await client.query('INSERT INTO games (room_code, state) VALUES ($1, $2)', [
+            roomCode,
+            JSON.stringify(initialState),
+          ]);
+          return initialState;
+        } finally {
+          client.release();
+        }
+      });
     },
 
     get: async (roomCode: string): Promise<GameState | undefined> => {
-      const client = await pool.connect();
-      try {
-        const result = await client.query(
-          'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW()',
-          [roomCode]
-        );
-        return result.rows.length > 0 ? result.rows[0].state : undefined;
-      } finally {
-        client.release();
-      }
+      return withRetry(async () => {
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW()',
+            [roomCode]
+          );
+          if (result.rows.length > 0) {
+            // Safe JSON parsing with fallback
+            const rawState = result.rows[0].state;
+            if (typeof rawState === 'string') {
+              return safeJsonParse<GameState>(rawState, undefined as any);
+            }
+            return rawState;
+          }
+          return undefined;
+        } finally {
+          client.release();
+        }
+      });
     },
 
     update: async (
       roomCode: string,
       updates: Partial<GameState>
     ): Promise<GameState | undefined> => {
-      const client = await pool.connect();
-      try {
-        // Use transaction with row-level locking to prevent race conditions
-        await client.query('BEGIN');
+      return withRetry(async () => {
+        const client = await pool.connect();
+        try {
+          // Use transaction with row-level locking to prevent race conditions
+          await client.query('BEGIN');
 
-        // Get current state with row lock (FOR UPDATE prevents concurrent modifications)
-        const result = await client.query(
-          'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW() FOR UPDATE',
-          [roomCode]
-        );
+          // Get current state with row lock (FOR UPDATE prevents concurrent modifications)
+          const result = await client.query(
+            'SELECT state FROM games WHERE room_code = $1 AND expires_at > NOW() FOR UPDATE',
+            [roomCode]
+          );
 
-        if (result.rows.length === 0) {
+          if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return undefined;
+          }
+
+          // Safe JSON parsing with validation
+          let currentState: GameState;
+          const rawState = result.rows[0].state;
+          if (typeof rawState === 'string') {
+            currentState = safeJsonParse<GameState>(rawState, {} as GameState);
+            if (!currentState || typeof currentState !== 'object') {
+              await client.query('ROLLBACK');
+              throw new Error('Invalid game state in database');
+            }
+          } else {
+            currentState = rawState;
+          }
+
+          // Merge updates with current state
+          const updatedState = { ...currentState, ...updates };
+
+          // Save updated state
+          await client.query(
+            'UPDATE games SET state = $1, updated_at = NOW() WHERE room_code = $2',
+            [JSON.stringify(updatedState), roomCode]
+          );
+
+          // Commit transaction
+          await client.query('COMMIT');
+
+          return updatedState;
+        } catch (err) {
+          // Rollback on any error
           await client.query('ROLLBACK');
-          return undefined;
+          console.error('Transaction error in games.update:', err);
+          throw err;
+        } finally {
+          client.release();
         }
-
-        // Merge updates with current state
-        const currentState = result.rows[0].state as GameState;
-        const updatedState = { ...currentState, ...updates };
-
-        // Save updated state
-        await client.query('UPDATE games SET state = $1, updated_at = NOW() WHERE room_code = $2', [
-          JSON.stringify(updatedState),
-          roomCode,
-        ]);
-
-        // Commit transaction
-        await client.query('COMMIT');
-
-        return updatedState;
-      } catch (err) {
-        // Rollback on any error
-        await client.query('ROLLBACK');
-        console.error('Transaction error in games.update:', err);
-        throw err;
-      } finally {
-        client.release();
-      }
+      });
     },
 
     delete: async (roomCode: string): Promise<void> => {

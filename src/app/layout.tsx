@@ -22,3 +22,6 @@ export default function RootLayout({
     </html>
   );
 }
+
+// Note: Error boundaries must be client components, so we can't add one here directly
+// Individual pages should wrap their content with ErrorBoundary as needed

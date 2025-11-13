@@ -12,6 +12,7 @@
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
+import { sanitizeArray, validateSpicyLevel, validateCategories } from './shared-utils';
 
 const GenerateContextualQuestionsInputSchema = z.object({
   categories: z.array(z.string()).describe('The intimacy categories selected by the users.'),
@@ -39,7 +40,21 @@ export type GenerateContextualQuestionsOutput = z.infer<
 export async function generateContextualQuestions(
   input: GenerateContextualQuestionsInput
 ): Promise<GenerateContextualQuestionsOutput> {
-  return generateContextualQuestionsFlow(input);
+  // Validate and sanitize inputs to prevent prompt injection
+  const sanitizedInput = {
+    categories: validateCategories(input.categories),
+    spicyLevel: validateSpicyLevel(input.spicyLevel),
+    previousQuestions: input.previousQuestions
+      ? sanitizeArray(input.previousQuestions, 500)
+      : undefined,
+  };
+
+  // Ensure we have valid categories
+  if (sanitizedInput.categories.length === 0) {
+    throw new Error('No valid categories provided');
+  }
+
+  return generateContextualQuestionsFlow(sanitizedInput);
 }
 
 const prompt = ai.definePrompt({
