@@ -8,6 +8,7 @@
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
+import { sanitizeArray, validateSpicyLevel, validateCategories } from './shared-utils';
 
 const AnalyzeAnswersInputSchema = z.object({
   questions: z.array(z.string()).describe('The questions asked during the session.'),
@@ -36,7 +37,16 @@ export type AnalyzeAnswersOutput = z.infer<typeof AnalyzeAnswersOutputSchema>;
 export async function analyzeAnswersAndGenerateSummary(
   input: AnalyzeAnswersInput
 ): Promise<AnalyzeAnswersOutput> {
-  return analyzeAnswersFlow(input);
+  // Validate and sanitize inputs to prevent prompt injection
+  const sanitizedInput = {
+    questions: sanitizeArray(input.questions, 500),
+    answers: sanitizeArray(input.answers, 1000),
+    categories: validateCategories(input.categories),
+    spicyLevel: validateSpicyLevel(input.spicyLevel),
+    playerCount: Math.max(2, Math.min(3, Math.floor(input.playerCount))), // Clamp to 2-3
+  };
+
+  return analyzeAnswersFlow(sanitizedInput);
 }
 
 const prompt = ai.definePrompt({

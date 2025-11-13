@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 
+import { ErrorBoundary } from '@/components/error-boundary';
 import { useToast } from '@/hooks/use-toast';
 import { clientGame } from '@/lib/client-game';
 import type { GameState } from '@/lib/game-types';
@@ -186,8 +187,10 @@ export default function GamePage() {
   }
 
   return (
-    <GameLayout gameState={gameState} error={error}>
-      {StepComponent}
-    </GameLayout>
+    <ErrorBoundary>
+      <GameLayout gameState={gameState} error={error}>
+        {StepComponent}
+      </GameLayout>
+    </ErrorBoundary>
   );
 }

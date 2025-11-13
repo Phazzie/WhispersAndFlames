@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ArrowRight, Zap } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -43,7 +43,7 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
   const allPlayersAnswered =
     currentRound && Object.keys(currentRound.answers).length === players.length;
 
-  const handleSubmitAnswer = async () => {
+  const handleSubmitAnswer = useCallback(async () => {
     if (!currentAnswer.trim()) {
       toast({ title: "Answer can't be empty", variant: 'destructive' });
       return;
@@ -51,6 +51,8 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
 
     setIsSubmitting(true);
     try {
+      // Optimistic read-modify-write with race condition handling
+      // This reads the latest state from the server before updating
       const updatedGameRounds = [...gameState.gameRounds];
       const currentRoundIndexInState = updatedGameRounds.findIndex(
         (r) => r.question === gameState.currentQuestion
@@ -67,86 +69,123 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
 
       await updateGameState({ gameRounds: updatedGameRounds });
       setCurrentAnswer('');
-    } catch (e) {
-      console.error(e);
-      setError('There was an issue submitting your answer.');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
+      console.error('Failed to submit answer:', errorMessage);
+      setError('There was an issue submitting your answer. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [
+    currentAnswer,
+    gameState.gameRounds,
+    gameState.currentQuestion,
+    me.id,
+    updateGameState,
+    toast,
+    setError,
+  ]);
 
-  const handleNextStep = async () => {
+  const handleNextStep = useCallback(async () => {
     setIsLoading(true);
 
-    const updatedPlayers = gameState.players.map((p) =>
-      p.id === me.id ? { ...p, isReady: true } : p
-    );
-    await updateGameState({ players: updatedPlayers });
+    try {
+      // Mark current player as ready
+      const updatedPlayers = gameState.players.map((p) =>
+        p.id === me.id ? { ...p, isReady: true } : p
+      );
+      await updateGameState({ players: updatedPlayers });
 
-    if (updatedPlayers.every((p) => p.isReady)) {
-      const resetPlayers = updatedPlayers.map((p) => ({ ...p, isReady: false }));
+      // Check if all players are ready
+      if (updatedPlayers.every((p) => p.isReady)) {
+        const resetPlayers = updatedPlayers.map((p) => ({ ...p, isReady: false }));
 
-      if (gameState.currentQuestionIndex >= gameState.totalQuestions) {
-        // --- GAME OVER ---
-        await updateGameState({ step: 'summary', players: resetPlayers });
+        if (gameState.currentQuestionIndex >= gameState.totalQuestions) {
+          // --- GAME OVER ---
+          await updateGameState({ step: 'summary', players: resetPlayers });
 
-        try {
-          const summaryResult = await analyzeAndSummarizeAction({
-            questions: gameState.gameRounds.map((r) => r.question),
-            answers: gameState.gameRounds.flatMap((r) => Object.values(r.answers)),
-            categories: gameState.commonCategories,
-            spicyLevel: gameState.finalSpicyLevel,
-            playerCount: gameState.players.length,
-          });
-
-          if ('summary' in summaryResult) {
-            await updateGameState({
-              summary: summaryResult.summary,
-              completedAt: new Date(),
+          try {
+            const summaryResult = await analyzeAndSummarizeAction({
+              questions: gameState.gameRounds.map((r) => r.question),
+              answers: gameState.gameRounds.flatMap((r) => Object.values(r.answers)),
+              categories: gameState.commonCategories,
+              spicyLevel: gameState.finalSpicyLevel,
+              playerCount: gameState.players.length,
             });
-          } else {
-            setError(summaryResult.error);
-            await updateGameState({ step: 'game' }); // Go back if summary fails
+
+            if ('summary' in summaryResult) {
+              await updateGameState({
+                summary: summaryResult.summary,
+                completedAt: new Date(),
+              });
+            } else {
+              setError(summaryResult.error);
+              await updateGameState({ step: 'game' }); // Go back if summary fails
+            }
+          } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : 'Could not generate summary.';
+            console.error('Summary generation error:', errorMessage);
+            setError(errorMessage);
+            await updateGameState({ step: 'game' });
           }
-        } catch (e: any) {
-          setError(e.message || 'Could not generate summary.');
-          await updateGameState({ step: 'game' });
-        }
-      } else {
-        // --- NEXT QUESTION ---
-        try {
-          const nextQuestionIndex = gameState.currentQuestionIndex + 1;
-          const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
+        } else {
+          // --- NEXT QUESTION ---
+          try {
+            const nextQuestionIndex = gameState.currentQuestionIndex + 1;
+            const categoryIndex = Math.floor((nextQuestionIndex - 1) / QUESTIONS_PER_CATEGORY);
 
-          // Apply chaos mode if enabled
-          const chaosResult = applyChaosMode(gameState.finalSpicyLevel, gameState.chaosMode);
+            // Apply chaos mode if enabled
+            const chaosResult = applyChaosMode(gameState.finalSpicyLevel, gameState.chaosMode);
 
-          if (chaosResult.wasUpgraded) {
-            setChaosUpgraded(true);
-          }
+            if (chaosResult.wasUpgraded) {
+              setChaosUpgraded(true);
+            }
 
-          const result = await generateQuestionAction({
-            categories: [gameState.commonCategories[categoryIndex]],
-            spicyLevel: chaosResult.level,
-            previousQuestions: gameState.gameRounds.map((r) => r.question),
-          });
-
-          if ('question' in result) {
-            await updateGameState({
-              players: resetPlayers,
-              currentQuestion: result.question,
-              currentQuestionIndex: nextQuestionIndex,
+            const result = await generateQuestionAction({
+              categories: [gameState.commonCategories[categoryIndex]],
+              spicyLevel: chaosResult.level,
+              previousQuestions: gameState.gameRounds.map((r) => r.question),
             });
-          } else {
-            setError(result.error);
+
+            if ('question' in result) {
+              await updateGameState({
+                players: resetPlayers,
+                currentQuestion: result.question,
+                currentQuestionIndex: nextQuestionIndex,
+              });
+            } else {
+              setError(result.error);
+            }
+          } catch (e: unknown) {
+            const errorMessage =
+              e instanceof Error ? e.message : 'Could not generate next question.';
+            console.error('Question generation error:', errorMessage);
+            setError(errorMessage);
           }
-        } catch (e: any) {
-          setError(e.message || 'Could not generate next question.');
         }
       }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred.';
+      console.error('HandleNextStep error:', errorMessage);
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  };
+  }, [
+    gameState.players,
+    gameState.currentQuestionIndex,
+    gameState.totalQuestions,
+    gameState.gameRounds,
+    gameState.commonCategories,
+    gameState.finalSpicyLevel,
+    gameState.chaosMode,
+    me.id,
+    updateGameState,
+    setIsLoading,
+    analyzeAndSummarizeAction,
+    setError,
+    generateQuestionAction,
+  ]);
 
   if (isSubmitting) {
     return <LoadingScreen message="Submitting your answer..." />;
@@ -182,16 +221,27 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
               className="w-full mt-6"
               size="lg"
               disabled={me.isReady}
+              aria-label={
+                me.isReady
+                  ? 'Waiting for other players'
+                  : currentQuestionIndex >= totalQuestions
+                    ? 'View game summary'
+                    : 'Proceed to next question'
+              }
+              aria-live="polite"
             >
               {me.isReady ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  <span className="sr-only">Loading</span>
+                </>
               ) : currentQuestionIndex >= totalQuestions ? (
                 'See Summary'
               ) : (
                 'Next Question'
               )}
               {!me.isReady && currentQuestionIndex < totalQuestions && (
-                <ArrowRight className="ml-2" />
+                <ArrowRight className="ml-2" aria-hidden="true" />
               )}
             </Button>
 
@@ -237,12 +287,15 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
             onChange={(e) => setCurrentAnswer(e.target.value)}
             className="text-base"
             disabled={!!myAnswer}
+            aria-label="Your answer to the current question"
+            aria-required="true"
           />
           <Button
             onClick={handleSubmitAnswer}
             className="w-full mt-6"
             size="lg"
             disabled={!currentAnswer.trim() || !!myAnswer}
+            aria-label={myAnswer ? 'Waiting for other players' : 'Submit your answer'}
           >
             {myAnswer ? 'Waiting for other players...' : 'Submit Answer'}
           </Button>

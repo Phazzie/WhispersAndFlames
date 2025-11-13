@@ -75,18 +75,60 @@ export const clientGame = {
     roomCode: string,
     callback: (state: GameState) => void
   ): { unsubscribe: () => void } => {
-    // Poll for updates every 2 seconds
-    const intervalId = setInterval(async () => {
-      try {
-        const game = await clientGame.get(roomCode);
-        callback(game);
-      } catch (error) {
-        console.error('Failed to fetch game state:', error);
+    // AbortController to cancel in-flight requests when unsubscribing
+    const abortController = new AbortController();
+    let isActive = true;
+
+    // Track request state to prevent overlapping requests
+    let lastRequestPromise: Promise<void> | null = null;
+
+    const poll = async () => {
+      if (!isActive) return;
+
+      // Don't start a new request if one is already in flight
+      if (lastRequestPromise) {
+        return;
       }
-    }, 2000);
+
+      lastRequestPromise = (async () => {
+        try {
+          const response = await fetch(`/api/game/${roomCode}`, {
+            method: 'GET',
+            credentials: 'include',
+            signal: abortController.signal,
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to fetch game');
+          }
+
+          const data = await response.json();
+          if (isActive) {
+            callback(data.game);
+          }
+        } catch (error) {
+          // Ignore abort errors, they're expected on cleanup
+          if (error instanceof Error && error.name !== 'AbortError' && isActive) {
+            console.error('Failed to fetch game state:', error);
+          }
+        } finally {
+          lastRequestPromise = null;
+        }
+      })();
+    };
+
+    // Poll for updates every 2 seconds
+    const intervalId = setInterval(poll, 2000);
+
+    // Initial fetch
+    poll();
 
     return {
-      unsubscribe: () => clearInterval(intervalId),
+      unsubscribe: () => {
+        isActive = false;
+        clearInterval(intervalId);
+        abortController.abort();
+      },
     };
   },
 };
