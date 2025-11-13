@@ -1,46 +1,20 @@
 'use client';
 
+import { useUser, useClerk } from '@clerk/nextjs';
 import { Loader2, Home, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { clientAuth } from '@/lib/client-auth';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { toast } = useToast();
-  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
-  useEffect(() => {
-    clientAuth.getCurrentUser().then((currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        router.push('/');
-      }
-      setLoading(false);
-    });
-  }, [router]);
-
-  const handleSignOut = async () => {
-    try {
-      await clientAuth.signOut();
-      router.push('/');
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  if (loading) {
+  // Wait for Clerk to load
+  if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -48,9 +22,20 @@ export default function ProfilePage() {
     );
   }
 
+  // Redirect if not authenticated
   if (!user) {
+    router.push('/');
     return null;
   }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50 p-4">
@@ -78,7 +63,9 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{user.email}</p>
+                <p className="font-medium">
+                  {user.emailAddresses[0]?.emailAddress || 'No email'}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">User ID</p>

@@ -1,11 +1,9 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { MAX_REQUEST_SIZE, RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS } from '@/lib/api-constants';
-import { auth } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
 import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
-import { validateCsrf } from '@/lib/middleware/csrf';
 import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
@@ -46,29 +44,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
+    // Clerk authentication
+    const { userId } = await auth();
 
-    if (!session?.value) {
+    if (!userId) {
       return NextResponse.json(
         { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
       );
-    }
-
-    const user = await auth.getCurrentUser(session.value);
-    if (!user) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Invalid session' } },
-        { status: 401 }
-      );
-    }
-
-    // Validate CSRF token
-    const csrfError = validateCsrf(request, session.value);
-    if (csrfError) {
-      logger.warn('CSRF validation failed', { userId: user.id, endpoint: 'game/join' });
-      return csrfError;
     }
 
     const body = await request.json();
@@ -76,7 +59,7 @@ export async function POST(request: Request) {
 
     const game = await storage.games.get(roomCode);
     if (!game) {
-      logger.info('Join failed: game not found', { roomCode, userId: user.id });
+      logger.info('Join failed: game not found', { roomCode, userId });
       return NextResponse.json(
         { error: { code: 'GAME_NOT_FOUND', message: 'Room not found' } },
         { status: 404 }
@@ -84,8 +67,8 @@ export async function POST(request: Request) {
     }
 
     // Check if user already in game
-    if (game.playerIds.includes(user.id)) {
-      logger.info('User already in game', { roomCode, userId: user.id });
+    if (game.playerIds.includes(userId)) {
+      logger.info('User already in game', { roomCode, userId });
       return NextResponse.json({ game }, { status: 200 });
     }
 
@@ -94,17 +77,17 @@ export async function POST(request: Request) {
       players: [
         ...game.players,
         {
-          id: user.id,
+          id: userId,
           name: playerName,
-          email: user.email,
+          email: '',
           isReady: false,
           selectedCategories: [],
         },
       ],
-      playerIds: [...game.playerIds, user.id],
+      playerIds: [...game.playerIds, userId],
     });
 
-    logger.info('Player joined game', { roomCode, userId: user.id, playerName });
+    logger.info('Player joined game', { roomCode, userId, playerName });
 
     return NextResponse.json({ game: updatedGame }, { status: 200 });
   } catch (error) {

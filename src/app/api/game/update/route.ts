@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -8,9 +7,8 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_ANSWER_LENGTH,
 } from '@/lib/api-constants';
-import { auth } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
 import type { GameState } from '@/lib/game-types';
-import { validateCsrf } from '@/lib/middleware/csrf';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
@@ -40,29 +38,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
+    // Clerk authentication
+    const { userId } = await auth();
 
-    if (!session?.value) {
+    if (!userId) {
       return NextResponse.json(
         { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
       );
-    }
-
-    const user = await auth.getCurrentUser(session.value);
-    if (!user) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Invalid session' } },
-        { status: 401 }
-      );
-    }
-
-    // Validate CSRF token
-    const csrfError = validateCsrf(request, session.value);
-    if (csrfError) {
-      logger.warn('CSRF validation failed', { userId: user.id, endpoint: 'game/update' });
-      return csrfError;
     }
 
     const body = await request.json();
@@ -70,7 +53,7 @@ export async function POST(request: Request) {
 
     const game = await storage.games.get(roomCode);
     if (!game) {
-      logger.info('Update failed: game not found', { roomCode, userId: user.id });
+      logger.info('Update failed: game not found', { roomCode, userId });
       return NextResponse.json(
         { error: { code: 'GAME_NOT_FOUND', message: 'Room not found' } },
         { status: 404 }
@@ -78,8 +61,8 @@ export async function POST(request: Request) {
     }
 
     // Verify user is in the game
-    if (!game.playerIds.includes(user.id)) {
-      logger.warn('Unauthorized game update attempt', { roomCode, userId: user.id });
+    if (!game.playerIds.includes(userId)) {
+      logger.warn('Unauthorized game update attempt', { roomCode, userId });
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'Not in this game' } },
         { status: 403 }
@@ -111,7 +94,7 @@ export async function POST(request: Request) {
       sanitizedUpdates as Partial<GameState>
     );
 
-    logger.info('Game updated successfully', { roomCode, userId: user.id });
+    logger.info('Game updated successfully', { roomCode, userId });
 
     return NextResponse.json({ game: updatedGame }, { status: 200 });
   } catch (error) {
