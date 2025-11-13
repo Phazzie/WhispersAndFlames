@@ -1,15 +1,14 @@
 'use client';
 
-import { Sparkles, ArrowRight, LogIn, History, Play } from 'lucide-react';
+import { Sparkles, ArrowRight, LogOut, History, Play } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { useUser, useClerk, SignInButton, SignUpButton } from '@clerk/nextjs';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { clientAuth, type User } from '@/lib/client-auth';
 import { clientGame } from '@/lib/client-game';
 import { generateRoomCode } from '@/lib/game-utils';
 
@@ -17,11 +16,9 @@ export default function HomePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [roomCode, setRoomCode] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [playerName, setPlayerName] = useState('');
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,45 +28,9 @@ export default function HomePageClient() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    clientAuth.getCurrentUser().then((currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-  }, []);
-
-  const handleAuthAction = async (isSignUp: boolean) => {
-    if (!email || !password) {
-      toast({
-        title: 'Authentication Error',
-        description: 'Please provide both email and password.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      const newUser = isSignUp
-        ? await clientAuth.signUp(email, password)
-        : await clientAuth.signIn(email, password);
-      setUser(newUser);
-      toast({
-        title: isSignUp ? 'Account Created' : 'Signed In',
-        description: `Welcome${isSignUp ? '' : ' back'}, ${newUser.email}!`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Authentication Error',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleLogout = async () => {
     try {
-      await clientAuth.signOut();
-      setUser(null);
+      await signOut();
       toast({
         title: 'Signed Out',
         description: 'You have been signed out successfully.',
@@ -138,7 +99,7 @@ export default function HomePageClient() {
     }
   };
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -157,53 +118,19 @@ export default function HomePageClient() {
             </CardTitle>
             <CardDescription>Sign in to start your journey</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin" className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button onClick={() => handleAuthAction(false)} className="w-full">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
-                </Button>
-              </TabsContent>
-              <TabsContent value="signup" className="space-y-4">
-                <div className="space-y-2">
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Password (min 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button onClick={() => handleAuthAction(true)} className="w-full">
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Create Account
-                </Button>
-              </TabsContent>
-            </Tabs>
+          <CardContent className="space-y-4">
+            <SignInButton mode="modal">
+              <Button className="w-full" size="lg">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign In
+              </Button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <Button variant="outline" className="w-full" size="lg">
+                <ArrowRight className="mr-2 h-4 w-4" />
+                Create Account
+              </Button>
+            </SignUpButton>
           </CardContent>
         </Card>
       </div>
@@ -218,7 +145,9 @@ export default function HomePageClient() {
             <Sparkles className="inline-block w-8 h-8 mr-2" />
             Whispers and Flames
           </CardTitle>
-          <CardDescription>Welcome, {user.email}</CardDescription>
+          <CardDescription>
+            Welcome, {user.emailAddresses[0]?.emailAddress || 'Guest'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -257,6 +186,7 @@ export default function HomePageClient() {
 
           <div className="pt-4 border-t">
             <Button onClick={handleLogout} variant="ghost" className="w-full">
+              <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
           </div>

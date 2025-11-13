@@ -1,11 +1,9 @@
-import { cookies } from 'next/headers';
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-import { auth } from '@/lib/auth';
 import type { GameState } from '@/lib/game-types';
 import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
-import { validateCsrf } from '@/lib/middleware/csrf';
 import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
@@ -48,29 +46,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
+    // Clerk authentication
+    const { userId } = await auth();
 
-    if (!session?.value) {
+    if (!userId) {
       return NextResponse.json(
         { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
       );
-    }
-
-    const user = await auth.getCurrentUser(session.value);
-    if (!user) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Invalid session' } },
-        { status: 401 }
-      );
-    }
-
-    // Validate CSRF token
-    const csrfError = validateCsrf(request, session.value);
-    if (csrfError) {
-      logger.warn('CSRF validation failed', { userId: user.id, endpoint: 'game/create' });
-      return csrfError;
     }
 
     const body = await request.json();
@@ -79,7 +62,7 @@ export async function POST(request: Request) {
     // Check if room already exists
     const existing = await storage.games.get(roomCode);
     if (existing) {
-      logger.info('Game creation failed: room code in use', { roomCode, userId: user.id });
+      logger.info('Game creation failed: room code in use', { roomCode, userId });
       return NextResponse.json(
         { error: { code: 'ROOM_CODE_IN_USE', message: 'Room code already in use' } },
         { status: 400 }
@@ -91,15 +74,15 @@ export async function POST(request: Request) {
       step: 'lobby',
       players: [
         {
-          id: user.id,
+          id: userId,
           name: playerName,
-          email: user.email,
+          email: '', // Clerk handles email separately
           isReady: false,
           selectedCategories: [],
         },
       ],
-      playerIds: [user.id],
-      hostId: user.id,
+      playerIds: [userId],
+      hostId: userId,
       gameMode: 'online',
       commonCategories: [],
       finalSpicyLevel: 'Mild',
@@ -116,7 +99,7 @@ export async function POST(request: Request) {
 
     const game = await storage.games.create(roomCode, initialState);
 
-    logger.info('Game created successfully', { roomCode, userId: user.id, playerName });
+    logger.info('Game created successfully', { roomCode, userId, playerName });
 
     return NextResponse.json({ game }, { status: 201 });
   } catch (error) {

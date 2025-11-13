@@ -1,26 +1,17 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import { auth } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: Request, { params }: { params: Promise<{ roomCode: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session');
+    // Clerk authentication
+    const { userId } = await auth();
 
-    if (!session?.value) {
+    if (!userId) {
       return NextResponse.json(
         { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
-      );
-    }
-
-    const user = await auth.getCurrentUser(session.value);
-    if (!user) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Invalid session' } },
         { status: 401 }
       );
     }
@@ -29,7 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
     const game = await storage.games.get(roomCode);
 
     if (!game) {
-      logger.info('Game not found', { roomCode, userId: user.id });
+      logger.info('Game not found', { roomCode, userId });
       return NextResponse.json(
         { error: { code: 'GAME_NOT_FOUND', message: 'Room not found' } },
         { status: 404 }
@@ -37,10 +28,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
     }
 
     // CRITICAL FIX: Verify user is authorized to view this game
-    if (!game.playerIds.includes(user.id)) {
+    if (!game.playerIds.includes(userId)) {
       logger.warn('Unauthorized game access attempt', {
         roomCode,
-        userId: user.id,
+        userId,
         gamePlayerIds: game.playerIds,
       });
       return NextResponse.json(
