@@ -362,15 +362,26 @@ try {
 
 **Location:** `src/lib/env.ts`
 
+**Required Variables:**
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk authentication (required)
+- `CLERK_SECRET_KEY` - Clerk authentication (required)
+- `XAI_API_KEY` or `GEMINI_API_KEY` - At least one AI provider (optional)
+- `DATABASE_URL` - PostgreSQL connection (optional, falls back to in-memory)
+- `NEXT_PUBLIC_APP_URL` - Application URL (defaults to localhost:9002)
+
 **Usage:**
 
 ```typescript
 import { env } from '@/lib/env';
 
 const apiKey = env.XAI_API_KEY; // Type-safe, validated at startup
+const clerkKey = env.CLERK_SECRET_KEY; // Required, validated at startup
 ```
 
 **Never use `process.env.VARIABLE` directly** - always use validated `env` object.
+
+**Validation:** App will fail to start with clear error message if required keys are missing.
 
 ---
 
