@@ -177,6 +177,9 @@ const generateContextualQuestionsFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI failed to generate questions. Please try again.');
+    }
+    return output;
   }
 );

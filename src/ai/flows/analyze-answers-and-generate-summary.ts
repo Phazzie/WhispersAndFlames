@@ -177,6 +177,9 @@ const analyzeAnswersFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI failed to generate session summary. Please try again.');
+    }
+    return output;
   }
 );
