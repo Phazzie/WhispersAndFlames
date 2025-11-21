@@ -3,6 +3,9 @@
  */
 
 import type { GameState } from './game-types';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('client-game');
 
 export const clientGame = {
   create: async (roomCode: string, playerName: string): Promise<GameState> => {
@@ -109,7 +112,7 @@ export const clientGame = {
         } catch (error) {
           // Ignore abort errors, they're expected on cleanup
           if (error instanceof Error && error.name !== 'AbortError' && isActive) {
-            console.error('Failed to fetch game state:', error);
+            logger.error('Failed to fetch game state', error);
           }
         } finally {
           lastRequestPromise = null;

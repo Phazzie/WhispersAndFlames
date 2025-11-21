@@ -1,3 +1,14 @@
+/**
+ * Game Constants - Next.js App
+ *
+ * This is the CANONICAL source of truth for categories and spicy levels in the Next.js app.
+ *
+ * Import this file via: @/lib/constants
+ *
+ * NOTE: There is a separate constants file for the SvelteKit redesign at /src/lib/utils/constants.ts
+ * with different category names. That file is NOT used by this Next.js app.
+ */
+
 import {
   Flame,
   Heart,

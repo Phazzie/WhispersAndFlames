@@ -13,9 +13,54 @@ import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
+// Explicit schema for Player to ensure type safety
+const playerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isReady: z.boolean(),
+  email: z.string().email(),
+  selectedCategories: z.array(z.string()),
+  selectedSpicyLevel: z.string().optional(),
+});
+
+// Explicit schema for GameRound to ensure type safety
+const gameRoundSchema = z.object({
+  question: z.string(),
+  answers: z.record(z.string(), z.string()),
+});
+
+// Explicit schema for visual memories
+const visualMemorySchema = z.object({
+  imageUrl: z.string().url(),
+  prompt: z.string(),
+  timestamp: z.number(),
+});
+
+// Explicit schema for all possible game state updates
+// All fields are optional since this is for partial updates
+const gameStateUpdatesSchema = z.object({
+  step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
+  players: z.array(playerSchema).optional(),
+  playerIds: z.array(z.string()).optional(),
+  hostId: z.string().optional(),
+  gameMode: z.enum(['online', 'local']).optional(),
+  currentPlayerIndex: z.number().optional(),
+  commonCategories: z.array(z.string()).optional(),
+  finalSpicyLevel: z.string().optional(),
+  chaosMode: z.boolean().optional(),
+  gameRounds: z.array(gameRoundSchema).optional(),
+  currentQuestion: z.string().optional(),
+  currentQuestionIndex: z.number().optional(),
+  totalQuestions: z.number().optional(),
+  summary: z.string().optional(),
+  visualMemories: z.array(visualMemorySchema).optional(),
+  imageGenerationCount: z.number().optional(),
+  completedAt: z.date().optional(),
+});
+
 const updateGameSchema = z.object({
   roomCode: z.string().min(4),
-  updates: z.record(z.any()),
+  updates: gameStateUpdatesSchema,
 });
 
 export async function POST(request: Request) {
