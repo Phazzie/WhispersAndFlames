@@ -16,6 +16,10 @@ import {
   generateVisualMemoryAction,
 } from '../actions';
 
+// #TODO: Refactor this page to use a Unified Game Context (Provider)
+// This will allow us to seamlessly switch between Online (Clerk+API) and Local (localStorage) modes
+// Currently, this component is tightly coupled to Clerk and clientGame
+
 import { GameLayout } from './game-layout';
 import { LoadingScreen } from './loading-screen';
 import { CategoriesStep } from './steps/categories-step';

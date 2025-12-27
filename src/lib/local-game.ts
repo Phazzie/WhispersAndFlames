@@ -168,3 +168,10 @@ export const localGame = {
     return gameState.players[index] || null;
   },
 };
+
+// #TODO: Add methods to handle game actions in local mode
+// - updatePlayerName
+// - setPlayerReady
+// - submitAnswer
+// - nextStep
+// These should mimic the API behavior but operate synchronously on localStorage
