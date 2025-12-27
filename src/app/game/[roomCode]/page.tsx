@@ -25,6 +25,12 @@ import { SpicyStep } from './steps/spicy-step';
 import { SummaryStep } from './steps/summary-step';
 
 export default function GamePage() {
+  // #TODO: Implement Unified Game Context here.
+  // Instead of direct `clientGame` usage and strict Clerk auth checks,
+  // wrap this in a provider that handles switching between 'online' (Clerk + API)
+  // and 'local' (localStorage + no auth) modes.
+  // See #TODO.md "Unified Game Context" section.
+
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();

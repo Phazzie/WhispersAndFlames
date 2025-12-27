@@ -68,6 +68,11 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
     link.click();
   };
 
+  // #TODO: Improve styling and add more share options.
+  // - Add social media buttons (WhatsApp, Twitter, etc.).
+  // - Make the QR code card look better on mobile.
+  // See #TODO.md "Session Sharing" section.
+
   if (qrError) {
     return (
       <Card>
