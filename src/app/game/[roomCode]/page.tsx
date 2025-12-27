@@ -2,19 +2,10 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useToast } from '@/hooks/use-toast';
-import { clientGame } from '@/lib/client-game';
-import type { GameState } from '@/lib/game-types';
-
-import {
-  generateQuestionAction,
-  analyzeAndSummarizeAction,
-  generateTherapistNotesAction,
-  generateVisualMemoryAction,
-} from '../actions';
+import { GameProvider, useGame } from '@/lib/game-context';
 
 import { GameLayout } from './game-layout';
 import { LoadingScreen } from './loading-screen';
@@ -24,109 +15,14 @@ import { LobbyStep } from './steps/lobby-step';
 import { SpicyStep } from './steps/spicy-step';
 import { SummaryStep } from './steps/summary-step';
 
-export default function GamePage() {
-  // #TODO: Implement Unified Game Context here.
-  // Instead of direct `clientGame` usage and strict Clerk auth checks,
-  // wrap this in a provider that handles switching between 'online' (Clerk + API)
-  // and 'local' (localStorage + no auth) modes.
-  // See #TODO.md "Unified Game Context" section.
-
-  const params = useParams();
-  const router = useRouter();
+function GameContent() {
+  const { gameState, isLoading, error, updateGameState, ...actions } = useGame();
+  const { user } = useUser();
   const { toast } = useToast();
-  const { user, isLoaded } = useUser();
+  const router = useRouter();
 
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const roomCodeParam = params.roomCode;
-
-  // Validate roomCode parameter
-  const isInvalidRoomCode = !roomCodeParam || Array.isArray(roomCodeParam);
-  const roomCode = isInvalidRoomCode ? '' : roomCodeParam;
-
-  useEffect(() => {
-    // Skip if invalid room code
-    if (isInvalidRoomCode) return;
-
-    // If Clerk hasn't loaded yet, wait
-    if (!isLoaded) return;
-
-    // If no user, redirect to home with join parameter
-    if (!user) {
-      router.push(`/?join=${roomCode}`);
-      return;
-    }
-
-    let isMounted = true;
-    let subscription: ReturnType<typeof clientGame.subscribe> | null = null;
-
-    const initializeGame = async () => {
-      try {
-        // Initial fetch
-        const game = await clientGame.get(roomCode);
-        if (!isMounted) return;
-
-        setGameState(game);
-        setIsLoading(false);
-
-        // Subscribe to updates
-        subscription = clientGame.subscribe(roomCode, (game) => {
-          if (isMounted) {
-            setGameState(game);
-          }
-        });
-      } catch (err) {
-        if (!isMounted) return;
-
-        const message = err instanceof Error ? err.message : 'Failed to load game';
-        setError(message);
-        setIsLoading(false);
-      }
-    };
-
-    initializeGame();
-
-    return () => {
-      isMounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
-  }, [roomCode, user, isLoaded, router, isInvalidRoomCode]);
-
-  const updateGameState = useCallback(
-    async (newState: Partial<GameState>) => {
-      try {
-        const updated = await clientGame.update(roomCode, newState);
-        setGameState(updated);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Update failed';
-        toast({
-          title: 'Update Failed',
-          description: message,
-          variant: 'destructive',
-        });
-      }
-    },
-    [roomCode, toast]
-  );
-
-  // Invalid room code
-  if (isInvalidRoomCode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Invalid Room Code</h2>
-          <p>Please check your room code and try again.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state - waiting for Clerk or game data
-  if (!isLoaded || isLoading) return <LoadingScreen />;
+  // Loading state
+  if (isLoading) return <LoadingScreen />;
 
   // Error state
   if (error) {
@@ -140,11 +36,35 @@ export default function GamePage() {
     );
   }
 
-  // No user or game state
-  if (!gameState || !user) return <LoadingScreen />;
+  // No game state
+  if (!gameState) return <LoadingScreen />;
 
-  // Check if current user is in the game
-  const me = gameState.players.find((p) => p.id === user.id);
+  // Determine "me" (current player)
+  // In Online mode, this matches the Clerk user ID.
+  // In Local mode, we treat the "current player" as "me" if we are taking turns,
+  // OR we might be an admin of the whole session.
+  // For simplicity in Local Mode:
+  // - In Lobby: We probably want to be able to edit ANY player, or just the host?
+  //   Actually, local mode lobby usually has just 1 input for players, or inputs for all players.
+  //   The current LobbyStep expects `me` to be one specific player.
+  //   We might need to fake "me" as the first player or the host for now.
+  //   Or we can adapt LobbyStep later to handle local mode (editing all players).
+
+  // Let's derive `me`.
+  let me = null;
+
+  if (gameState.gameMode === 'local') {
+    // In local mode, we use the current player index to determine "me"
+    // This allows the UI to show the perspective of the active player
+    const currentIndex = gameState.currentPlayerIndex || 0;
+    me = gameState.players[currentIndex] || gameState.players[0];
+  } else {
+    // Online mode
+    if (user) {
+      me = gameState.players.find((p) => p.id === user.id);
+    }
+  }
+
   if (!me) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -157,16 +77,16 @@ export default function GamePage() {
   }
 
   const handlers = {
-    roomCode,
+    roomCode: gameState.roomCode,
     updateGameState,
     toast,
-    setIsLoading,
-    setError,
-    generateQuestionAction,
-    analyzeAndSummarizeAction,
-    generateTherapistNotesAction,
-    generateVisualMemoryAction,
+    setIsLoading: () => {}, // No-op as provider handles loading mostly
+    setError: () => {}, // No-op
     router,
+    generateQuestionAction: actions.generateQuestionAction,
+    analyzeAndSummarizeAction: actions.analyzeAndSummarizeAction,
+    generateTherapistNotesAction: actions.generateTherapistNotesAction,
+    generateVisualMemoryAction: actions.generateVisualMemoryAction,
   };
 
   const stepProps = { gameState, me, handlers };
@@ -193,10 +113,35 @@ export default function GamePage() {
   }
 
   return (
+    <GameLayout gameState={gameState} error={error}>
+      {StepComponent}
+    </GameLayout>
+  );
+}
+
+export default function GamePage() {
+  const params = useParams();
+
+  const roomCodeParam = params.roomCode;
+  const isInvalidRoomCode = !roomCodeParam || Array.isArray(roomCodeParam);
+  const roomCode = isInvalidRoomCode ? '' : roomCodeParam;
+
+  if (isInvalidRoomCode) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Invalid Room Code</h2>
+          <p>Please check your room code and try again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
     <ErrorBoundary>
-      <GameLayout gameState={gameState} error={error}>
-        {StepComponent}
-      </GameLayout>
+      <GameProvider roomCode={roomCode}>
+        <GameContent />
+      </GameProvider>
     </ErrorBoundary>
   );
 }
