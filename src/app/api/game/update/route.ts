@@ -13,11 +13,55 @@ import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
-const updateGameSchema = z.object({
+const GameStepSchema = z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']);
+const GameModeSchema = z.enum(['online', 'local']);
+const SpicyLevelNameSchema = z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']);
+
+const PlayerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isReady: z.boolean(),
+  email: z.string(),
+  selectedCategories: z.array(z.string()),
+  selectedSpicyLevel: SpicyLevelNameSchema.optional(),
+});
+
+const GameRoundSchema = z.object({
+  question: z.string(),
+  answers: z.record(z.string()),
+});
+
+const VisualMemorySchema = z.object({
+  imageUrl: z.string(),
+  prompt: z.string(),
+  timestamp: z.number(),
+});
+
+export const GameStateSchema = z.object({
+  step: GameStepSchema,
+  players: z.array(PlayerSchema),
+  playerIds: z.array(z.string()),
+  hostId: z.string(),
+  gameMode: GameModeSchema,
+  currentPlayerIndex: z.number().optional(),
+  commonCategories: z.array(z.string()),
+  finalSpicyLevel: SpicyLevelNameSchema,
+  chaosMode: z.boolean(),
+  gameRounds: z.array(GameRoundSchema),
+  currentQuestion: z.string(),
+  currentQuestionIndex: z.number(),
+  totalQuestions: z.number(),
+  summary: z.string(),
+  visualMemories: z.array(VisualMemorySchema).optional(),
+  imageGenerationCount: z.number(),
+  roomCode: z.string(),
+  createdAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+});
+
+export const updateGameSchema = z.object({
   roomCode: z.string().min(4),
-  // #TODO: Improve type safety here. z.any() allows anything. Define a strict schema for GameState updates.
-  // See #TODO.md "Code Quality" section.
-  updates: z.record(z.any()),
+  updates: GameStateSchema.partial(),
 });
 
 export async function POST(request: Request) {
@@ -75,20 +119,18 @@ export async function POST(request: Request) {
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        const roundRecord = round as Record<string, unknown>;
-        if (roundRecord.answers && typeof roundRecord.answers === 'object') {
-          const sanitizedAnswers: Record<string, string> = {};
-          for (const [playerId, answer] of Object.entries(
-            roundRecord.answers as Record<string, unknown>
-          )) {
-            if (typeof answer === 'string') {
-              // Truncate to prevent DoS and sanitize HTML
-              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-            } else {
-              sanitizedAnswers[playerId] = answer as string;
-            }
-          }
-          return { ...roundRecord, answers: sanitizedAnswers };
+        // Since we are now using a strict schema, round is typed as infer<typeof GameRoundSchema>
+        // But the previous code treated it as unknown.
+        // We can trust Zod to have validated the structure.
+
+        // However, we still need to sanitize the strings in answers.
+        if (round && round.answers) {
+           const sanitizedAnswers: Record<string, string> = {};
+           for (const [playerId, answer] of Object.entries(round.answers)) {
+             // Zod ensures answer is a string
+             sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
+           }
+           return { ...round, answers: sanitizedAnswers };
         }
         return round;
       });
