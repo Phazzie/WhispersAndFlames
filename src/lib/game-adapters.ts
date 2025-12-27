@@ -2,6 +2,7 @@
 // Define interfaces and implementations for Online (Clerk+API) and Local (localStorage) game modes.
 // See #TODO.md "Unified Game Context" section.
 
+import { clientGame } from './client-game';
 import type { GameState } from './game-types';
 
 export interface GameAdapter {
@@ -11,15 +12,19 @@ export interface GameAdapter {
 }
 
 export class OnlineGameAdapter implements GameAdapter {
-  // #TODO: Implement using clientGame
   async get(roomCode: string): Promise<GameState | null> {
-    throw new Error('Not implemented');
+    try {
+      return await clientGame.get(roomCode);
+    } catch (error) {
+      console.error('Failed to get game:', error);
+      return null;
+    }
   }
   async update(roomCode: string, updates: Partial<GameState>): Promise<GameState> {
-    throw new Error('Not implemented');
+    return clientGame.update(roomCode, updates);
   }
   subscribe(roomCode: string, callback: (game: GameState) => void) {
-    throw new Error('Not implemented');
+    return clientGame.subscribe(roomCode, callback);
   }
 }
 
