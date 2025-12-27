@@ -9,6 +9,12 @@ import { generateRoomCode } from './game-utils';
 const STORAGE_KEY_PREFIX = 'local-game:';
 const ACTIVE_GAME_KEY = 'local-game:active';
 
+// #TODO: Improve feature set for Local Mode.
+// - Persist more robustly across reloads.
+// - Handle edge cases like clearing cache or browser storage limits.
+// - Add "Conflict Resolution" if multiple tabs try to edit the same local game (though rare).
+// See #TODO.md "Features" section.
+
 export const localGame = {
   /**
    * Create a new local game with 1-3 players

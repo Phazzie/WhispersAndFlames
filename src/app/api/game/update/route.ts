@@ -15,6 +15,8 @@ import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/
 
 const updateGameSchema = z.object({
   roomCode: z.string().min(4),
+  // #TODO: Improve type safety here. z.any() allows anything. Define a strict schema for GameState updates.
+  // See #TODO.md "Code Quality" section.
   updates: z.record(z.any()),
 });
 
