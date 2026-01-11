@@ -98,12 +98,13 @@ npm run genkit:watch     # Start Genkit with watch mode
 
 ## 🔐 Environment Variables
 
-| Variable              | Required | Default                 | Description                |
-| --------------------- | -------- | ----------------------- | -------------------------- |
-| `XAI_API_KEY`         | Yes      | -                       | xAI API key (console.x.ai) |
-| `DATABASE_URL`        | No       | -                       | Postgres connection string |
-| `NODE_ENV`            | No       | `development`           | Environment mode           |
-| `NEXT_PUBLIC_APP_URL` | No       | `http://localhost:9002` | Public app URL             |
+| Variable              | Required | Default                 | Description                              |
+| --------------------- | -------- | ----------------------- | ---------------------------------------- |
+| `XAI_API_KEY`         | Yes      | -                       | xAI API key (console.x.ai)               |
+| `DATABASE_URL`        | No       | -                       | Postgres connection string               |
+| `DISABLE_DATABASE`    | No       | `false`                 | Set to `true` to force in-memory storage |
+| `NODE_ENV`            | No       | `development`           | Environment mode                         |
+| `NEXT_PUBLIC_APP_URL` | No       | `http://localhost:9002` | Public app URL                           |
 
 ## 🧪 Testing
 
@@ -200,6 +201,7 @@ src/
 ## ⚠️ Known Limitations
 
 - **Storage**: Data resets on restart when using in-memory storage
+- **Database Troubleshooting**: If experiencing database issues, set `DISABLE_DATABASE=true` to temporarily use in-memory storage
 - **Sessions**: Session-based authentication (stored in memory)
 - **Scaling**: No horizontal scaling support - single instance only
 - **Rate Limiting**: Per-instance only (not distributed)

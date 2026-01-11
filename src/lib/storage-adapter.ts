@@ -5,8 +5,9 @@
 
 import { storage as memoryStorage } from './storage-memory';
 
-// Use PostgreSQL if DATABASE_URL is available, otherwise fall back to in-memory
-const usePostgres = Boolean(process.env.DATABASE_URL);
+// Use PostgreSQL if DATABASE_URL is available AND database is not explicitly disabled
+// DISABLE_DATABASE=true can be used to force in-memory storage even when DATABASE_URL is set
+const usePostgres = Boolean(process.env.DATABASE_URL) && process.env.DISABLE_DATABASE !== 'true';
 
 // Conditionally import PostgreSQL storage only when DATABASE_URL is configured
 // This prevents import errors at build time when pg module dependencies aren't available
@@ -36,7 +37,11 @@ if (usePostgres) {
     storage = memoryStorage;
   }
 } else {
-  console.log('💾 Using in-memory storage (DATABASE_URL not configured)');
+  if (process.env.DISABLE_DATABASE === 'true') {
+    console.log('💾 Using in-memory storage (database explicitly disabled via DISABLE_DATABASE)');
+  } else {
+    console.log('💾 Using in-memory storage (DATABASE_URL not configured)');
+  }
   storage = memoryStorage;
 }
 
