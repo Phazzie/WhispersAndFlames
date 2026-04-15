@@ -13,26 +13,44 @@ import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
+const playerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isReady: z.boolean(),
+  email: z.string(),
+  selectedCategories: z.array(z.string()),
+  selectedSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
+});
+
+const gameRoundSchema = z.object({
+  question: z.string(),
+  answers: z.record(z.string(), z.string()),
+});
+
+const visualMemorySchema = z.object({
+  imageUrl: z.string(),
+  prompt: z.string(),
+  timestamp: z.number(),
+});
+
 const updateGameSchema = z.object({
-  roomCode: z.string().min(4).max(8),
+  roomCode: z.string().min(4).max(64),
   updates: z
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
-      players: z.array(z.any()).optional(),
-      playerIds: z.array(z.string()).optional(),
+      players: z.array(playerSchema).optional(),
       gameMode: z.enum(['online', 'local']).optional(),
       currentPlayerIndex: z.number().int().min(0).optional(),
       commonCategories: z.array(z.string()).optional(),
       finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
       chaosMode: z.boolean().optional(),
-      gameRounds: z.array(z.any()).optional(),
+      gameRounds: z.array(gameRoundSchema).optional(),
       currentQuestion: z.string().optional(),
       currentQuestionIndex: z.number().int().min(0).optional(),
       totalQuestions: z.number().int().min(0).optional(),
       summary: z.string().optional(),
-      visualMemories: z.array(z.any()).optional(),
+      visualMemories: z.array(visualMemorySchema).optional(),
       imageGenerationCount: z.number().int().min(0).optional(),
-      hostId: z.string().optional(),
     })
     .strict(),
 });
@@ -93,22 +111,11 @@ export async function POST(request: Request) {
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        const roundRecord = round as Record<string, unknown>;
-        if (roundRecord.answers && typeof roundRecord.answers === 'object') {
-          const sanitizedAnswers: Record<string, string> = {};
-          for (const [playerId, answer] of Object.entries(
-            roundRecord.answers as Record<string, unknown>
-          )) {
-            if (typeof answer === 'string') {
-              // Truncate to prevent DoS and sanitize HTML
-              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-            } else {
-              sanitizedAnswers[playerId] = answer as string;
-            }
-          }
-          return { ...roundRecord, answers: sanitizedAnswers };
+        const sanitizedAnswers: Record<string, string> = {};
+        for (const [playerId, answer] of Object.entries(round.answers)) {
+          sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
         }
-        return round;
+        return { ...round, answers: sanitizedAnswers };
       });
     }
 

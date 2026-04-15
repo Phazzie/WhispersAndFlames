@@ -5,6 +5,7 @@
 
 import { Pool } from 'pg';
 
+import { DB_POOL_MAX, DB_CONNECTION_TIMEOUT_MS, PG_IDLE_TIMEOUT_MS } from './api-constants';
 import type { GameState } from './game-types';
 
 // Exponential backoff retry utility
@@ -83,13 +84,13 @@ const poolMetrics: PoolMetrics = {
 };
 
 // Create connection pool
-// max: 5 — enough for Vercel serverless concurrency without overwhelming the DB
+// Uses centralized constants from api-constants.ts
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 5, // max: 5 — enough for Vercel serverless concurrency without overwhelming the DB
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: DB_POOL_MAX,
+  idleTimeoutMillis: PG_IDLE_TIMEOUT_MS,
+  connectionTimeoutMillis: DB_CONNECTION_TIMEOUT_MS,
   statement_timeout: 10000, // 10 second query timeout to prevent long-running queries
 });
 
@@ -380,7 +381,11 @@ export const storage = {
           // Duplicate player guard: if the update includes a players array, check
           // whether any of the incoming players already exist in the current state.
           // If all incoming players are already present, return existing state without writing.
-          if (updates.players && Array.isArray(updates.players) && Array.isArray(currentState.players)) {
+          if (
+            updates.players &&
+            Array.isArray(updates.players) &&
+            Array.isArray(currentState.players)
+          ) {
             const existingIds = new Set(currentState.players.map((p) => p.id));
             const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
             if (incomingNewPlayers.length === 0) {

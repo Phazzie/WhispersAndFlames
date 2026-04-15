@@ -9,20 +9,63 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks(.*)',
 ]);
 
+function getNormalizedOrigin(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+function getVercelOrigin(): string | null {
+  const vercelUrl = process.env.VERCEL_URL;
+
+  if (!vercelUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(vercelUrl.startsWith('http') ? vercelUrl : `https://${vercelUrl}`).origin;
+  } catch {
+    return null;
+  }
+}
+
+function isAllowedCsrfRequest(request: Request & { nextUrl: URL }): boolean {
+  const allowedOrigins = new Set<string>([request.nextUrl.origin]);
+  const appOrigin = getNormalizedOrigin(process.env.NEXT_PUBLIC_APP_URL ?? null);
+  const vercelOrigin = getVercelOrigin();
+
+  if (appOrigin) {
+    allowedOrigins.add(appOrigin);
+  }
+
+  if (vercelOrigin) {
+    allowedOrigins.add(vercelOrigin);
+  }
+
+  const origin = getNormalizedOrigin(request.headers.get('origin'));
+  if (origin) {
+    return allowedOrigins.has(origin);
+  }
+
+  const refererOrigin = getNormalizedOrigin(request.headers.get('referer'));
+  if (refererOrigin) {
+    return allowedOrigins.has(refererOrigin);
+  }
+
+  const host = request.headers.get('host');
+  return host === request.nextUrl.host;
+}
+
 export default clerkMiddleware(async (auth, request) => {
   // CSRF protection for game API POST routes
   if (request.method === 'POST' && request.nextUrl.pathname.startsWith('/api/game/')) {
-    const origin = request.headers.get('origin');
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
-
-    // Allow same-origin, Vercel preview deployments, and localhost in dev
-    const isAllowedOrigin =
-      !origin || // same-origin requests don't send Origin header
-      origin === appUrl ||
-      /\.vercel\.app$/.test(origin) ||
-      (process.env.NODE_ENV === 'development' && /^http:\/\/localhost/.test(origin));
-
-    if (!isAllowedOrigin) {
+    if (!isAllowedCsrfRequest(request)) {
       return new NextResponse('Forbidden', { status: 403 });
     }
   }

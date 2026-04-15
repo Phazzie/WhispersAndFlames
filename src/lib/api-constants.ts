@@ -45,7 +45,9 @@ export const PG_CONNECTION_TIMEOUT_MS = 2_000; // 2 seconds
 export const CHAOS_MODE_UPGRADE_PROBABILITY = 0.2; // 20% chance
 
 // Centralized magic numbers (used across client and server code)
-export const POLL_INTERVAL_MS = 2000; // Polling interval for game state sync
-export const DB_POOL_MAX = 5; // Maximum database pool connections (matches storage-pg.ts)
-export const AI_TIMEOUT_MS = 8000; // Default AI request timeout
+export const POLL_INTERVAL_MS = GAME_STATE_POLL_INTERVAL_MS; // Alias for backward compatibility
+export const DB_POOL_MAX = 5; // Maximum database pool connections for Vercel serverless
+export const DB_CONNECTION_TIMEOUT_MS = 5_000; // 5 seconds connection timeout
+export const AI_TIMEOUT_MS = 8_000; // Default AI request timeout
 export const AI_MAX_RETRIES = 3; // Maximum retries for AI requests
+export const AI_BACKOFF_BASE_MS = 200; // Base delay for exponential backoff
