@@ -83,13 +83,13 @@ const poolMetrics: PoolMetrics = {
 };
 
 // Create connection pool
-// Note: Using max: 1 for serverless environments to prevent connection exhaustion
+// max: 5 — enough for Vercel serverless concurrency without overwhelming the DB
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 1, // Reduced for serverless - prevents connection pool exhaustion
+  max: 5, // max: 5 — enough for Vercel serverless concurrency without overwhelming the DB
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
   statement_timeout: 10000, // 10 second query timeout to prevent long-running queries
 });
 
@@ -375,6 +375,19 @@ export const storage = {
             }
           } else {
             currentState = rawState;
+          }
+
+          // Duplicate player guard: if the update includes a players array, check
+          // whether any of the incoming players already exist in the current state.
+          // If all incoming players are already present, return existing state without writing.
+          if (updates.players && Array.isArray(updates.players) && Array.isArray(currentState.players)) {
+            const existingIds = new Set(currentState.players.map((p) => p.id));
+            const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
+            if (incomingNewPlayers.length === 0) {
+              // No new players to add — return existing state without a write
+              await client.query('ROLLBACK');
+              return currentState;
+            }
           }
 
           // Merge updates with current state

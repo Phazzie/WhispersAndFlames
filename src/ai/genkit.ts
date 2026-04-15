@@ -1,7 +1,6 @@
-import { googleAI } from '@genkit-ai/googleai';
+import { openAI } from 'genkitx-openai';
 import { genkit } from 'genkit';
 
-// Validate XAI API key is set
 const apiKey = process.env.XAI_API_KEY;
 if (!apiKey) {
   throw new Error(
@@ -11,9 +10,10 @@ if (!apiKey) {
 
 export const ai = genkit({
   plugins: [
-    googleAI({
+    openAI({
       apiKey,
+      baseURL: 'https://api.x.ai/v1',
     }),
   ],
-  model: 'googleai/gemini-2.5-flash',
+  model: 'openai/grok-3',
 });

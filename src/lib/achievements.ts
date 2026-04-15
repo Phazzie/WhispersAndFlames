@@ -189,7 +189,7 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
       const secretKeeperId = Array.from(secretMentions.entries()).reduce((a, b) =>
         a[1] > b[1] ? a : b
       )[0];
-      if (secretMentions.get(secretKeeperId) && secretMentions.get(secretKeeperId)! > 0) {
+      if ((secretMentions.get(secretKeeperId) || 0) > 0) {
         achievements.push({
           id: 'secret-keeper',
           name: 'Vault Cracker',
@@ -223,7 +223,7 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
       const emojiEnthusiastId = Array.from(emojiCounts.entries()).reduce((a, b) =>
         a[1] > b[1] ? a : b
       )[0];
-      if (emojiCounts.get(emojiEnthusiastId) && emojiCounts.get(emojiEnthusiastId)! >= 3) {
+      if ((emojiCounts.get(emojiEnthusiastId) || 0) >= 3) {
         achievements.push({
           id: 'emoji-enthusiast',
           name: 'Visual Storyteller',
@@ -252,7 +252,7 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
       const questionerId = Array.from(questionCounts.entries()).reduce((a, b) =>
         a[1] > b[1] ? a : b
       )[0];
-      if (questionCounts.get(questionerId) && questionCounts.get(questionerId)! >= 5) {
+      if ((questionCounts.get(questionerId) || 0) >= 5) {
         achievements.push({
           id: 'question-mark-addict',
           name: 'Curious Cat',

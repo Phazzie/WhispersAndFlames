@@ -2,6 +2,7 @@
  * Client-side game management utilities
  */
 
+import { POLL_INTERVAL_MS } from '@/lib/api-constants';
 import type { GameState } from './game-types';
 
 export const clientGame = {
@@ -117,8 +118,8 @@ export const clientGame = {
       })();
     };
 
-    // Poll for updates every 2 seconds
-    const intervalId = setInterval(poll, 2000);
+    // Poll for updates every POLL_INTERVAL_MS (centralized in api-constants.ts)
+    const intervalId = setInterval(poll, POLL_INTERVAL_MS);
 
     // Initial fetch
     poll();

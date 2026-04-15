@@ -10,6 +10,23 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+  // CSRF protection for game API POST routes
+  if (request.method === 'POST' && request.nextUrl.pathname.startsWith('/api/game/')) {
+    const origin = request.headers.get('origin');
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002';
+
+    // Allow same-origin, Vercel preview deployments, and localhost in dev
+    const isAllowedOrigin =
+      !origin || // same-origin requests don't send Origin header
+      origin === appUrl ||
+      /\.vercel\.app$/.test(origin) ||
+      (process.env.NODE_ENV === 'development' && /^http:\/\/localhost/.test(origin));
+
+    if (!isAllowedOrigin) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+  }
+
   // Protect all routes except public ones
   if (!isPublicRoute(request)) {
     await auth.protect();

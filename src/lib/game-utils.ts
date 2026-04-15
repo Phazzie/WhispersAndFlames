@@ -66,9 +66,6 @@ export function applyChaosMode(
     }
 
     const randomValue = Math.random();
-    if (randomValue > 0.2) {
-      return { level: baseLevel, wasUpgraded: false };
-    }
 
     const levels: Array<'Mild' | 'Medium' | 'Hot' | 'Extra-Hot'> = [
       'Mild',
@@ -83,13 +80,13 @@ export function applyChaosMode(
       return { level: baseLevel, wasUpgraded: false };
     }
 
-    if (currentIndex === levels.length - 1) {
-      return { level: baseLevel, wasUpgraded: false };
+    if (randomValue > 0.8 && currentIndex < levels.length - 1) {
+      const upgradedLevel = levels[currentIndex + 1];
+      console.log(`[ChaosMode] Upgraded ${baseLevel} to ${upgradedLevel}`);
+      return { level: upgradedLevel, wasUpgraded: true };
     }
 
-    const upgradedLevel = levels[currentIndex + 1];
-    console.log(`[ChaosMode] Upgraded ${baseLevel} to ${upgradedLevel}`);
-    return { level: upgradedLevel, wasUpgraded: true };
+    return { level: baseLevel, wasUpgraded: false };
   } catch (error) {
     console.error('[ChaosMode] Error applying chaos mode:', error);
     return { level: baseLevel, wasUpgraded: false };
