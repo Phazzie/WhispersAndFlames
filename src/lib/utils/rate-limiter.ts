@@ -94,6 +94,9 @@ class RateLimiter {
 export const rateLimiter = new RateLimiter(30, 1);
 
 export function getRateLimitIdentifier(request: Request): string {
+  // IP is read from x-forwarded-for. This is safe on Vercel (they strip
+  // spoofed headers before forwarding) but would need hardening for
+  // self-hosted deployments. See: https://vercel.com/docs/edge-network/headers
   // Try to get IP from various headers
   const forwarded = request.headers.get('x-forwarded-for');
   const realIp = request.headers.get('x-real-ip');
