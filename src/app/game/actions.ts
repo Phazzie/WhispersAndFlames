@@ -9,6 +9,7 @@ import {
   GenerateContextualQuestionsInput,
 } from '@/ai/flows/generate-contextual-questions';
 import { generateTherapistNotes, TherapistNotesInput } from '@/ai/flows/generate-therapist-notes';
+import { AI_TIMEOUT_MS, AI_MAX_RETRIES, AI_BACKOFF_BASE_MS } from '@/lib/api-constants';
 import { generateSessionImage } from '@/lib/image-generation';
 
 const FALLBACK_QUESTIONS = [
@@ -16,7 +17,7 @@ const FALLBACK_QUESTIONS = [
   'Describe a specific moment when you felt completely understood by your partner.',
   'If you could relive one moment from your relationship in perfect detail, which would it be and why?',
   "What's something your partner does unconsciously that you find irresistible?",
-  "Tell your partner about a time they made you feel truly seen — what were they doing?",
+  'Tell your partner about a time they made you feel truly seen — what were they doing?',
   "What's one thing about your partner's personality that surprised you as you got to know them?",
   'Describe the exact moment you knew this relationship was something different.',
   "What's a small, everyday thing your partner does that you never want to take for granted?",
@@ -29,7 +30,7 @@ function getFallbackQuestion(): string {
 }
 
 async function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -59,10 +60,10 @@ export async function generateQuestionAction(
   try {
     if (isDev) console.log('[AI] Starting question generation...');
 
-    // Retry up to 3 times
-    for (let i = 0; i < 3; i++) {
+    // Retry up to AI_MAX_RETRIES times
+    for (let i = 0; i < AI_MAX_RETRIES; i++) {
       try {
-        const result = await withTimeout(generateContextualQuestions(input), 8000); // 8-second timeout
+        const result = await withTimeout(generateContextualQuestions(input), AI_TIMEOUT_MS);
         if (result.question && result.question.length >= 20 && result.question.length <= 500) {
           if (isDev) {
             const elapsed = Date.now() - startTime;
@@ -72,11 +73,11 @@ export async function generateQuestionAction(
         }
       } catch (error) {
         console.error(`AI question generation attempt ${i + 1} failed:`, error);
-        if (i === 2) {
+        if (i === AI_MAX_RETRIES - 1) {
           // Last attempt failed
           throw new Error('AI service is currently unavailable after multiple attempts.');
         }
-        if (i < 2) await sleep(Math.pow(2, i) * 200);
+        if (i < AI_MAX_RETRIES - 1) await sleep(Math.pow(2, i) * AI_BACKOFF_BASE_MS);
       }
     }
     // This part should be unreachable, but as a safeguard:
@@ -95,16 +96,16 @@ export async function generateQuestionAction(
 export async function analyzeAndSummarizeAction(
   input: AnalyzeAnswersInput
 ): Promise<{ summary: string } | { error: string }> {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < AI_MAX_RETRIES; attempt++) {
     try {
-      const result = await withTimeout(analyzeAnswersAndGenerateSummary(input), 8000);
+      const result = await withTimeout(analyzeAnswersAndGenerateSummary(input), AI_TIMEOUT_MS);
       if (result.summary && result.summary.length >= 100) {
         return { summary: result.summary };
       }
     } catch (error) {
       const isDev = process.env.NODE_ENV === 'development';
       if (isDev) console.error(`Summary attempt ${attempt + 1} failed:`, error);
-      if (attempt < 2) await sleep(Math.pow(2, attempt) * 200);
+      if (attempt < AI_MAX_RETRIES - 1) await sleep(Math.pow(2, attempt) * AI_BACKOFF_BASE_MS);
     }
   }
   return { error: 'Failed to generate summary after multiple attempts.' };
@@ -113,16 +114,16 @@ export async function analyzeAndSummarizeAction(
 export async function generateTherapistNotesAction(
   input: TherapistNotesInput
 ): Promise<{ notes: string } | { error: string }> {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < AI_MAX_RETRIES; attempt++) {
     try {
-      const result = await withTimeout(generateTherapistNotes(input), 8000);
+      const result = await withTimeout(generateTherapistNotes(input), AI_TIMEOUT_MS);
       if (result.notes && result.notes.length >= 100) {
         return { notes: result.notes };
       }
     } catch (error) {
       const isDev = process.env.NODE_ENV === 'development';
       if (isDev) console.error(`Therapist notes attempt ${attempt + 1} failed:`, error);
-      if (attempt < 2) await sleep(Math.pow(2, attempt) * 200);
+      if (attempt < AI_MAX_RETRIES - 1) await sleep(Math.pow(2, attempt) * AI_BACKOFF_BASE_MS);
     }
   }
   return { error: 'Could not generate therapist notes at this time. Please try again later.' };
@@ -133,11 +134,11 @@ export async function generateVisualMemoryAction(
   spicyLevel: string,
   sharedThemes: string[]
 ): Promise<{ imageUrl: string; prompt: string } | { error: string }> {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < AI_MAX_RETRIES; attempt++) {
     try {
       const result = await withTimeout(
         generateSessionImage(summary, spicyLevel, sharedThemes),
-        8000
+        AI_TIMEOUT_MS
       );
       if (result !== null) {
         return result;
@@ -145,7 +146,7 @@ export async function generateVisualMemoryAction(
     } catch (error) {
       const isDev = process.env.NODE_ENV === 'development';
       if (isDev) console.error(`Visual memory attempt ${attempt + 1} failed:`, error);
-      if (attempt < 2) await sleep(Math.pow(2, attempt) * 200);
+      if (attempt < AI_MAX_RETRIES - 1) await sleep(Math.pow(2, attempt) * AI_BACKOFF_BASE_MS);
     }
   }
   return { error: 'Could not generate visual memory at this time. Please try again later.' };
