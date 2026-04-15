@@ -18,7 +18,7 @@ export class OnlineGameAdapter implements GameAdapter {
   async update(roomCode: string, updates: Partial<GameState>): Promise<GameState> {
     throw new Error('Not implemented');
   }
-  subscribe(roomCode: string, callback: (game: GameState) => void) {
+  subscribe(roomCode: string, callback: (game: GameState) => void): { unsubscribe: () => void } {
     throw new Error('Not implemented');
   }
 }
@@ -31,7 +31,7 @@ export class LocalGameAdapter implements GameAdapter {
   async update(roomCode: string, updates: Partial<GameState>): Promise<GameState> {
     throw new Error('Not implemented');
   }
-  subscribe(roomCode: string, callback: (game: GameState) => void) {
+  subscribe(roomCode: string, callback: (game: GameState) => void): { unsubscribe: () => void } {
     throw new Error('Not implemented');
   }
 }
