@@ -37,7 +37,7 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 
 ### Core Features
 
-- **AI-Powered Questions**: Google Gemini via Genkit generates contextual questions
+- **AI-Powered Questions**: xAI Grok via Genkit generates contextual questions
 - **Authentication**: Clerk for user management and session protection
 - **Database**: PostgreSQL with automatic in-memory fallback for development
 - **Real-time Updates**: Polling-based game state synchronization (2s intervals)
@@ -75,8 +75,8 @@ Each step is a separate component in `src/app/game/[roomCode]/steps/`
 ### AI/ML
 
 - **Genkit 1.14.1** - Google's AI framework for flows
-- **@genkit-ai/googleai** - Google Gemini 2.5 Flash integration
-- **XAI API** - Primary AI provider (requires `XAI_API_KEY`)
+- **genkitx-openai** - xAI Grok integration via OpenAI-compatible API
+- **xAI Grok** — Primary AI provider via `genkitx-openai` plugin (requires `XAI_API_KEY`)
 
 ### Database & Storage
 
@@ -366,7 +366,7 @@ try {
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk authentication (required)
 - `CLERK_SECRET_KEY` - Clerk authentication (required)
-- `XAI_API_KEY` or `GEMINI_API_KEY` - At least one AI provider (optional)
+- `XAI_API_KEY` - xAI API key for Grok models — get from https://console.x.ai/
 - `DATABASE_URL` - PostgreSQL connection (optional, falls back to in-memory)
 - `NEXT_PUBLIC_APP_URL` - Application URL (defaults to localhost:9002)
 
@@ -1044,7 +1044,7 @@ console.log('Pool waiting:', pool.waitingCount);
 
 | File                                                   | Purpose                          |
 | ------------------------------------------------------ | -------------------------------- |
-| `src/ai/genkit.ts`                                     | Genkit configuration             |
+| `src/ai/genkit.ts`                                     | Genkit configuration — uses genkitx-openai plugin pointing to xAI Grok |
 | `src/ai/flows/generate-contextual-questions.ts`        | Question generation              |
 | `src/ai/flows/analyze-answers-and-generate-summary.ts` | Summary generation               |
 | `src/ai/flows/shared-utils.ts`                         | Prompt injection prevention      |
