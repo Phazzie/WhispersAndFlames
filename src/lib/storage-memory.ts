@@ -114,6 +114,17 @@ export const storage = {
       const game = games.get(roomCode);
       if (!game) return undefined;
 
+      // Duplicate player guard: if the update includes a players array, prevent
+      // duplicate entries from concurrent join requests reaching the storage layer.
+      if (updates.players && Array.isArray(updates.players) && Array.isArray(game.players)) {
+        const existingIds = new Set(game.players.map((p) => p.id));
+        const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
+        if (incomingNewPlayers.length === 0) {
+          // No new players to add — return existing game state without modification
+          return game;
+        }
+      }
+
       const updated = { ...game, ...updates };
       games.set(roomCode, updated);
 

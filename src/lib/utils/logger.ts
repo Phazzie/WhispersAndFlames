@@ -129,6 +129,7 @@ class Logger {
    * Error level logging
    */
   error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
+    // TODO: wire up error monitoring here — e.g. Sentry.captureException(error, { extra: context })
     const logEntry = this.formatLog('error', message, context);
 
     if (error instanceof Error) {
