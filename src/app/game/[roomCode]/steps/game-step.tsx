@@ -107,7 +107,9 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
           try {
             const summaryResult = await analyzeAndSummarizeAction({
               questions: gameState.gameRounds.map((r) => r.question),
-              answers: gameState.gameRounds.flatMap((r) => Object.values(r.answers)),
+              answers: gameState.gameRounds
+                .flatMap((r) => Object.values(r.answers))
+                .filter((a) => typeof a === 'string' && a.trim().length > 0),
               categories: gameState.commonCategories,
               spicyLevel: gameState.finalSpicyLevel,
               playerCount: gameState.players.length,

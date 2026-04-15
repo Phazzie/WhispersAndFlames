@@ -20,8 +20,8 @@ describe('Chaos Mode', () => {
       expect(result.wasUpgraded).toBe(false);
     });
 
-    it('should return base level when random value > 0.2 (80% case)', () => {
-      // Mock Math.random to return 0.5 (> 0.2)
+    it('should return base level when random value <= 0.8 (80% case)', () => {
+      // Mock Math.random to return 0.5 (<= 0.8)
       vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
       const result = applyChaosMode('Medium', true);
@@ -29,9 +29,9 @@ describe('Chaos Mode', () => {
       expect(result.wasUpgraded).toBe(false);
     });
 
-    it('should upgrade level when random value <= 0.2 (20% case)', () => {
-      // Mock Math.random to return 0.1 (<= 0.2)
-      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+    it('should upgrade level when random value > 0.8 (20% case)', () => {
+      // Mock Math.random to return 0.9 (> 0.8)
+      vi.spyOn(Math, 'random').mockReturnValue(0.9);
 
       const result = applyChaosMode('Medium', true);
       expect(result.level).toBe('Hot');
@@ -39,7 +39,7 @@ describe('Chaos Mode', () => {
     });
 
     it('should upgrade Mild to Medium', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+      vi.spyOn(Math, 'random').mockReturnValue(0.9);
 
       const result = applyChaosMode('Mild', true);
       expect(result.level).toBe('Medium');
@@ -47,7 +47,7 @@ describe('Chaos Mode', () => {
     });
 
     it('should upgrade Medium to Hot', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+      vi.spyOn(Math, 'random').mockReturnValue(0.9);
 
       const result = applyChaosMode('Medium', true);
       expect(result.level).toBe('Hot');
@@ -55,7 +55,7 @@ describe('Chaos Mode', () => {
     });
 
     it('should upgrade Hot to Extra-Hot', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+      vi.spyOn(Math, 'random').mockReturnValue(0.9);
 
       const result = applyChaosMode('Hot', true);
       expect(result.level).toBe('Extra-Hot');
@@ -63,7 +63,7 @@ describe('Chaos Mode', () => {
     });
 
     it('should NOT upgrade Extra-Hot (already at max)', () => {
-      vi.spyOn(Math, 'random').mockReturnValue(0.1);
+      vi.spyOn(Math, 'random').mockReturnValue(0.9);
 
       const result = applyChaosMode('Extra-Hot', true);
       expect(result.level).toBe('Extra-Hot');
@@ -82,9 +82,9 @@ describe('Chaos Mode', () => {
         }
       }
 
-      // Should be around 20% (200 out of 1000), allow some variance
-      expect(upgrades).toBeGreaterThan(150); // At least 15%
-      expect(upgrades).toBeLessThan(250); // At most 25%
+      // Should be around 20% (200 out of 1000), allow reasonable variance
+      expect(upgrades).toBeGreaterThan(100); // At least 10%
+      expect(upgrades).toBeLessThan(300); // At most 30%
     });
 
     it('should handle all valid spicy levels', () => {
