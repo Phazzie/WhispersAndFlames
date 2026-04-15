@@ -8,16 +8,33 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_ANSWER_LENGTH,
 } from '@/lib/api-constants';
-import type { GameState } from '@/lib/game-types';
+import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
 const updateGameSchema = z.object({
-  roomCode: z.string().min(4),
-  // #TODO: Improve type safety here. z.any() allows anything. Define a strict schema for GameState updates.
-  // See #TODO.md "Code Quality" section.
-  updates: z.record(z.any()),
+  roomCode: z.string().min(4).max(8),
+  updates: z
+    .object({
+      step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
+      players: z.array(z.any()).optional(),
+      playerIds: z.array(z.string()).optional(),
+      gameMode: z.enum(['online', 'local']).optional(),
+      currentPlayerIndex: z.number().int().min(0).optional(),
+      commonCategories: z.array(z.string()).optional(),
+      finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
+      chaosMode: z.boolean().optional(),
+      gameRounds: z.array(z.any()).optional(),
+      currentQuestion: z.string().optional(),
+      currentQuestionIndex: z.number().int().min(0).optional(),
+      totalQuestions: z.number().int().min(0).optional(),
+      summary: z.string().optional(),
+      visualMemories: z.array(z.any()).optional(),
+      imageGenerationCount: z.number().int().min(0).optional(),
+      hostId: z.string().optional(),
+    })
+    .strict(),
 });
 
 export async function POST(request: Request) {
@@ -62,8 +79,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify user is in the game
-    if (!game.playerIds.includes(userId)) {
+    // Verify the authenticated user is a participant in this game
+    const isParticipant = game.players.some((p: Player) => p.id === userId);
+    if (!isParticipant) {
       logger.warn('Unauthorized game update attempt', { roomCode, userId });
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'Not in this game' } },

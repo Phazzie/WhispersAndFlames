@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { MAX_REQUEST_SIZE, RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS } from '@/lib/api-constants';
 import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
+import type { Player } from '@/lib/game-types';
 import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
@@ -70,6 +71,12 @@ export async function POST(request: Request) {
     if (game.playerIds.includes(userId)) {
       logger.info('User already in game', { roomCode, userId });
       return NextResponse.json({ game }, { status: 200 });
+    }
+
+    // Idempotency: if user already in game (check players array to guard against race conditions), return current state
+    const existingPlayer = game.players.find((p: Player) => p.id === userId);
+    if (existingPlayer) {
+      return NextResponse.json({ game });
     }
 
     // Add player to game
