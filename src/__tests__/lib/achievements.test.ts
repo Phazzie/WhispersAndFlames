@@ -341,9 +341,16 @@ describe('Achievement System', () => {
   });
 
   describe('error handling', () => {
-    it('should return empty array when players is null/undefined', () => {
+    it('should return empty array when players is null', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const gameState = createMockGameState({ players: null as any });
+      const achievements = calculateAchievements(gameState);
+      expect(achievements).toHaveLength(0);
+    });
+
+    it('should return empty array when players is undefined', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const gameState = createMockGameState({ players: undefined as any });
       const achievements = calculateAchievements(gameState);
       expect(achievements).toHaveLength(0);
     });

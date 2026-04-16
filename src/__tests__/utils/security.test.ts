@@ -203,21 +203,21 @@ describe('truncateInput', () => {
 describe('checkRateLimit', () => {
   // We use unique identifiers per test to avoid cross-test state pollution
   // since the module-level rateLimitStore persists across tests.
-  const makeId = (label: string) => `test-${label}-${Date.now()}-${Math.random()}`;
+  const generateTestId = (label: string) => `test-${label}-${Date.now()}-${Math.random()}`;
 
   it('should allow the first request', () => {
-    expect(checkRateLimit(makeId('first'), 5, 60000)).toBe(true);
+    expect(checkRateLimit(generateTestId('first'), 5, 60000)).toBe(true);
   });
 
   it('should allow requests up to the limit', () => {
-    const id = makeId('up-to-limit');
+    const id = generateTestId('up-to-limit');
     for (let i = 0; i < 5; i++) {
       expect(checkRateLimit(id, 5, 60000)).toBe(true);
     }
   });
 
   it('should block requests exceeding the limit', () => {
-    const id = makeId('exceed');
+    const id = generateTestId('exceed');
     for (let i = 0; i < 5; i++) {
       checkRateLimit(id, 5, 60000);
     }
@@ -226,7 +226,7 @@ describe('checkRateLimit', () => {
 
   it('should reset after the window expires', () => {
     vi.useFakeTimers();
-    const id = makeId('window-reset');
+    const id = generateTestId('window-reset');
 
     // Exhaust the limit
     for (let i = 0; i < 3; i++) {
@@ -243,8 +243,8 @@ describe('checkRateLimit', () => {
   });
 
   it('should track different identifiers independently', () => {
-    const id1 = makeId('independent-a');
-    const id2 = makeId('independent-b');
+    const id1 = generateTestId('independent-a');
+    const id2 = generateTestId('independent-b');
 
     // Exhaust id1
     for (let i = 0; i < 3; i++) {
@@ -258,14 +258,14 @@ describe('checkRateLimit', () => {
 
   it('should run deterministic cleanup after the cleanup interval', () => {
     vi.useFakeTimers();
-    const id = makeId('cleanup');
+    const id = generateTestId('cleanup');
     checkRateLimit(id, 5, 60000);
 
     // Advance past both the window and the cleanup interval
     vi.advanceTimersByTime(120000);
 
     // A new request to any identifier should trigger cleanup
-    const triggerId = makeId('trigger-cleanup');
+    const triggerId = generateTestId('trigger-cleanup');
     expect(checkRateLimit(triggerId, 5, 60000)).toBe(true);
 
     // The original entry should now reset (expired → lazy cleaned on access)

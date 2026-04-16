@@ -436,17 +436,30 @@ describe('In-Memory Storage', () => {
     });
 
     it('should trigger opportunistic cleanup when Math.random() < 0.1', async () => {
+      vi.useFakeTimers();
+      const baseTime = Date.now();
+      vi.setSystemTime(baseTime);
+
+      // Create a session that will expire
+      const userId = `cleanup-user-${baseTime}`;
+      const expiredToken = await memoryStorage.sessions.create(userId);
+
+      // Advance time by 8 days so this session expires
+      vi.setSystemTime(baseTime + 8 * 24 * 60 * 60 * 1000);
+
       // Mock random to always trigger cleanup
       const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.05);
 
-      const userId = `cleanup-user-${Date.now()}`;
-      const token = await memoryStorage.sessions.create(userId);
+      // Create a new session — this triggers opportunistic cleanup of the expired one
+      const newUserId = `cleanup-new-${baseTime}`;
+      await memoryStorage.sessions.create(newUserId);
 
-      // Token should still be valid (cleanup only removes expired ones)
-      const result = await memoryStorage.sessions.validate(token);
-      expect(result).toBe(userId);
+      // The expired session should now be invalid
+      const result = await memoryStorage.sessions.validate(expiredToken);
+      expect(result).toBeNull();
 
       mockRandom.mockRestore();
+      vi.useRealTimers();
     });
   });
 });

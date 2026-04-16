@@ -214,6 +214,8 @@ describe('Image Generation', () => {
       const decoded = Buffer.from(result!.imageUrl.split(',')[1], 'base64').toString();
       // Raw <script> tag must not appear literally in the SVG output
       expect(decoded).not.toContain('<script>');
+      // The word "script" should still appear (as escaped text, not a tag)
+      expect(decoded).toContain('script');
     });
   });
 });
