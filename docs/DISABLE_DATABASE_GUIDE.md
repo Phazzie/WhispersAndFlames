@@ -98,7 +98,7 @@ When the app starts, look for these messages in the server logs:
 In production, these appear as structured JSON:
 
 ```json
-{"timestamp":"...","level":"info","message":"Using in-memory storage","context":{"reason":"database explicitly disabled via DISABLE_DATABASE"}}
+{"timestamp":"...","message":"Using in-memory storage","context":{"app":"...","env":"production","module":"...","reason":"database explicitly disabled via DISABLE_DATABASE"}}
 ```
 
 ### Check Health Endpoint
