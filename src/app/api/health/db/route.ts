@@ -12,6 +12,26 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
+    // Check if database is explicitly disabled
+    if (process.env.DISABLE_DATABASE === 'true') {
+      return NextResponse.json(
+        {
+          database: {
+            status: 'disabled',
+            message: 'Database explicitly disabled via DISABLE_DATABASE - using in-memory storage',
+            timestamp: new Date().toISOString(),
+          },
+          storageMode: 'memory',
+          checks: {
+            connectivity: false,
+            performance: false,
+            poolHealth: false,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
     // Check if DATABASE_URL is configured
     if (!process.env.DATABASE_URL) {
       return NextResponse.json(
@@ -34,9 +54,7 @@ export async function GET() {
 
     // Dynamic import only when DATABASE_URL exists
     const { pool, getPoolMetrics } = await import('@/lib/storage-pg');
-    const { checkDatabaseHealth, getPoolStats } = await import(
-      '@/lib/utils/db-health'
-    );
+    const { checkDatabaseHealth, getPoolStats } = await import('@/lib/utils/db-health');
 
     // Perform comprehensive health check
     const health = await checkDatabaseHealth(pool, 5000);

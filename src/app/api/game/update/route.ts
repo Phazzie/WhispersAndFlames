@@ -13,28 +13,55 @@ import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
 
-const updateGameSchema = z.object({
+const GameStepSchema = z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']);
+const GameModeSchema = z.enum(['online', 'local']);
+const SpicyLevelNameSchema = z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']);
+
+const PlayerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isReady: z.boolean(),
+  email: z.string(),
+  selectedCategories: z.array(z.string()),
+  selectedSpicyLevel: SpicyLevelNameSchema.optional(),
+});
+
+const GameRoundSchema = z.object({
+  question: z.string(),
+  answers: z.record(z.string(), z.string()),
+});
+
+const VisualMemorySchema = z.object({
+  imageUrl: z.string().url(),
+  prompt: z.string(),
+  timestamp: z.number(),
+});
+
+export const GameStateSchema = z.object({
+  step: GameStepSchema,
+  players: z.array(PlayerSchema),
+  playerIds: z.array(z.string()),
+  hostId: z.string(),
+  gameMode: GameModeSchema,
+  currentPlayerIndex: z.number().int().min(0).optional(),
+  commonCategories: z.array(z.string()),
+  finalSpicyLevel: SpicyLevelNameSchema,
+  chaosMode: z.boolean(),
+  gameRounds: z.array(GameRoundSchema),
+  currentQuestion: z.string(),
+  currentQuestionIndex: z.number().int().min(0),
+  totalQuestions: z.number().int().min(0),
+  summary: z.string(),
+  visualMemories: z.array(VisualMemorySchema).optional(),
+  imageGenerationCount: z.number().int().min(0),
+  roomCode: z.string(),
+  createdAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+});
+
+export const updateGameSchema = z.object({
   roomCode: z.string().min(4).max(8),
-  updates: z
-    .object({
-      step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
-      players: z.array(z.any()).optional(),
-      playerIds: z.array(z.string()).optional(),
-      gameMode: z.enum(['online', 'local']).optional(),
-      currentPlayerIndex: z.number().int().min(0).optional(),
-      commonCategories: z.array(z.string()).optional(),
-      finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
-      chaosMode: z.boolean().optional(),
-      gameRounds: z.array(z.any()).optional(),
-      currentQuestion: z.string().optional(),
-      currentQuestionIndex: z.number().int().min(0).optional(),
-      totalQuestions: z.number().int().min(0).optional(),
-      summary: z.string().optional(),
-      visualMemories: z.array(z.any()).optional(),
-      imageGenerationCount: z.number().int().min(0).optional(),
-      hostId: z.string().optional(),
-    })
-    .strict(),
+  updates: GameStateSchema.partial().strict(),
 });
 
 export async function POST(request: Request) {
@@ -93,20 +120,14 @@ export async function POST(request: Request) {
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        const roundRecord = round as Record<string, unknown>;
-        if (roundRecord.answers && typeof roundRecord.answers === 'object') {
+        if (round && round.answers) {
           const sanitizedAnswers: Record<string, string> = {};
           for (const [playerId, answer] of Object.entries(
-            roundRecord.answers as Record<string, unknown>
+            round.answers as Record<string, string>
           )) {
-            if (typeof answer === 'string') {
-              // Truncate to prevent DoS and sanitize HTML
-              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-            } else {
-              sanitizedAnswers[playerId] = answer as string;
-            }
+            sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
           }
-          return { ...roundRecord, answers: sanitizedAnswers };
+          return { ...round, answers: sanitizedAnswers };
         }
         return round;
       });

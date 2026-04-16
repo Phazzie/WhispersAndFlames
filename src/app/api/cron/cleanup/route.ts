@@ -16,6 +16,8 @@
 
 import { NextResponse } from 'next/server';
 
+import { logger } from '@/lib/utils/logger';
+
 export async function GET(request: Request) {
   try {
     // Verify cron secret for security
@@ -23,10 +25,13 @@ export async function GET(request: Request) {
     const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
 
     if (!process.env.CRON_SECRET) {
-      console.error('❌ CRON_SECRET not set - refusing to process unprotected cron endpoint!');
+      logger.error('CRON_SECRET not set - refusing to process unprotected cron endpoint!');
       return NextResponse.json({ error: 'Forbidden: CRON_SECRET not set' }, { status: 403 });
     } else if (authHeader !== expectedAuth) {
-      console.error('❌ Unauthorized cron request');
+      logger.warn('Unauthorized cron request attempt', {
+        hasAuthHeader: Boolean(authHeader),
+        scheme: authHeader?.split(' ')[0] ?? 'none',
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -51,7 +56,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('❌ Cron cleanup failed:', error);
+    logger.error('Cron cleanup failed', error instanceof Error ? error : undefined);
 
     return NextResponse.json(
       {
