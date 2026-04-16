@@ -6,6 +6,9 @@
 import { Pool } from 'pg';
 
 import type { GameState } from './game-types';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('storage-pg');
 
 // Exponential backoff retry utility
 async function withRetry<T>(
@@ -56,10 +59,12 @@ function safeJsonParse<T>(jsonString: string, fallback: T): T {
     if (parsed && typeof parsed === 'object') {
       return parsed as T;
     }
-    console.error('JSON parse resulted in non-object value');
+    logger.error('JSON parse resulted in non-object value', undefined, { jsonString });
     return fallback;
   } catch (error) {
-    console.error('Failed to parse JSON:', error);
+    logger.error('Failed to parse JSON', error instanceof Error ? error : undefined, {
+      jsonString,
+    });
     return fallback;
   }
 }
@@ -86,7 +91,14 @@ const poolMetrics: PoolMetrics = {
 // max: 5 — enough for Vercel serverless concurrency without overwhelming the DB
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // SECURITY: SSL certificate validation enabled by default in production
+  // Only disable if explicitly set via DISABLE_SSL_VALIDATION=true (not recommended)
+  ssl:
+    process.env.NODE_ENV === 'production'
+      ? {
+          rejectUnauthorized: process.env.DISABLE_SSL_VALIDATION !== 'true',
+        }
+      : false,
   max: 5, // max: 5 — enough for Vercel serverless concurrency without overwhelming the DB
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
@@ -97,20 +109,22 @@ const pool = new Pool({
 pool.on('connect', (_client) => {
   poolMetrics.connectionAttempts++;
   poolMetrics.lastConnectionTime = Date.now();
-  console.log('✅ New database connection established');
+  logger.debug('New database connection established', {
+    totalAttempts: poolMetrics.connectionAttempts,
+  });
 });
 
 pool.on('error', (err, _client) => {
   poolMetrics.connectionErrors++;
-  console.error('❌ Unexpected database error on idle client:', err);
+  logger.error('Unexpected database error on idle client', err instanceof Error ? err : undefined);
 });
 
 pool.on('acquire', (_client) => {
-  console.log('🔒 Connection acquired from pool');
+  logger.debug('Connection acquired from pool');
 });
 
 pool.on('remove', (_client) => {
-  console.log('🗑️  Connection removed from pool');
+  logger.debug('Connection removed from pool');
 });
 
 // Function to get current pool metrics
@@ -176,7 +190,7 @@ export async function initSchema() {
       END;
       $$ LANGUAGE plpgsql;
     `);
-    console.log('✅ Database schema initialized successfully');
+    logger.info('Database schema initialized successfully');
   } finally {
     client.release();
   }
@@ -189,12 +203,12 @@ export async function cleanupExpiredData(): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('SELECT cleanup_expired_data()');
-      console.log('✅ Database cleanup completed successfully');
+      logger.info('Database cleanup completed successfully');
     } finally {
       client.release();
     }
   } catch (err) {
-    console.error('❌ Database cleanup failed:', err);
+    logger.error('Database cleanup failed', err instanceof Error ? err : undefined);
     throw err;
   }
 }
@@ -406,7 +420,11 @@ export const storage = {
         } catch (err) {
           // Rollback on any error
           await client.query('ROLLBACK');
-          console.error('Transaction error in games.update:', err);
+          logger.error(
+            'Transaction error in games.update',
+            err instanceof Error ? err : undefined,
+            { roomCode }
+          );
           throw err;
         } finally {
           client.release();

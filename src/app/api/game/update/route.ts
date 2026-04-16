@@ -21,18 +21,18 @@ const PlayerSchema = z.object({
   id: z.string(),
   name: z.string(),
   isReady: z.boolean(),
-  email: z.string(),
+  email: z.string().email(),
   selectedCategories: z.array(z.string()),
   selectedSpicyLevel: SpicyLevelNameSchema.optional(),
 });
 
 const GameRoundSchema = z.object({
   question: z.string(),
-  answers: z.record(z.string()),
+  answers: z.record(z.string(), z.string()),
 });
 
 const VisualMemorySchema = z.object({
-  imageUrl: z.string(),
+  imageUrl: z.string().url(),
   prompt: z.string(),
   timestamp: z.number(),
 });
