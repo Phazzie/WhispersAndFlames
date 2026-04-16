@@ -21,7 +21,7 @@ const PlayerSchema = z.object({
   id: z.string(),
   name: z.string(),
   isReady: z.boolean(),
-  email: z.string().email(),
+  email: z.string(),
   selectedCategories: z.array(z.string()),
   selectedSpicyLevel: SpicyLevelNameSchema.optional(),
 });

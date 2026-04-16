@@ -59,11 +59,15 @@ function safeJsonParse<T>(jsonString: string, fallback: T): T {
     if (parsed && typeof parsed === 'object') {
       return parsed as T;
     }
-    logger.error('JSON parse resulted in non-object value', undefined, { jsonString });
+    logger.error('JSON parse resulted in non-object value', undefined, {
+      jsonLength: jsonString.length,
+      jsonPreview: jsonString.slice(0, 50),
+    });
     return fallback;
   } catch (error) {
     logger.error('Failed to parse JSON', error instanceof Error ? error : undefined, {
-      jsonString,
+      jsonLength: jsonString.length,
+      jsonPreview: jsonString.slice(0, 50),
     });
     return fallback;
   }
@@ -394,7 +398,11 @@ export const storage = {
           // Duplicate player guard: if the update includes a players array, check
           // whether any of the incoming players already exist in the current state.
           // If all incoming players are already present, return existing state without writing.
-          if (updates.players && Array.isArray(updates.players) && Array.isArray(currentState.players)) {
+          if (
+            updates.players &&
+            Array.isArray(updates.players) &&
+            Array.isArray(currentState.players)
+          ) {
             const existingIds = new Set(currentState.players.map((p) => p.id));
             const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
             if (incomingNewPlayers.length === 0) {
