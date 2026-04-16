@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+const { mockRateLimitCheck } = vi.hoisted(() => ({
+  mockRateLimitCheck: vi.fn(),
+}));
 
 // Mock Clerk auth before importing route
 vi.mock('@clerk/nextjs/server', () => ({
@@ -16,10 +19,16 @@ vi.mock('@/lib/storage-adapter', () => ({
   },
 }));
 
-// Mock security utilities to control rate limiting
+// Mock rate limiter utilities to control rate limiting
+vi.mock('@/lib/utils/rate-limiter', () => ({
+  getRateLimitIdentifier: vi.fn().mockReturnValue('127.0.0.1'),
+  RateLimiter: class {
+    check = mockRateLimitCheck;
+  },
+}));
+
+// Mock security utilities
 vi.mock('@/lib/utils/security', () => ({
-  checkRateLimit: vi.fn().mockReturnValue(true),
-  getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
   sanitizeHtml: vi.fn((s: string) => s),
   truncateInput: vi.fn((s: string) => s),
 }));
@@ -31,18 +40,23 @@ vi.mock('@/lib/utils/logger', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   },
+  createLogger: vi.fn().mockReturnValue({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  }),
 }));
 
 import { auth } from '@clerk/nextjs/server';
 import { storage } from '@/lib/storage-adapter';
-import { checkRateLimit, sanitizeHtml } from '@/lib/utils/security';
+import { sanitizeHtml } from '@/lib/utils/security';
 import { POST } from '@/app/api/game/update/route';
 import type { GameState } from '@/lib/game-types';
 
 const mockAuth = vi.mocked(auth);
 const mockGamesGet = vi.mocked(storage.games.get);
 const mockGamesUpdate = vi.mocked(storage.games.update);
-const mockCheckRateLimit = vi.mocked(checkRateLimit);
 
 function makeRequest(body: unknown): Request {
   const json = JSON.stringify(body);
@@ -88,7 +102,7 @@ describe('POST /api/game/update', () => {
     vi.clearAllMocks();
     // Restore defaults
     mockAuth.mockResolvedValue({ userId: 'test-user-id' } as Awaited<ReturnType<typeof auth>>);
-    mockCheckRateLimit.mockReturnValue(true);
+    mockRateLimitCheck.mockReturnValue({ allowed: true });
     mockGamesGet.mockResolvedValue(participantGame);
     mockGamesUpdate.mockResolvedValue(updatedGame);
   });
@@ -185,7 +199,7 @@ describe('POST /api/game/update', () => {
   });
 
   it('returns 429 when rate limit is exceeded', async () => {
-    mockCheckRateLimit.mockReturnValue(false);
+    mockRateLimitCheck.mockReturnValue({ allowed: false });
 
     const request = makeRequest({
       roomCode: 'ROOM-01',

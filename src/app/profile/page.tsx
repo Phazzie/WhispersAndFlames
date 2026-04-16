@@ -3,15 +3,49 @@
 import { useUser, useClerk } from '@clerk/nextjs';
 import { Loader2, Home, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { GameState } from '@/lib/game-types';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const [games, setGames] = useState<GameState[]>([]);
+  const [isLoadingGames, setIsLoadingGames] = useState(true);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  useEffect(() => {
+    const loadGames = async () => {
+      try {
+        const response = await fetch('/api/game/list', { credentials: 'include' });
+        if (!response.ok) {
+          throw new Error('Failed to load games');
+        }
+        const data = await response.json();
+        setGames(Array.isArray(data.games) ? data.games : []);
+      } catch {
+        setGames([]);
+      } finally {
+        setIsLoadingGames(false);
+      }
+    };
+
+    if (isLoaded && user) {
+      loadGames();
+    }
+  }, [isLoaded, user]);
 
   // Wait for Clerk to load
   if (!isLoaded) {
@@ -27,15 +61,6 @@ export default function ProfilePage() {
     router.push('/');
     return null;
   }
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.push('/');
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-amber-50 to-orange-50 p-4">
@@ -63,9 +88,7 @@ export default function ProfilePage() {
             <div className="space-y-2">
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">
-                  {user.emailAddresses[0]?.emailAddress || 'No email'}
-                </p>
+                <p className="font-medium">{user.emailAddresses[0]?.emailAddress || 'No email'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">User ID</p>
@@ -81,11 +104,36 @@ export default function ProfilePage() {
             <CardDescription>Your past and ongoing games</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground text-center py-8">
-              Game history will be available in a future update.
-              <br />
-              For now, games are stored in-memory only.
-            </p>
+            {isLoadingGames ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : games.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No games found yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {games.map((game) => (
+                  <div
+                    key={game.roomCode}
+                    className="rounded-lg border p-3 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium">{game.roomCode}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Step: {game.step} · Players: {game.players.length}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/game/${game.roomCode}`)}
+                    >
+                      Open
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

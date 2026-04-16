@@ -41,8 +41,15 @@ export function escapeHtml(input: string): string {
 export function sanitizePath(path: string): string {
   if (!path) return '';
 
+  let decodedPath = path;
+  try {
+    decodedPath = decodeURIComponent(path);
+  } catch {
+    return '';
+  }
+
   // Remove path traversal attempts
-  return path.replace(/\.\./g, '').replace(/\/\//g, '/').replace(/\\/g, '');
+  return decodedPath.replace(/\.\./g, '').replace(/\/\//g, '/').replace(/\\/g, '');
 }
 
 /**
@@ -78,88 +85,4 @@ export function truncateInput(input: string, maxLength: number = 10000): string 
   return input.length > maxLength ? input.substring(0, maxLength) : input;
 }
 
-/**
- * Rate limit check data structure
- */
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
-let lastCleanup = Date.now();
-const cleanupIntervalMs = 60000; // Cleanup every 60 seconds
-
-/**
- * Simple rate limiting implementation with deterministic cleanup
- * Returns true if request should be allowed, false if rate limited
- *
- * Changes from previous version:
- * - Replaced Math.random() < 0.01 with deterministic time-based cleanup
- * - Added lazy cleanup for expired entries on access
- * - Cleanup now runs every 60 seconds instead of probabilistically
- *
- * @param identifier - Unique identifier for the client (e.g., IP address)
- * @param maxRequests - Maximum number of requests allowed in the window
- * @param windowMs - Time window in milliseconds
- * @returns true if request is allowed, false if rate limited
- */
-export function checkRateLimit(
-  identifier: string,
-  maxRequests: number = 5,
-  windowMs: number = 60000
-): boolean {
-  const now = Date.now();
-  const entry = rateLimitStore.get(identifier);
-
-  // Deterministic cleanup: Run cleanup if enough time has passed since last cleanup
-  // This replaces the inefficient Math.random() < 0.01 approach
-  if (now - lastCleanup > cleanupIntervalMs) {
-    for (const [key, value] of rateLimitStore.entries()) {
-      if (value.resetTime < now) {
-        rateLimitStore.delete(key);
-      }
-    }
-    lastCleanup = now;
-  }
-
-  // Lazy cleanup: If the specific entry is expired, clean it immediately
-  if (entry && entry.resetTime < now) {
-    rateLimitStore.delete(identifier);
-  }
-
-  const currentEntry = rateLimitStore.get(identifier);
-
-  if (!currentEntry) {
-    // Create new entry or reset expired entry
-    rateLimitStore.set(identifier, {
-      count: 1,
-      resetTime: now + windowMs,
-    });
-    return true;
-  }
-
-  if (currentEntry.count >= maxRequests) {
-    return false; // Rate limit exceeded
-  }
-
-  currentEntry.count++;
-  return true;
-}
-
-/**
- * Get client IP from request headers (for rate limiting)
- */
-export function getClientIp(request: Request): string {
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    return forwardedFor.split(',')[0].trim();
-  }
-
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) {
-    return realIp;
-  }
-
-  return 'unknown';
-}
+// NOTE: Rate limiting helpers were moved to /lib/utils/rate-limiter.ts

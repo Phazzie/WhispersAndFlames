@@ -11,26 +11,49 @@ import {
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
+import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
+
+const updateGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS / 60000);
+
+const playerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  isReady: z.boolean(),
+  email: z.string(),
+  selectedCategories: z.array(z.string()),
+  selectedSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
+});
+
+const gameRoundSchema = z.object({
+  question: z.string(),
+  answers: z.record(z.string(), z.string()).default({}),
+});
+
+const visualMemorySchema = z.object({
+  imageUrl: z.string(),
+  prompt: z.string(),
+  timestamp: z.number().int().nonnegative(),
+});
 
 const updateGameSchema = z.object({
   roomCode: z.string().min(4).max(8),
   updates: z
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
-      players: z.array(z.any()).optional(),
+      players: z.array(playerSchema).optional(),
       playerIds: z.array(z.string()).optional(),
       gameMode: z.enum(['online', 'local']).optional(),
       currentPlayerIndex: z.number().int().min(0).optional(),
       commonCategories: z.array(z.string()).optional(),
       finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
       chaosMode: z.boolean().optional(),
-      gameRounds: z.array(z.any()).optional(),
+      gameRounds: z.array(gameRoundSchema).optional(),
       currentQuestion: z.string().optional(),
       currentQuestionIndex: z.number().int().min(0).optional(),
       totalQuestions: z.number().int().min(0).optional(),
       summary: z.string().optional(),
-      visualMemories: z.array(z.any()).optional(),
+      visualMemories: z.array(visualMemorySchema).optional(),
       imageGenerationCount: z.number().int().min(0).optional(),
       hostId: z.string().optional(),
     })
@@ -49,8 +72,9 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting: 60 updates per minute per IP (allows rapid gameplay)
-    const clientIp = getClientIp(request);
-    if (!checkRateLimit(`game-update:${clientIp}`, RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS)) {
+    const clientIp = getRateLimitIdentifier(request);
+    const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
         { status: 429 }
@@ -93,22 +117,11 @@ export async function POST(request: Request) {
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        const roundRecord = round as Record<string, unknown>;
-        if (roundRecord.answers && typeof roundRecord.answers === 'object') {
-          const sanitizedAnswers: Record<string, string> = {};
-          for (const [playerId, answer] of Object.entries(
-            roundRecord.answers as Record<string, unknown>
-          )) {
-            if (typeof answer === 'string') {
-              // Truncate to prevent DoS and sanitize HTML
-              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-            } else {
-              sanitizedAnswers[playerId] = answer as string;
-            }
-          }
-          return { ...roundRecord, answers: sanitizedAnswers };
+        const sanitizedAnswers: Record<string, string> = {};
+        for (const [playerId, answer] of Object.entries(round.answers || {})) {
+          sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
         }
-        return round;
+        return { ...round, answers: sanitizedAnswers };
       });
     }
 

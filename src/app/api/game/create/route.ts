@@ -2,14 +2,19 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import {
+  MAX_REQUEST_SIZE,
+  RATE_LIMIT_GAME_CREATE,
+  RATE_LIMIT_WINDOW_MS,
+} from '@/lib/api-constants';
 import type { GameState } from '@/lib/game-types';
 import { isValidRoomCode, normalizeRoomCode } from '@/lib/game-utils';
 import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { checkRateLimit, getClientIp } from '@/lib/utils/security';
+import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
 
-const MAX_REQUEST_SIZE = 1_000_000; // 1MB
+const createGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_CREATE, RATE_LIMIT_WINDOW_MS / 60000);
 
 const createGameSchema = z.object({
   roomCode: z
@@ -33,8 +38,9 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting: 10 game creations per minute per IP
-    const clientIp = getClientIp(request);
-    if (!checkRateLimit(`game-create:${clientIp}`, 10, 60000)) {
+    const clientIp = getRateLimitIdentifier(request);
+    const rateLimit = createGameRateLimiter.check(`game-create:${clientIp}`);
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: {

@@ -4,6 +4,9 @@
  */
 
 import { storage as memoryStorage } from './storage-memory';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('storage-adapter');
 
 // Use PostgreSQL if DATABASE_URL is available, otherwise fall back to in-memory
 const usePostgres = Boolean(process.env.DATABASE_URL);
@@ -24,19 +27,19 @@ if (usePostgres) {
     // Initialize database schema
     if (initSchema) {
       initSchema().catch((err: Error) => {
-        console.error('❌ Failed to initialize database schema:', err);
-        console.error('Falling back to in-memory storage may not be possible at runtime');
+        logger.error('Failed to initialize database schema', err);
+        logger.warn('Falling back to in-memory storage may not be possible at runtime');
       });
     }
 
-    console.log('🗄️  Using PostgreSQL storage (DATABASE_URL configured)');
+    logger.info('Using PostgreSQL storage (DATABASE_URL configured)');
   } catch (err) {
-    console.error('❌ Failed to load PostgreSQL storage module:', err);
-    console.log('💾 Falling back to in-memory storage');
+    logger.error('Failed to load PostgreSQL storage module', err);
+    logger.info('Falling back to in-memory storage');
     storage = memoryStorage;
   }
 } else {
-  console.log('💾 Using in-memory storage (DATABASE_URL not configured)');
+  logger.info('Using in-memory storage (DATABASE_URL not configured)');
   storage = memoryStorage;
 }
 

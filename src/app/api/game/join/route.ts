@@ -8,7 +8,9 @@ import type { Player } from '@/lib/game-types';
 import { PLAYER_NAME_MAX_LENGTH, sanitizePlayerName } from '@/lib/player-validation';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { checkRateLimit, getClientIp } from '@/lib/utils/security';
+import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+
+const joinGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS / 60000);
 
 const joinGameSchema = z.object({
   roomCode: z
@@ -32,8 +34,9 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting: 20 join attempts per minute per IP
-    const clientIp = getClientIp(request);
-    if (!checkRateLimit(`game-join:${clientIp}`, RATE_LIMIT_GAME_JOIN, RATE_LIMIT_WINDOW_MS)) {
+    const clientIp = getRateLimitIdentifier(request);
+    const rateLimit = joinGameRateLimiter.check(`game-join:${clientIp}`);
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: {

@@ -1,6 +1,6 @@
 /**
  * Vercel Cron Job endpoint for database cleanup
- * Runs every 5 minutes to clean up expired sessions and games
+ * Runs daily at midnight UTC (`0 0 * * *`) to clean up expired games.
  *
  * GET /api/cron/cleanup
  * Authorization: Bearer <CRON_SECRET>
@@ -9,29 +9,40 @@
  * {
  *   "crons": [{
  *     "path": "/api/cron/cleanup",
- *     "schedule": "*\/5 * * * *"
+ *     "schedule": "0 0 * * *"
  *   }]
  * }
  */
 
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
+import { createLogger } from '@/lib/utils/logger';
+import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+
+const logger = createLogger('cron-cleanup');
+const cronRateLimiter = new RateLimiter(10, 1);
 
 export async function GET(request: Request) {
   try {
+    const rateLimit = cronRateLimiter.check(`cron-cleanup:${getRateLimitIdentifier(request)}`);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     // Verify cron secret for security
     const authHeader = request.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
+    const expectedAuth = `Bearer ${env.CRON_SECRET}`;
 
-    if (!process.env.CRON_SECRET) {
-      console.error('❌ CRON_SECRET not set - refusing to process unprotected cron endpoint!');
+    if (!env.CRON_SECRET) {
+      logger.error('CRON_SECRET not set - refusing to process unprotected cron endpoint');
       return NextResponse.json({ error: 'Forbidden: CRON_SECRET not set' }, { status: 403 });
     } else if (authHeader !== expectedAuth) {
-      console.error('❌ Unauthorized cron request');
+      logger.error('Unauthorized cron request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Only run cleanup if DATABASE_URL is configured
-    if (!process.env.DATABASE_URL) {
+    if (!env.DATABASE_URL) {
       return NextResponse.json({
         success: true,
         message: 'Skipped - using in-memory storage (no cleanup needed)',
@@ -51,7 +62,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('❌ Cron cleanup failed:', error);
+    logger.error('Cron cleanup failed', error);
 
     return NextResponse.json(
       {

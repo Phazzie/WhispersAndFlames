@@ -115,18 +115,11 @@ describe('Chaos Mode', () => {
       vi.spyOn(Math, 'random').mockImplementationOnce(() => {
         throw new Error('Random failure');
       });
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = applyChaosMode('Medium', true);
       expect(result.level).toBe('Medium');
       expect(result.wasUpgraded).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(
-        '[ChaosMode] Error applying chaos mode:',
-        expect.any(Error)
-      );
-
-      consoleSpy.mockRestore();
     });
   });
 });

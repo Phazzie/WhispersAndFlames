@@ -10,12 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { calculateAchievements, getPlayerName, type Achievement } from '@/lib/achievements';
-import type { StepProps } from '@/lib/game-types';
+import type { SummaryStepProps } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
 
-export function SummaryStep({ gameState, me: _me, handlers }: StepProps) {
+export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) {
   const { summary } = gameState;
   const {
     router,
@@ -194,7 +194,12 @@ export function SummaryStep({ gameState, me: _me, handlers }: StepProps) {
               {/* Visual Memories Section */}
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Visual Memories</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold">AI Art Preview</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Placeholder visual generation output
+                    </p>
+                  </div>
                   <Button
                     onClick={generateVisualMemory}
                     disabled={isGeneratingImage || remainingGenerations === 0}
