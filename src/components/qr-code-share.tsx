@@ -116,7 +116,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
   };
 
   const handleSocialShare = (platform: 'whatsapp' | 'twitter' | 'facebook') => {
-    window.open(getShareUrl(platform), '_blank', 'width=600,height=400');
+    window.open(getShareUrl(platform), '_blank', 'width=600,height=400,noopener,noreferrer');
   };
 
   if (qrError) {

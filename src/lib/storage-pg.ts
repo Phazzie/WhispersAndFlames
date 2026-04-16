@@ -59,11 +59,13 @@ function safeJsonParse<T>(jsonString: string, fallback: T): T {
     if (parsed && typeof parsed === 'object') {
       return parsed as T;
     }
-    logger.error('JSON parse resulted in non-object value', undefined, { jsonString });
+    logger.error('JSON parse resulted in non-object value', undefined, {
+      length: jsonString.length,
+    });
     return fallback;
   } catch (error) {
     logger.error('Failed to parse JSON', error instanceof Error ? error : undefined, {
-      jsonString,
+      length: jsonString.length,
     });
     return fallback;
   }

@@ -5,8 +5,8 @@
  *
  * Import this file via: @/lib/constants
  *
- * NOTE: There is a separate constants file for the SvelteKit redesign at /src/lib/utils/constants.ts
- * with different category names. That file is NOT used by this Next.js app.
+ * NOTE: If a SvelteKit redesign maintains its own constants, keep them in that app's
+ * own module. This file is only used by the Next.js app.
  */
 
 import {
