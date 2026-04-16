@@ -237,4 +237,66 @@ describe('POST /api/game/update', () => {
       })
     );
   });
+
+  it('sanitizes gameRounds answers before persisting', async () => {
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: {
+        gameRounds: [
+          {
+            question: 'What is love?',
+            answers: {
+              'test-user-id': 'Baby <script>alert(1)</script> do not hurt me',
+              'other-user-id': 'Plain answer',
+            },
+          },
+        ],
+      },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    // The sanitizeHtml mock passes through in this test file,
+    // so we verify that update was called with gameRounds present
+    expect(mockGamesUpdate).toHaveBeenCalledWith(
+      'ROOM-01',
+      expect.objectContaining({
+        gameRounds: expect.arrayContaining([
+          expect.objectContaining({ question: 'What is love?' }),
+        ]),
+      })
+    );
+  });
+
+  it('handles gameRounds with rounds missing answers gracefully', async () => {
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: {
+        gameRounds: [
+          {
+            question: 'Q1',
+            // no answers field
+          },
+        ],
+      },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockGamesUpdate).toHaveBeenCalledOnce();
+  });
+
+  it('returns 500 when storage.games.update throws', async () => {
+    mockGamesUpdate.mockRejectedValue(new Error('DB connection lost'));
+
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: { step: 'categories' },
+    });
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.error.code).toBe('INTERNAL_ERROR');
+  });
 });

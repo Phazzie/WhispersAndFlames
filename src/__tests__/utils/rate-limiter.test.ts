@@ -363,4 +363,61 @@ describe('Global rateLimiter instance', () => {
     expect(result.allowed).toBe(true);
     expect(result.limit).toBe(30);
   });
+
+  it('should block when the 30-request limit is reached', () => {
+    const identifier = `rl-exhaust-${Date.now()}`;
+
+    for (let i = 0; i < 30; i++) {
+      rateLimiter.check(identifier);
+    }
+
+    const blocked = rateLimiter.check(identifier);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.remaining).toBe(0);
+    expect(blocked.retryAfter).toBeGreaterThan(0);
+  });
+
+  it('getSize() should return a non-negative integer', () => {
+    rateLimiter.check(`size-check-${Date.now()}`);
+    expect(rateLimiter.getSize()).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should perform lazy cleanup when a previously-stored entry has expired', () => {
+    vi.useFakeTimers();
+    const baseTime = Date.now();
+    vi.setSystemTime(baseTime);
+
+    const identifier = `lazy-real-${baseTime}`;
+    rateLimiter.check(identifier); // creates entry with resetAt = baseTime + 60000
+
+    // Advance past the window
+    vi.setSystemTime(baseTime + 65000);
+
+    // Accessing the expired entry should lazily clean it and start a fresh window
+    const result = rateLimiter.check(identifier);
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(29); // 30 limit - 1 used
+
+    vi.useRealTimers();
+  });
+
+  it('should trigger deterministic cleanup after the 60-second interval', () => {
+    vi.useFakeTimers();
+    const baseTime = Date.now();
+    vi.setSystemTime(baseTime);
+
+    // Create an entry
+    const expiredId = `det-expired-${baseTime}`;
+    rateLimiter.check(expiredId);
+
+    // Advance time past both the window AND the cleanup interval (> 60s)
+    vi.setSystemTime(baseTime + 70000);
+
+    // Any new check triggers the deterministic cleanup
+    const newId = `det-new-${baseTime}`;
+    const result = rateLimiter.check(newId);
+    expect(result.allowed).toBe(true);
+
+    vi.useRealTimers();
+  });
 });

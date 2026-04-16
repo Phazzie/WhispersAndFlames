@@ -228,4 +228,150 @@ describe('Achievement System', () => {
       expect(name).toBe('Unknown');
     });
   });
+
+  describe('Secret Keeper achievement', () => {
+    it('should award Vault Cracker when a player mentions secret keywords', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'Tell me something',
+            answers: {
+              'player-1': 'I have a secret that I have kept hidden.',
+              'player-2': 'Nothing to share.',
+            },
+          },
+        ],
+      });
+      const achievements = calculateAchievements(gameState);
+      const vaultCracker = achievements.find((a) => a.id === 'secret-keeper');
+      expect(vaultCracker).toBeDefined();
+      expect(vaultCracker?.playerId).toBe('player-1');
+    });
+
+    it('should NOT award Vault Cracker when no player mentions keywords', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'What do you enjoy?',
+            answers: {
+              'player-1': 'I enjoy reading books.',
+              'player-2': 'Walking in nature.',
+            },
+          },
+        ],
+      });
+      const achievements = calculateAchievements(gameState);
+      const vaultCracker = achievements.find((a) => a.id === 'secret-keeper');
+      expect(vaultCracker).toBeUndefined();
+    });
+  });
+
+  describe('Emoji Enthusiast achievement', () => {
+    it('should award Visual Storyteller when a player uses 3+ emojis', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'How do you feel?',
+            answers: {
+              'player-1': 'I feel great! 🎉🎊🥳',
+              'player-2': 'Good.',
+            },
+          },
+        ],
+      });
+      const achievements = calculateAchievements(gameState);
+      const visualStoryteller = achievements.find((a) => a.id === 'emoji-enthusiast');
+      expect(visualStoryteller).toBeDefined();
+      expect(visualStoryteller?.playerId).toBe('player-1');
+    });
+
+    it('should NOT award Visual Storyteller when no player uses 3+ emojis', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'How do you feel?',
+            answers: {
+              'player-1': 'I feel great! 🎉',
+              'player-2': 'Good.',
+            },
+          },
+        ],
+      });
+      const achievements = calculateAchievements(gameState);
+      const visualStoryteller = achievements.find((a) => a.id === 'emoji-enthusiast');
+      expect(visualStoryteller).toBeUndefined();
+    });
+  });
+
+  describe('Question Mark Addict achievement', () => {
+    it('should award Curious Cat when a player uses 5+ question marks', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'What do you think?',
+            answers: {
+              'player-1': 'Why? What do you mean? Is it important? Do you agree? Really?',
+              'player-2': 'Not sure.',
+            },
+          },
+        ],
+      });
+      const achievements = calculateAchievements(gameState);
+      const curiousCat = achievements.find((a) => a.id === 'question-mark-addict');
+      expect(curiousCat).toBeDefined();
+      expect(curiousCat?.playerId).toBe('player-1');
+    });
+
+    it('should NOT award Curious Cat when no player uses 5+ question marks', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'What do you think?',
+            answers: {
+              'player-1': 'Are you sure? Yes.',
+              'player-2': 'Absolutely.',
+            },
+          },
+        ],
+      });
+      const achievements = calculateAchievements(gameState);
+      const curiousCat = achievements.find((a) => a.id === 'question-mark-addict');
+      expect(curiousCat).toBeUndefined();
+    });
+  });
+
+  describe('error handling', () => {
+    it('should return empty array when players is null/undefined', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const gameState = createMockGameState({ players: null as any });
+      const achievements = calculateAchievements(gameState);
+      expect(achievements).toHaveLength(0);
+    });
+
+    it('should not throw when a round has invalid answer type', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'Q1',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            answers: { 'player-1': 42 as any, 'player-2': 'Normal answer' },
+          },
+        ],
+      });
+      expect(() => calculateAchievements(gameState)).not.toThrow();
+    });
+
+    it('should not throw when a round is missing answers', () => {
+      const gameState = createMockGameState({
+        gameRounds: [
+          {
+            question: 'Q1',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            answers: null as any,
+          },
+        ],
+      });
+      expect(() => calculateAchievements(gameState)).not.toThrow();
+    });
+  });
 });

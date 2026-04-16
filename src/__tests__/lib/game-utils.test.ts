@@ -101,6 +101,26 @@ describe('Chaos Mode', () => {
         expect(result.wasUpgraded).toBe(false);
       });
     });
+
+    it('should return base level unchanged when given an invalid spicy level string', () => {
+      // TypeScript would normally prevent this, but we test the runtime guard
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = applyChaosMode('InvalidLevel' as any, true);
+      expect(result.level).toBe('InvalidLevel');
+      expect(result.wasUpgraded).toBe(false);
+    });
+
+    it('should catch errors and return base level safely', () => {
+      // Force an error inside the try block by making Math.random throw
+      vi.spyOn(Math, 'random').mockImplementationOnce(() => {
+        throw new Error('Random failure');
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = applyChaosMode('Medium', true);
+      expect(result.level).toBe('Medium');
+      expect(result.wasUpgraded).toBe(false);
+    });
   });
 });
 
