@@ -17,11 +17,10 @@ describe('Image Generation', () => {
         safetyLevel: 'safe',
       });
 
-      const result = await generateSessionImage(
-        'Test summary',
-        'Mild',
-        ['Hidden Attractions', 'Emotional Depths']
-      );
+      const result = await generateSessionImage('Test summary', 'Mild', [
+        'Hidden Attractions',
+        'Emotional Depths',
+      ]);
 
       expect(result).not.toBeNull();
       expect(result?.imageUrl).toContain('data:image/svg+xml;base64,');
@@ -124,6 +123,99 @@ describe('Image Generation', () => {
       expect(result).not.toBeNull();
       const decoded = Buffer.from(result!.imageUrl.split(',')[1], 'base64').toString();
       expect(decoded).toContain('#FFE5B4'); // Falls back to Mild
+    });
+
+    it('should return null when summary is empty', async () => {
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      const result = await generateSessionImage('', 'Mild', ['theme']);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when summary is only whitespace', async () => {
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      const result = await generateSessionImage('   ', 'Mild', ['theme']);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when AI returns no imagePrompt', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      vi.mocked(generateVisualMemory).mockResolvedValue({
+        imagePrompt: '',
+        safetyLevel: 'safe',
+      });
+
+      const result = await generateSessionImage('Valid summary', 'Mild', []);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when AI returns null result', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(generateVisualMemory).mockResolvedValue(null as any);
+
+      const result = await generateSessionImage('Valid summary', 'Mild', []);
+
+      expect(result).toBeNull();
+    });
+
+    it('should use Medium color scheme', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      vi.mocked(generateVisualMemory).mockResolvedValue({
+        imagePrompt: 'Test prompt',
+        safetyLevel: 'safe',
+      });
+
+      const result = await generateSessionImage('Summary', 'Medium', []);
+
+      expect(result).not.toBeNull();
+      const decoded = Buffer.from(result!.imageUrl.split(',')[1], 'base64').toString();
+      expect(decoded).toContain('#FFB347'); // Medium start color
+    });
+
+    it('should use Hot color scheme', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      vi.mocked(generateVisualMemory).mockResolvedValue({
+        imagePrompt: 'Test prompt',
+        safetyLevel: 'safe',
+      });
+
+      const result = await generateSessionImage('Summary', 'Hot', []);
+
+      expect(result).not.toBeNull();
+      const decoded = Buffer.from(result!.imageUrl.split(',')[1], 'base64').toString();
+      expect(decoded).toContain('#FF6961'); // Hot start color
+    });
+
+    it('should sanitize special HTML characters in prompt for SVG', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      vi.mocked(generateVisualMemory).mockResolvedValue({
+        imagePrompt: '<script>alert("xss")</script>',
+        safetyLevel: 'safe',
+      });
+
+      const result = await generateSessionImage('Summary', 'Mild', []);
+
+      expect(result).not.toBeNull();
+      const decoded = Buffer.from(result!.imageUrl.split(',')[1], 'base64').toString();
+      // Raw <script> tag must not appear literally in the SVG output
+      expect(decoded).not.toContain('<script>');
+      // The word "script" should still appear (as escaped text, not a tag)
+      expect(decoded).toContain('script');
     });
   });
 });
