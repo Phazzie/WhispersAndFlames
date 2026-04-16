@@ -27,7 +27,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
       );
     }
 
-    // CRITICAL FIX: Verify user is authorized to view this game
     if (!game.playerIds.includes(userId)) {
       logger.warn('Unauthorized game access attempt', {
         roomCode,
