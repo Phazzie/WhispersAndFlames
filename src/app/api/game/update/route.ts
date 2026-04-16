@@ -61,7 +61,7 @@ export const GameStateSchema = z.object({
 
 export const updateGameSchema = z.object({
   roomCode: z.string().min(4).max(8),
-  updates: GameStateSchema.partial(),
+  updates: GameStateSchema.partial().strict(),
 });
 
 export async function POST(request: Request) {
@@ -122,7 +122,9 @@ export async function POST(request: Request) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
         if (round && round.answers) {
           const sanitizedAnswers: Record<string, string> = {};
-          for (const [playerId, answer] of Object.entries(round.answers as Record<string, string>)) {
+          for (const [playerId, answer] of Object.entries(
+            round.answers as Record<string, string>
+          )) {
             sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
           }
           return { ...round, answers: sanitizedAnswers };
