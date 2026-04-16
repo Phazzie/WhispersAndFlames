@@ -38,4 +38,4 @@ To make the setup more accurate, reliable, and better, we propose the following 
 
 ### Low Priority
 - [ ] **Features**:
-  - [ ] Persist local games across browser sessions more reliably (handle clear cache edge cases).
+  - [x] Persist local games across browser sessions more reliably (handle clear cache edge cases).

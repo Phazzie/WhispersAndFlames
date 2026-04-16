@@ -46,6 +46,8 @@ export type GameState = {
   roomCode: string;
   createdAt?: Date;
   completedAt?: Date;
+  updatedAt?: Date;
+  version?: number;
 };
 
 export type StepProps = {
