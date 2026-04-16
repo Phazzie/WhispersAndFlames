@@ -178,4 +178,38 @@ describe('POST /api/game/join', () => {
     expect(response.status).toBe(429);
     expect(body.error.code).toBe('RATE_LIMIT_EXCEEDED');
   });
+
+  it('returns 200 with existing game when player is in players array but not playerIds (idempotency guard)', async () => {
+    // Edge case: player is in players[] but not in playerIds — still idempotent
+    const gameWithPlayerInArrayOnly: GameState = {
+      ...existingGame,
+      players: [
+        ...existingGame.players,
+        { id: 'test-user-id', name: 'Alice', email: '', isReady: false, selectedCategories: [] },
+      ],
+      // Note: playerIds does NOT include 'test-user-id'
+      playerIds: [...existingGame.playerIds],
+    };
+    mockGamesGet.mockResolvedValue(gameWithPlayerInArrayOnly);
+
+    const request = makeRequest({ roomCode: 'ROOM-01', playerName: 'Alice' });
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toHaveProperty('game');
+    // Should NOT call update because player already exists in players array
+    expect(mockGamesUpdate).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when storage.games.update throws', async () => {
+    mockGamesUpdate.mockRejectedValue(new Error('DB unavailable'));
+
+    const request = makeRequest({ roomCode: 'ROOM-01', playerName: 'Alice' });
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.error.code).toBe('INTERNAL_ERROR');
+  });
 });

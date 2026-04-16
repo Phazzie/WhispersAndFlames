@@ -35,7 +35,7 @@ vi.mock('@/lib/utils/logger', () => ({
 
 import { auth } from '@clerk/nextjs/server';
 import { storage } from '@/lib/storage-adapter';
-import { checkRateLimit } from '@/lib/utils/security';
+import { checkRateLimit, sanitizeHtml } from '@/lib/utils/security';
 import { POST } from '@/app/api/game/update/route';
 import type { GameState } from '@/lib/game-types';
 
@@ -236,5 +236,83 @@ describe('POST /api/game/update', () => {
         currentQuestionIndex: 1,
       })
     );
+  });
+
+  it('sanitizes gameRounds answers before persisting', async () => {
+    const mockSanitizeHtml = vi.mocked(sanitizeHtml);
+    // Make sanitizeHtml return a distinguishable sanitized value
+    mockSanitizeHtml.mockImplementation((s: string) => `SANITIZED:${s}`);
+
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: {
+        gameRounds: [
+          {
+            question: 'What is love?',
+            answers: {
+              'test-user-id': 'Baby <script>alert(1)</script> do not hurt me',
+              'other-user-id': 'Plain answer',
+            },
+          },
+        ],
+      },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    // sanitizeHtml must have been called for each answer
+    expect(mockSanitizeHtml).toHaveBeenCalledWith(
+      expect.stringContaining('Baby <script>alert(1)</script>')
+    );
+    expect(mockSanitizeHtml).toHaveBeenCalledWith('Plain answer');
+    // The sanitized answers should be persisted
+    expect(mockGamesUpdate).toHaveBeenCalledWith(
+      'ROOM-01',
+      expect.objectContaining({
+        gameRounds: expect.arrayContaining([
+          expect.objectContaining({
+            answers: expect.objectContaining({
+              'test-user-id': expect.stringContaining('SANITIZED:'),
+              'other-user-id': expect.stringContaining('SANITIZED:'),
+            }),
+          }),
+        ]),
+      })
+    );
+
+    // Restore the pass-through mock for other tests
+    mockSanitizeHtml.mockImplementation((s: string) => s);
+  });
+
+  it('handles gameRounds with rounds missing answers gracefully', async () => {
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: {
+        gameRounds: [
+          {
+            question: 'Q1',
+            // no answers field
+          },
+        ],
+      },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockGamesUpdate).toHaveBeenCalledOnce();
+  });
+
+  it('returns 500 when storage.games.update throws', async () => {
+    mockGamesUpdate.mockRejectedValue(new Error('DB connection lost'));
+
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: { step: 'categories' },
+    });
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 });
