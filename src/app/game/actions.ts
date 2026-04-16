@@ -71,11 +71,10 @@ export async function generateQuestionAction(
           return { question: result.question };
         }
       } catch (error) {
-        logger.warn(
-          `AI question generation attempt ${i + 1} failed`,
-          error instanceof Error ? error : undefined,
-          { attempt: i + 1 }
-        );
+        logger.warn(`AI question generation attempt ${i + 1} failed`, {
+          attempt: i + 1,
+          error: error instanceof Error ? error.message : String(error),
+        });
         if (i === 2) {
           // Last attempt failed
           throw new Error('AI service is currently unavailable after multiple attempts.');

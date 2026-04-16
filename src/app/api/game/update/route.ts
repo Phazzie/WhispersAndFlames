@@ -120,18 +120,12 @@ export async function POST(request: Request) {
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        // Since we are now using a strict schema, round is typed as infer<typeof GameRoundSchema>
-        // But the previous code treated it as unknown.
-        // We can trust Zod to have validated the structure.
-
-        // However, we still need to sanitize the strings in answers.
         if (round && round.answers) {
-           const sanitizedAnswers: Record<string, string> = {};
-           for (const [playerId, answer] of Object.entries(round.answers)) {
-             // Zod ensures answer is a string
-             sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-           }
-           return { ...round, answers: sanitizedAnswers };
+          const sanitizedAnswers: Record<string, string> = {};
+          for (const [playerId, answer] of Object.entries(round.answers as Record<string, string>)) {
+            sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
+          }
+          return { ...round, answers: sanitizedAnswers };
         }
         return round;
       });
