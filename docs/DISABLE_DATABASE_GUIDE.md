@@ -64,41 +64,37 @@ DISABLE_DATABASE=true npm run build
 
 ## Verification
 
-### Check Console Output
+### Check Log Output
 
 When the app starts, look for these messages in the server logs:
+
+**Development format (`[INFO] ...`):**
 
 **Database Disabled (development):**
 
 ```
 [INFO] Using in-memory storage
-  Context: {
-    "reason": "database explicitly disabled via DISABLE_DATABASE"
-  }
+  Context: {"reason":"database explicitly disabled via DISABLE_DATABASE",...}
 ```
 
 **Database Not Configured (development):**
 
 ```
 [INFO] Using in-memory storage
-  Context: {
-    "reason": "DATABASE_URL not configured"
-  }
+  Context: {"reason":"DATABASE_URL not configured",...}
 ```
 
 **Database Enabled (development):**
 
 ```
 [INFO] Using PostgreSQL storage
-  Context: {
-    "databaseConfigured": true
-  }
+  Context: {"databaseConfigured":true,...}
 ```
 
-In production, these appear as structured JSON:
+**Production format (JSON):**
 
 ```json
-{"timestamp":"...","message":"Using in-memory storage","context":{"app":"...","env":"production","module":"...","reason":"database explicitly disabled via DISABLE_DATABASE"}}
+{"message":"Using in-memory storage","context":{"reason":"database explicitly disabled via DISABLE_DATABASE"},...}
 ```
 
 ### Check Health Endpoint

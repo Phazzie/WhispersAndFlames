@@ -29,7 +29,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden: CRON_SECRET not set' }, { status: 403 });
     } else if (authHeader !== expectedAuth) {
       logger.warn('Unauthorized cron request attempt', {
-        scheme: authHeader ? authHeader.split(' ')[0] : 'none',
+        hasAuthHeader: Boolean(authHeader),
+        scheme: authHeader?.split(' ')[0] ?? 'none',
       });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

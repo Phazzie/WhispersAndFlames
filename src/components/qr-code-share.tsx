@@ -130,14 +130,11 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
           <div className="space-y-4">
             <p className="text-sm font-semibold">You can still share the game manually:</p>
             <p className="text-xs text-center text-muted-foreground">
-              Room Code: <span className="font-mono font-bold text-lg text-primary">{roomCode}</span>
+              Room Code:{' '}
+              <span className="font-mono font-bold text-lg text-primary">{roomCode}</span>
             </p>
             <p className="text-xs break-all text-center bg-muted p-2 rounded">{gameUrl}</p>
-            <Button
-              onClick={handleCopyLink}
-              variant="outline"
-              className="w-full"
-            >
+            <Button onClick={handleCopyLink} variant="outline" className="w-full">
               {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
               {isCopied ? 'Copied!' : 'Copy Link'}
             </Button>
@@ -183,23 +180,38 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
         </div>
 
         <div className="text-center space-y-1">
-           <p className="text-sm text-muted-foreground">Room Code</p>
-           <p className="font-mono text-3xl font-bold tracking-wider text-primary">{roomCode}</p>
+          <p className="text-sm text-muted-foreground">Room Code</p>
+          <p className="font-mono text-3xl font-bold tracking-wider text-primary">{roomCode}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Button onClick={handleCopyLink} variant="outline" className="w-full" aria-label="Copy Link">
+          <Button
+            onClick={handleCopyLink}
+            variant="outline"
+            className="w-full"
+            aria-label="Copy Link"
+          >
             {isCopied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
             {isCopied ? 'Copied' : 'Copy Link'}
           </Button>
-          <Button onClick={handleDownload} variant="outline" className="w-full" aria-label="Download QR">
+          <Button
+            onClick={handleDownload}
+            variant="outline"
+            className="w-full"
+            aria-label="Download QR"
+          >
             <Download className="mr-2 h-4 w-4" />
             Save QR
           </Button>
           {canShareNative && (
-            <Button onClick={handleNativeShare} variant="outline" className="col-span-2 w-full" aria-label="Share via..." >
-               <Share2 className="mr-2 h-4 w-4" />
-               Share via...
+            <Button
+              onClick={handleNativeShare}
+              variant="outline"
+              className="col-span-2 w-full"
+              aria-label="Share via..."
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share via...
             </Button>
           )}
         </div>

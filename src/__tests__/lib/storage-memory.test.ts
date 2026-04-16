@@ -2,7 +2,7 @@
  * Tests for storage-memory.ts - In-memory storage implementation
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import type { GameState } from '@/lib/game-types';
 import { storage as memoryStorage } from '@/lib/storage-memory';
@@ -279,6 +279,187 @@ describe('In-Memory Storage', () => {
       expect(games.length).toBeGreaterThanOrEqual(2);
       expect(games.some((g) => g.roomCode === roomCode1)).toBe(true);
       expect(games.some((g) => g.roomCode === roomCode2)).toBe(true);
+    });
+
+    it('should filter games by step', async () => {
+      const userId = `user-filter-${Date.now()}`;
+      const lobbyCode = `LOBBY-${Date.now()}`;
+      const gameCode = `GAME-${Date.now()}`;
+
+      const baseGame: Omit<GameState, 'roomCode' | 'step'> = {
+        playerIds: [userId],
+        gameMode: 'online',
+        hostId: userId,
+        players: [],
+        commonCategories: [],
+        finalSpicyLevel: 'Medium',
+        chaosMode: false,
+        gameRounds: [],
+        currentQuestion: '',
+        currentQuestionIndex: 0,
+        totalQuestions: 0,
+        summary: '',
+        imageGenerationCount: 0,
+      };
+
+      await memoryStorage.games.create(lobbyCode, {
+        ...baseGame,
+        roomCode: lobbyCode,
+        step: 'lobby',
+      });
+      await memoryStorage.games.create(gameCode, {
+        ...baseGame,
+        roomCode: gameCode,
+        step: 'game',
+      });
+
+      const lobbyGames = await memoryStorage.games.list(userId, { step: 'lobby' });
+      expect(lobbyGames.some((g) => g.roomCode === lobbyCode)).toBe(true);
+      expect(lobbyGames.some((g) => g.roomCode === gameCode)).toBe(false);
+    });
+
+    it('should notify subscribers when game is updated', async () => {
+      const roomCode = `SUB-${Date.now()}`;
+      const gameState: GameState = {
+        roomCode,
+        step: 'lobby',
+        playerIds: ['player-1'],
+        gameMode: 'online',
+        hostId: 'player-1',
+        players: [],
+        commonCategories: [],
+        finalSpicyLevel: 'Medium',
+        chaosMode: false,
+        gameRounds: [],
+        currentQuestion: '',
+        currentQuestionIndex: 0,
+        totalQuestions: 0,
+        summary: '',
+        imageGenerationCount: 0,
+      };
+
+      await memoryStorage.games.create(roomCode, gameState);
+
+      const callbackSpy = vi.fn();
+      memoryStorage.games.subscribe(roomCode, callbackSpy);
+
+      await memoryStorage.games.update(roomCode, { step: 'categories' });
+
+      expect(callbackSpy).toHaveBeenCalledOnce();
+      expect(callbackSpy).toHaveBeenCalledWith(expect.objectContaining({ step: 'categories' }));
+    });
+
+    it('should allow unsubscribing from game updates', async () => {
+      const roomCode = `UNSUB-${Date.now()}`;
+      const gameState: GameState = {
+        roomCode,
+        step: 'lobby',
+        playerIds: ['player-1'],
+        gameMode: 'online',
+        hostId: 'player-1',
+        players: [],
+        commonCategories: [],
+        finalSpicyLevel: 'Medium',
+        chaosMode: false,
+        gameRounds: [],
+        currentQuestion: '',
+        currentQuestionIndex: 0,
+        totalQuestions: 0,
+        summary: '',
+        imageGenerationCount: 0,
+      };
+
+      await memoryStorage.games.create(roomCode, gameState);
+
+      const callbackSpy = vi.fn();
+      const unsubscribe = memoryStorage.games.subscribe(roomCode, callbackSpy);
+
+      unsubscribe();
+
+      await memoryStorage.games.update(roomCode, { step: 'categories' });
+
+      expect(callbackSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return existing game without modification when update contains no new players', async () => {
+      const roomCode = `DUP-${Date.now()}`;
+      const player = {
+        id: 'player-1',
+        name: 'Alice',
+        email: '',
+        isReady: false,
+        selectedCategories: [] as string[],
+      };
+      const gameState: GameState = {
+        roomCode,
+        step: 'lobby',
+        playerIds: ['player-1'],
+        gameMode: 'online',
+        hostId: 'player-1',
+        players: [player],
+        commonCategories: [],
+        finalSpicyLevel: 'Medium',
+        chaosMode: false,
+        gameRounds: [],
+        currentQuestion: '',
+        currentQuestionIndex: 0,
+        totalQuestions: 0,
+        summary: '',
+        imageGenerationCount: 0,
+      };
+
+      await memoryStorage.games.create(roomCode, gameState);
+
+      // Try to "add" a player that already exists
+      const result = await memoryStorage.games.update(roomCode, { players: [player] });
+
+      // Should return the original game without modifications
+      expect(result?.players).toHaveLength(1);
+      expect(result?.step).toBe('lobby');
+    });
+  });
+
+  describe('Sessions - expired session cleanup', () => {
+    it('should return null for an expired session', async () => {
+      vi.useFakeTimers();
+      const userId = 'user-expiry-test';
+
+      const token = await memoryStorage.sessions.create(userId);
+
+      // Advance time by 8 days (session expires after 7)
+      vi.advanceTimersByTime(8 * 24 * 60 * 60 * 1000);
+
+      const result = await memoryStorage.sessions.validate(token);
+      expect(result).toBeNull();
+
+      vi.useRealTimers();
+    });
+
+    it('should trigger opportunistic cleanup when Math.random() < 0.1', async () => {
+      vi.useFakeTimers();
+      const baseTime = Date.now();
+      vi.setSystemTime(baseTime);
+
+      // Create a session that will expire
+      const userId = `cleanup-user-${baseTime}`;
+      const expiredToken = await memoryStorage.sessions.create(userId);
+
+      // Advance time by 8 days so this session expires
+      vi.setSystemTime(baseTime + 8 * 24 * 60 * 60 * 1000);
+
+      // Mock random to always trigger cleanup
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.05);
+
+      // Create a new session — this triggers opportunistic cleanup of the expired one
+      const newUserId = `cleanup-new-${baseTime}`;
+      await memoryStorage.sessions.create(newUserId);
+
+      // The expired session should now be invalid
+      const result = await memoryStorage.sessions.validate(expiredToken);
+      expect(result).toBeNull();
+
+      mockRandom.mockRestore();
+      vi.useRealTimers();
     });
   });
 });

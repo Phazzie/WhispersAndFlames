@@ -98,14 +98,14 @@ npm run genkit:watch     # Start Genkit with watch mode
 
 ## 🔐 Environment Variables
 
-| Variable                  | Required | Default                 | Description                                                      |
-| ------------------------- | -------- | ----------------------- | ---------------------------------------------------------------- |
-| `XAI_API_KEY`             | Yes      | -                       | xAI API key (console.x.ai)                                       |
-| `DATABASE_URL`            | No       | -                       | Postgres connection string                                       |
-| `DISABLE_DATABASE`        | No       | `false`                 | Set to `true` to force in-memory storage                         |
-| `DISABLE_SSL_VALIDATION`  | No       | `false`                 | Set to `true` to disable Postgres SSL certificate validation     |
-| `NODE_ENV`                | No       | `development`           | Environment mode                                                 |
-| `NEXT_PUBLIC_APP_URL`     | No       | `http://localhost:9002` | Public app URL                                                   |
+| Variable                 | Required | Default                 | Description                                                                    |
+| ------------------------ | -------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `XAI_API_KEY`            | Yes      | -                       | xAI API key (console.x.ai)                                                     |
+| `DATABASE_URL`           | No       | -                       | Postgres connection string                                                     |
+| `DISABLE_DATABASE`       | No       | `false`                 | Set to `true` to force in-memory storage                                       |
+| `DISABLE_SSL_VALIDATION` | No       | `false`                 | Set to `true` to disable Postgres SSL certificate validation (not recommended) |
+| `NODE_ENV`               | No       | `development`           | Environment mode                                                               |
+| `NEXT_PUBLIC_APP_URL`    | No       | `http://localhost:9002` | Public app URL                                                                 |
 
 ## 🧪 Testing
 
