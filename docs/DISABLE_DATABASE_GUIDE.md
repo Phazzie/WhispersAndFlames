@@ -70,21 +70,21 @@ When the app starts, look for these messages in the server logs:
 
 **Development format (`[INFO] ...`):**
 
-**Database Disabled:**
+**Database Disabled (development):**
 
 ```
 [INFO] Using in-memory storage
   Context: {"reason":"database explicitly disabled via DISABLE_DATABASE",...}
 ```
 
-**Database Not Configured:**
+**Database Not Configured (development):**
 
 ```
 [INFO] Using in-memory storage
   Context: {"reason":"DATABASE_URL not configured",...}
 ```
 
-**Database Enabled:**
+**Database Enabled (development):**
 
 ```
 [INFO] Using PostgreSQL storage
