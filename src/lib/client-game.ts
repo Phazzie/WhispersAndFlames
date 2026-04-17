@@ -2,7 +2,7 @@
  * Client-side game management utilities
  */
 
-import { POLL_INTERVAL_MS } from '@/lib/api-constants';
+import { GAME_STATE_POLL_INTERVAL_MS } from '@/lib/api-constants';
 import type { GameState } from './game-types';
 import { createLogger } from './utils/logger';
 
@@ -121,8 +121,8 @@ export const clientGame = {
       })();
     };
 
-    // Poll for updates every POLL_INTERVAL_MS (centralized in api-constants.ts)
-    const intervalId = setInterval(poll, POLL_INTERVAL_MS);
+    // Poll for updates every GAME_STATE_POLL_INTERVAL_MS (centralized in api-constants.ts)
+    const intervalId = setInterval(poll, GAME_STATE_POLL_INTERVAL_MS);
 
     // Initial fetch
     poll();

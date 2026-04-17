@@ -1,3 +1,5 @@
+import { createLogger } from './utils/logger';
+
 const ANIMALS: string[] = [
   'LION',
   'TIGER',
@@ -26,6 +28,8 @@ const ANIMALS: string[] = [
   'BOAR',
   'RHINO',
 ];
+
+const logger = createLogger('game-utils');
 
 const ROOM_CODE_PATTERN = /^[A-Z0-9-]{4,64}$/;
 
@@ -76,19 +80,19 @@ export function applyChaosMode(
     const currentIndex = levels.indexOf(baseLevel);
 
     if (currentIndex === -1) {
-      console.error('[ChaosMode] Invalid base level:', baseLevel);
+      logger.error('Invalid base level for chaos mode', undefined, { baseLevel });
       return { level: baseLevel, wasUpgraded: false };
     }
 
     if (randomValue > 0.8 && currentIndex < levels.length - 1) {
       const upgradedLevel = levels[currentIndex + 1];
-      console.log(`[ChaosMode] Upgraded ${baseLevel} to ${upgradedLevel}`);
+      logger.info('Chaos mode upgraded spicy level', { baseLevel, upgradedLevel });
       return { level: upgradedLevel, wasUpgraded: true };
     }
 
     return { level: baseLevel, wasUpgraded: false };
   } catch (error) {
-    console.error('[ChaosMode] Error applying chaos mode:', error);
+    logger.error('Error applying chaos mode', error);
     return { level: baseLevel, wasUpgraded: false };
   }
 }

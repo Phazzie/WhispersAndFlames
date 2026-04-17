@@ -5,6 +5,24 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+const createGameState = (roomCode: string) => ({
+  step: 'lobby' as const,
+  players: [],
+  playerIds: [],
+  hostId: 'host-1',
+  gameMode: 'online' as const,
+  commonCategories: [],
+  finalSpicyLevel: 'Mild' as const,
+  chaosMode: false,
+  gameRounds: [],
+  currentQuestion: '',
+  currentQuestionIndex: 0,
+  totalQuestions: 10,
+  summary: '',
+  imageGenerationCount: 0,
+  roomCode,
+});
+
 describe('Storage Adapter Configuration', () => {
   // Store original environment
   const originalEnv = process.env;
@@ -30,9 +48,9 @@ describe('Storage Adapter Configuration', () => {
     const { storage } = await import('@/lib/storage-adapter');
 
     // Assert - in-memory storage methods are synchronous
-    const result = storage.users.create('test@example.com', 'hash123');
+    const result = storage.games.create('ROOM1', createGameState('ROOM1'));
     expect(result).toBeDefined();
-    expect(result.email).toBe('test@example.com');
+    expect(result.roomCode).toBe('ROOM1');
     // Synchronous methods don't return promises
     expect(result).not.toBeInstanceOf(Promise);
   });
@@ -46,9 +64,9 @@ describe('Storage Adapter Configuration', () => {
     const { storage } = await import('@/lib/storage-adapter');
 
     // Assert - in-memory storage methods are synchronous
-    const result = storage.users.create('test@example.com', 'hash123');
+    const result = storage.games.create('ROOM2', createGameState('ROOM2'));
     expect(result).toBeDefined();
-    expect(result.email).toBe('test@example.com');
+    expect(result.roomCode).toBe('ROOM2');
     // Synchronous methods don't return promises
     expect(result).not.toBeInstanceOf(Promise);
   });
@@ -62,9 +80,9 @@ describe('Storage Adapter Configuration', () => {
     const { storage } = await import('@/lib/storage-adapter');
 
     // Assert - in-memory storage methods are synchronous
-    const result = storage.users.create('test@example.com', 'hash123');
+    const result = storage.games.create('ROOM3', createGameState('ROOM3'));
     expect(result).toBeDefined();
-    expect(result.email).toBe('test@example.com');
+    expect(result.roomCode).toBe('ROOM3');
     // Synchronous methods don't return promises
     expect(result).not.toBeInstanceOf(Promise);
   });
@@ -78,7 +96,7 @@ describe('Storage Adapter Configuration', () => {
     const { storage } = await import('@/lib/storage-adapter');
 
     // Assert - Should use in-memory (synchronous) not postgres (async)
-    const result = storage.users.create('test@example.com', 'hash123');
+    const result = storage.games.create('ROOM4', createGameState('ROOM4'));
     expect(result).toBeDefined();
     // Synchronous result means in-memory storage is being used
     expect(result).not.toBeInstanceOf(Promise);

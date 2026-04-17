@@ -11,7 +11,7 @@ export type RateLimitInfo = {
   retryAfter?: number;
 };
 
-class RateLimiter {
+export class RateLimiter {
   private requests: Map<string, RateLimitEntry> = new Map();
   private readonly maxRequests: number;
   private readonly windowMs: number;
@@ -90,6 +90,9 @@ class RateLimiter {
   }
 }
 
+// NOTE: This limiter is in-memory only. In multi-instance/serverless horizontal
+// scaling, counters are not shared across instances. For shared limits, migrate
+// to centralized storage (e.g. Upstash Redis / Vercel KV).
 // Single instance for the entire app (in-memory)
 export const rateLimiter = new RateLimiter(30, 1);
 

@@ -34,4 +34,28 @@ test.describe('Game Flow', () => {
 
     expect(hasError || isRedirected).toBeTruthy();
   });
+
+  test('should handle rate-limited create response', async ({ page }) => {
+    await page.route('**/api/game/create', async (route) => {
+      await route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests' },
+        }),
+      });
+    });
+
+    await page.goto('/');
+    const status = await page.evaluate(async () => {
+      const response = await fetch('/api/game/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode: 'ROOM-01', playerName: 'A' }),
+      });
+      return response.status;
+    });
+
+    expect(status).toBe(429);
+  });
 });

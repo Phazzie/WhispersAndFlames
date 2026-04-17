@@ -1,10 +1,11 @@
 # Whispers and Flames
+
 ## Product Requirements Document (PRD)
 
 **Version:** 1.0
 **Last Updated:** 2025-11-21
 **Product:** Whispers and Flames
-**Tagline:** *Your turn to play with fire.*
+**Tagline:** _Your turn to play with fire._
 
 ---
 
@@ -13,6 +14,7 @@
 **Whispers and Flames** is an AI-powered intimacy exploration platform for couples and triads. It creates a safe, playful space for partners to explore desires, deepen connection, and discover shared interests through guided question-and-answer sessions led by Ember—an AI persona that's part wingman, part therapist, part co-conspirator.
 
 The product transforms what is typically awkward (talking about desires) into something playful and safe through:
+
 - Carefully calibrated AI-generated questions
 - Adjustable intensity levels
 - Privacy-first design
@@ -28,7 +30,7 @@ Couples struggle to have honest conversations about intimacy for several reasons
 
 1. **Social Conditioning**: People are taught that discussing desires explicitly is awkward or inappropriate
 2. **Fear of Judgment**: Partners worry about being judged for their interests or fantasies
-3. **Lack of Framework**: Most people don't know *how* to start these conversations or what questions to ask
+3. **Lack of Framework**: Most people don't know _how_ to start these conversations or what questions to ask
 4. **Vulnerability Barrier**: Opening up requires trust and safety that's hard to establish spontaneously
 5. **Mismatched Comfort Levels**: Partners may have different comfort levels with explicit conversation
 
@@ -42,6 +44,7 @@ Couples struggle to have honest conversations about intimacy for several reasons
 ### What Success Looks Like
 
 Partners can:
+
 - Discover shared interests they didn't know existed
 - Voice desires they've been hesitant to mention
 - Build emotional intimacy alongside physical exploration
@@ -55,6 +58,7 @@ Partners can:
 ### Primary Users
 
 **Established Couples (Dating 6+ months)**
+
 - Age: 25-45
 - Relationship Stage: Committed, emotionally bonded
 - Tech Savviness: Moderate to high
@@ -62,6 +66,7 @@ Partners can:
 - Motivations: Strengthening connection, exploring new territory, maintaining excitement
 
 **Secondary Characteristics:**
+
 - Open-minded about technology in relationship building
 - Values privacy and discretion
 - Comfortable with AI assistance for personal topics
@@ -70,6 +75,7 @@ Partners can:
 ### Secondary Users
 
 **Triads/Polyamorous Groups**
+
 - 3-person dynamics
 - Complexity: Need for balanced exploration among three people
 - Motivations: Understanding complementary dynamics, navigating shared interests
@@ -92,6 +98,7 @@ Partners can:
 ### 3-Year Vision
 
 Whispers and Flames becomes the default platform couples use when they want to:
+
 - Reconnect after routine has set in
 - Explore new dimensions of their relationship
 - Prepare for deeper conversations before couples therapy
@@ -101,16 +108,19 @@ Whispers and Flames becomes the default platform couples use when they want to:
 ### Success Metrics
 
 **Primary:**
+
 - Session Completion Rate (target: >75%)
 - Return Usage Rate (target: Users run 2+ sessions)
 - User-Reported Connection Score (post-session survey: target 4.5+/5)
 
 **Secondary:**
+
 - Answer Depth (characters per answer: target 100+)
 - Session Duration (target: 20-30 minutes)
 - "Next Adventure" Action Rate (% who report trying suggestions: target 40%+)
 
 **Health Metrics:**
+
 - Safety Reports (target: <0.1% of sessions)
 - Premature Exit Rate (target: <15%)
 
@@ -123,6 +133,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **Purpose:** Create private, ephemeral spaces for intimate conversations.
 
 **Functionality:**
+
 - Unique room codes (6 characters, easy to share)
 - Maximum 3 players per room
 - One host who controls game progression
@@ -130,12 +141,14 @@ Whispers and Flames becomes the default platform couples use when they want to:
 - Auto-expiration after 24 hours (privacy protection)
 
 **User Flow:**
+
 1. User creates room → receives unique code
 2. Shares code with partner(s) via text, QR, or link
 3. All players join using code
 4. Room is destroyed 24 hours after creation
 
 **Technical Requirements:**
+
 - Sub-second state synchronization
 - Works on mobile and desktop
 - No account required to join (but to create)
@@ -158,11 +171,13 @@ Whispers and Flames becomes the default platform couples use when they want to:
 7. **Roleplay & Scenarios** - Character dynamics, situation fantasies
 
 **User Flow:**
+
 1. Each player independently selects 1-3 categories
 2. System identifies overlapping categories
 3. Game proceeds only with shared category choices (ensures mutual interest)
 
 **Design Principles:**
+
 - Categories must be non-judgmental in framing
 - Icons and descriptions should be playful, not clinical
 - No category should feel "too advanced" or intimidating
@@ -176,28 +191,34 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **Levels:**
 
 **Mild:** Romantic tension, emotional intimacy, "what if" scenarios
+
 - Example: "What's one non-sexual thing your partner does that makes you think sexual thoughts?"
 - Tone: Flirty, suggestive, building anticipation
 
 **Medium:** Sensual scenarios, specific attractions, implied sexuality
+
 - Example: "Describe exactly where you'd want your partner's hands during a kiss. Not just 'on me'—WHERE?"
 - Tone: Warm, building heat, specific but not graphic
 
 **Hot:** Explicit desires, detailed fantasies, power dynamics
+
 - Example: "Complete this: 'I want to [blank] you until you [blank].'"
 - Tone: Explicitly sexual, direct, fantasy-focused
 
 **Extra-Hot:** Boundary-pushing, taboo-adjacent, unfiltered
+
 - Example: "What's the filthiest thing you'd want to whisper to your partner while [doing something specific]?"
 - Tone: Intense, raw, extreme scenarios (but always consensual)
 
 **Special Feature: Chaos Mode**
+
 - Optional toggle
 - System randomly upgrades 1-2 questions to next spicy level
 - Adds element of surprise and spontaneity
 - Can be disabled by host
 
 **User Flow:**
+
 1. Each player votes on preferred spicy level
 2. System selects most conservative choice (respects boundaries)
 3. Chaos mode applied if all players opt-in
@@ -211,6 +232,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **Ember's Core Behavior:**
 
 **Personality:**
+
 - Part wingman, part therapist, part co-conspirator
 - Playful but never crude
 - Insightful without being invasive
@@ -249,6 +271,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
     - "What do you wish your partner knew makes you feel completely desired?"
 
 **Technical Requirements:**
+
 - Questions must match selected categories
 - Questions must match spicy level (no bleeding across levels)
 - Questions must be about THEIR partner(s), never hypothetical strangers
@@ -256,6 +279,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 - Questions build incrementally (observation → desire → confession → planning)
 
 **Generation Constraints:**
+
 - Input sanitization (prevent prompt injection)
 - Maximum question length: 200 characters
 - Response time: < 3 seconds
@@ -270,18 +294,21 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **Flow Steps:**
 
 **Step 1: Lobby**
+
 - Players join room
 - See who's present
 - Ready-check system
 - Host can start when all players ready
 
 **Step 2: Category Selection**
+
 - Each player selects 1-3 categories independently
 - System reveals overlap
 - If no overlap, players reselect
 - Minimum 1 shared category to proceed
 
 **Step 3: Spicy Level**
+
 - Each player votes on level
 - System shows vote distribution
 - Final level = most conservative vote
@@ -289,6 +316,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 - All players must approve to proceed
 
 **Step 4: Question Round**
+
 - 5-8 questions total
 - Questions displayed one at a time
 - Each player answers privately (others can't see until all submit)
@@ -297,6 +325,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 - Optional: Players can flag inappropriate questions
 
 **Step 5: Summary & Insights**
+
 - AI-generated summary of session
 - Highlights shared themes/interests
 - Suggests "next adventures"
@@ -304,6 +333,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 - Optional: Visual memory (abstract art prompt based on session)
 
 **Technical Requirements:**
+
 - Progress indicator throughout
 - Ability to pause and resume
 - Clear visual feedback for "waiting on other players"
@@ -319,12 +349,14 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **The Scribe's Behavior:**
 
 **Core Identity:**
+
 - Wise, empathetic observer
 - Friend who points out what others missed
 - Weaves conversations into narratives
 - Celebrates vulnerability
 
 **Rules:**
+
 1. **Focus ONLY on Common Ground**: Summary must highlight what ALL players mentioned
 2. **Ignore Solo Topics**: One person's unique interest = not included
 3. **Offer "Next Adventure"**: 1-2 concrete, playful suggestions based on shared interests
@@ -332,6 +364,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 5. **Celebrate Vulnerability**: Acknowledge their openness as strength
 
 **Summary Structure:**
+
 1. Playful opening observation
 2. Core shared theme identification (specific, not generic)
 3. Specific question/answer reference
@@ -349,18 +382,21 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **Dr. Ember's Behavior:**
 
 **Core Identity:**
+
 - Relationship therapist with PhD in Intimacy Studies
 - Clinical language used playfully
 - Sharp observations with dry wit
 - Warm but never cloying
 
 **Style:**
+
 - Uses therapy jargon with a wink: "Patients demonstrated heightened receptivity to sensory-based stimuli"
 - Identifies patterns, defenses, attachment styles, breakthroughs
 - Observational, not prescriptive
 - 3-4 structured paragraphs
 
 **Format:**
+
 1. **Session Overview**: 1-2 sentences, clinical tone with personality
 2. **Key Observations**: 3 bullet points about dynamics, patterns, resonance
 3. **Clinical Impression**: Full paragraph analyzing deeper patterns
@@ -377,11 +413,13 @@ Whispers and Flames becomes the default platform couples use when they want to:
 **Behavior:**
 
 **Core Identity:**
+
 - Visual poet, artistic director
 - Transforms conversations into art
 - Creates emotional impressions, not literal representations
 
 **Rules:**
+
 1. Always abstract and metaphorical (never literal)
 2. Sophisticated artistic language (art movements, color theory, composition)
 3. Match emotional temperature of spicy level
@@ -389,6 +427,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 5. Keep tasteful always (even Extra-Hot uses sophisticated metaphor)
 
 **Style Guide by Spicy Level:**
+
 - **Mild**: Watercolors, pastels, soft focus, gentle curves
 - **Medium**: Oil paintings, warm tones, impressionist, rich textures
 - **Hot**: Contemporary art, dramatic lighting, bold contrasts, vivid reds
@@ -432,6 +471,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
    - All data deleted on room expiration
 
 **Compliance:**
+
 - GDPR compliant (data minimization, right to deletion)
 - COPPA compliant (18+ age gate)
 - Privacy policy clearly states data handling
@@ -469,24 +509,28 @@ Whispers and Flames becomes the default platform couples use when they want to:
 ### Key Screens
 
 **1. Home Page**
+
 - Hero message: "Your turn to play with fire"
 - Two primary actions: "Create Room" / "Join Room"
 - Quick value prop: "AI-guided intimacy conversations for couples"
 - Social proof: Testimonials (if available)
 
 **2. Lobby**
+
 - Room code prominently displayed
 - QR code for easy sharing
 - Player list with ready status
 - "Start Game" button (host only)
 
 **3. Category Selection**
+
 - Grid or list of categories with icons
 - Each category shows brief description on hover/tap
 - Selected categories highlighted
 - "Confirm" button reveals overlap with partner
 
 **4. Question Screen**
+
 - Question text: Large, centered, easy to read
 - Answer textarea: Generous size, character count
 - "Submit" button only active after typing
@@ -494,6 +538,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 - Answer reveal: Smooth transition, all answers shown simultaneously
 
 **5. Summary Screen**
+
 - AI summary text
 - Optional: Therapist notes in collapsible section
 - Optional: Visual memory preview
@@ -502,12 +547,14 @@ Whispers and Flames becomes the default platform couples use when they want to:
 ### Copy Voice & Tone
 
 **Brand Voice: Ember**
+
 - Playful but never crude
 - Insightful but never clinical
 - Warm but never patronizing
 - Specific but never invasive
 
 **Tone Examples:**
+
 - ✅ "What's one specific way your partner kisses you that makes you forget your own name?"
 - ❌ "Do you like kissing your partner?"
 
@@ -524,6 +571,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
 ### System Components
 
 **1. Client Application**
+
 - **Purpose**: User interface, session management
 - **Requirements**:
   - Web-based (accessible via browser)
@@ -533,6 +581,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
   - Progressive Web App (installable)
 
 **2. API Server**
+
 - **Purpose**: Business logic, data orchestration
 - **Endpoints**:
   - `POST /game/create` - Create room
@@ -544,6 +593,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
   - `GET /health/db` - Database health
 
 **3. Database**
+
 - **Purpose**: Store game state, user accounts
 - **Requirements**:
   - Relational or document-based
@@ -553,6 +603,7 @@ Whispers and Flames becomes the default platform couples use when they want to:
   - Row-level locking (prevent race conditions)
 
 **Schema (Conceptual):**
+
 ```
 Game {
   roomCode: string (primary key)
@@ -577,6 +628,7 @@ User {
 ```
 
 **4. AI Service**
+
 - **Purpose**: Generate questions, summaries, therapist notes, visual prompts
 - **Requirements**:
   - LLM integration (Google Gemini, OpenAI, Anthropic, or similar)
@@ -587,12 +639,14 @@ User {
   - Retry logic with exponential backoff
 
 **Flows:**
+
 - `generateQuestion(categories, spicyLevel, previousQuestions)` → string
 - `generateSummary(questions, answers, categories, spicyLevel)` → string
 - `generateTherapistNotes(questions, answers, categories, spicyLevel)` → string
 - `generateVisualMemory(summary, spicyLevel, sharedThemes)` → {imagePrompt, safetyLevel}
 
 **5. Authentication Service**
+
 - **Purpose**: User account management, session protection
 - **Requirements**:
   - OAuth providers (Google, Apple, Email)
@@ -602,6 +656,7 @@ User {
   - Email verification
 
 **6. Background Jobs**
+
 - **Purpose**: Automated cleanup, maintenance
 - **Jobs**:
   - Expire old game rooms (runs hourly)
@@ -613,6 +668,7 @@ User {
 ### Data Flow
 
 **Creating a Game:**
+
 ```
 1. User authenticates
 2. Client → API: POST /game/create {roomCode, playerName}
@@ -622,6 +678,7 @@ User {
 ```
 
 **Joining a Game:**
+
 ```
 1. User (with or without account) enters room code
 2. Client → API: POST /game/join {roomCode, playerName}
@@ -632,6 +689,7 @@ User {
 ```
 
 **Playing a Round:**
+
 ```
 1. Host advances to "game" step
 2. Client → AI Service: Generate question
@@ -645,6 +703,7 @@ User {
 ```
 
 **Generating Summary:**
+
 ```
 1. Host advances to "summary" step
 2. Client → AI Service: Generate summary
@@ -659,6 +718,7 @@ User {
 ### Non-Functional Requirements
 
 **Performance:**
+
 - Page load time: < 2 seconds (initial)
 - AI response time: < 5 seconds (question generation)
 - AI response time: < 10 seconds (summary generation)
@@ -666,12 +726,14 @@ User {
 - Support 100 concurrent game sessions
 
 **Scalability:**
+
 - Horizontally scalable API servers
 - Database connection pooling
 - CDN for static assets
 - AI service rate limiting
 
 **Reliability:**
+
 - 99.5% uptime target
 - Auto-retry for transient failures
 - Graceful degradation (fallback questions if AI fails)
@@ -679,6 +741,7 @@ User {
 - Disaster recovery plan
 
 **Security:**
+
 - HTTPS only
 - SQL injection prevention (parameterized queries)
 - XSS prevention (HTML sanitization)
@@ -693,6 +756,7 @@ User {
 ### Launch Criteria (MVP)
 
 **Must Have:**
+
 - ✅ User authentication
 - ✅ Game room creation and joining
 - ✅ Category selection with overlap detection
@@ -705,6 +769,7 @@ User {
 - ✅ Privacy policy
 
 **Should Have:**
+
 - Therapist notes feature
 - Chaos mode
 - Visual memory generation
@@ -712,6 +777,7 @@ User {
 - Answer character limits with validation
 
 **Could Have:**
+
 - Session history (non-persisted answers, just metadata)
 - Achievement system
 - Customizable question count
@@ -720,16 +786,19 @@ User {
 ### Post-Launch Success Metrics (6 Months)
 
 **Engagement:**
+
 - 500+ game sessions created
 - 70%+ session completion rate
 - 2.5+ sessions per user (lifetime average)
 
 **Quality:**
+
 - 4.0+ average rating (if we add rating system)
 - < 5% premature exit rate
 - < 1% flagged questions rate
 
 **Growth:**
+
 - 20% month-over-month user growth
 - 30%+ viral coefficient (1 user invites 1.3 others)
 - 10%+ organic social sharing rate
@@ -743,6 +812,7 @@ User {
 **Impact:** High (damages user trust, brand reputation)
 
 **Mitigation:**
+
 - Extensive prompt engineering with safety guidelines
 - Question flagging system
 - Human review of flagged questions
@@ -754,6 +824,7 @@ User {
 **Impact:** Critical (user data exposed, legal consequences)
 
 **Mitigation:**
+
 - Minimal data collection
 - Encryption in transit and at rest
 - Regular security audits
@@ -767,6 +838,7 @@ User {
 **Impact:** Medium (product-market fit question)
 
 **Mitigation:**
+
 - User testing before launch
 - Progressive disclosure (don't overwhelm with options)
 - Clear onboarding flow
@@ -779,6 +851,7 @@ User {
 **Impact:** Medium (degraded experience)
 
 **Mitigation:**
+
 - Fallback question bank (100+ curated questions)
 - Retry logic with exponential backoff
 - Multiple AI provider support
@@ -790,6 +863,7 @@ User {
 **Impact:** High (user safety, legal)
 
 **Mitigation:**
+
 - Terms of Service explicitly prohibit misuse
 - Age gate (18+)
 - Question flagging system

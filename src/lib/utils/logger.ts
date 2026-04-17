@@ -3,6 +3,8 @@
  * Provides better debugging and monitoring capabilities
  */
 
+import * as Sentry from '@sentry/nextjs';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
@@ -129,7 +131,11 @@ class Logger {
    * Error level logging
    */
   error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
-    // TODO: wire up error monitoring here — e.g. Sentry.captureException(error, { extra: context })
+    if (process.env.SENTRY_DSN && error) {
+      Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+        extra: context,
+      });
+    }
     const logEntry = this.formatLog('error', message, context);
 
     if (error instanceof Error) {

@@ -1,5 +1,3 @@
-import { useRouter } from 'next/navigation';
-
 import type {
   generateQuestionAction,
   analyzeAndSummarizeAction,
@@ -48,24 +46,44 @@ export type GameState = {
   completedAt?: Date;
 };
 
+export type RouterLike = {
+  push: (href: string) => void;
+};
+
+type SharedStepHandlers = {
+  roomCode: string;
+  updateGameState: (newState: Partial<GameState>) => Promise<void>;
+  toast: (options: {
+    title: string;
+    description?: string;
+    variant?: 'default' | 'destructive';
+    duration?: number;
+  }) => void;
+  router: RouterLike;
+};
+
 export type StepProps = {
   gameState: GameState;
   me: Player;
-  handlers: {
-    roomCode: string;
-    updateGameState: (newState: Partial<GameState>) => Promise<void>;
-    toast: (options: {
-      title: string;
-      description?: string;
-      variant?: 'default' | 'destructive';
-      duration?: number;
-    }) => void;
-    setIsLoading: (loading: boolean) => void;
-    setError: (error: string | null) => void;
+  handlers: SharedStepHandlers;
+};
+
+export type GameStepProps = Omit<StepProps, 'handlers'> & {
+  handlers: SharedStepHandlers & {
     generateQuestionAction: typeof generateQuestionAction;
     analyzeAndSummarizeAction: typeof analyzeAndSummarizeAction;
+  };
+};
+
+export type SpicyStepProps = Omit<StepProps, 'handlers'> & {
+  handlers: SharedStepHandlers & {
+    generateQuestionAction: typeof generateQuestionAction;
+  };
+};
+
+export type SummaryStepProps = Omit<StepProps, 'handlers'> & {
+  handlers: SharedStepHandlers & {
     generateTherapistNotesAction: typeof generateTherapistNotesAction;
     generateVisualMemoryAction: typeof generateVisualMemoryAction;
-    router: ReturnType<typeof useRouter>;
   };
 };

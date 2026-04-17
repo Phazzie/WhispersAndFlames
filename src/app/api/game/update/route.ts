@@ -11,57 +11,53 @@ import {
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { sanitizeHtml, truncateInput, checkRateLimit, getClientIp } from '@/lib/utils/security';
+import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
-const GameStepSchema = z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']);
-const GameModeSchema = z.enum(['online', 'local']);
-const SpicyLevelNameSchema = z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']);
+const updateGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS / 60000);
 
-const PlayerSchema = z.object({
+const playerSchema = z.object({
   id: z.string(),
   name: z.string(),
   isReady: z.boolean(),
   email: z.string(),
   selectedCategories: z.array(z.string()),
-  selectedSpicyLevel: SpicyLevelNameSchema.optional(),
+  selectedSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
 });
 
-const GameRoundSchema = z.object({
+const gameRoundSchema = z.object({
   question: z.string(),
-  answers: z.record(z.string(), z.string()),
+  answers: z.record(z.string(), z.string()).default({}),
 });
 
-const VisualMemorySchema = z.object({
-  imageUrl: z.string().url(),
+const visualMemorySchema = z.object({
+  imageUrl: z.string(),
   prompt: z.string(),
-  timestamp: z.number(),
+  timestamp: z.number().int().nonnegative(),
 });
 
-export const GameStateSchema = z.object({
-  step: GameStepSchema,
-  players: z.array(PlayerSchema),
-  playerIds: z.array(z.string()),
-  hostId: z.string(),
-  gameMode: GameModeSchema,
-  currentPlayerIndex: z.number().int().min(0).optional(),
-  commonCategories: z.array(z.string()),
-  finalSpicyLevel: SpicyLevelNameSchema,
-  chaosMode: z.boolean(),
-  gameRounds: z.array(GameRoundSchema),
-  currentQuestion: z.string(),
-  currentQuestionIndex: z.number().int().min(0),
-  totalQuestions: z.number().int().min(0),
-  summary: z.string(),
-  visualMemories: z.array(VisualMemorySchema).optional(),
-  imageGenerationCount: z.number().int().min(0),
-  roomCode: z.string(),
-  createdAt: z.coerce.date().optional(),
-  completedAt: z.coerce.date().optional(),
-});
-
-export const updateGameSchema = z.object({
+const updateGameSchema = z.object({
   roomCode: z.string().min(4).max(8),
-  updates: GameStateSchema.partial().strict(),
+  updates: z
+    .object({
+      step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
+      players: z.array(playerSchema).optional(),
+      playerIds: z.array(z.string()).optional(),
+      gameMode: z.enum(['online', 'local']).optional(),
+      currentPlayerIndex: z.number().int().min(0).optional(),
+      commonCategories: z.array(z.string()).optional(),
+      finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
+      chaosMode: z.boolean().optional(),
+      gameRounds: z.array(gameRoundSchema).optional(),
+      currentQuestion: z.string().optional(),
+      currentQuestionIndex: z.number().int().min(0).optional(),
+      totalQuestions: z.number().int().min(0).optional(),
+      summary: z.string().optional(),
+      visualMemories: z.array(visualMemorySchema).optional(),
+      imageGenerationCount: z.number().int().min(0).optional(),
+      hostId: z.string().optional(),
+    })
+    .strict(),
 });
 
 export async function POST(request: Request) {
@@ -76,8 +72,9 @@ export async function POST(request: Request) {
     }
 
     // Rate limiting: 60 updates per minute per IP (allows rapid gameplay)
-    const clientIp = getClientIp(request);
-    if (!checkRateLimit(`game-update:${clientIp}`, RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS)) {
+    const clientIp = getRateLimitIdentifier(request);
+    const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
         { status: 429 }
@@ -120,16 +117,11 @@ export async function POST(request: Request) {
     const sanitizedUpdates = { ...updates };
     if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
       sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        if (round && round.answers) {
-          const sanitizedAnswers: Record<string, string> = {};
-          for (const [playerId, answer] of Object.entries(
-            round.answers as Record<string, string>
-          )) {
-            sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-          }
-          return { ...round, answers: sanitizedAnswers };
+        const sanitizedAnswers: Record<string, string> = {};
+        for (const [playerId, answer] of Object.entries(round.answers || {})) {
+          sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
         }
-        return round;
+        return { ...round, answers: sanitizedAnswers };
       });
     }
 

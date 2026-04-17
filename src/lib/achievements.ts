@@ -1,4 +1,7 @@
 import type { GameState } from './game-types';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('achievements');
 
 export interface Achievement {
   id: string;
@@ -18,12 +21,12 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
 
     // Validate input
     if (!players || players.length === 0) {
-      console.warn('[Achievements] No players found in game state');
+      logger.warn('No players found in game state');
       return achievements;
     }
 
     if (!gameRounds || gameRounds.length === 0) {
-      console.warn('[Achievements] No game rounds found in game state');
+      logger.warn('No game rounds found in game state');
       return achievements;
     }
 
@@ -31,12 +34,12 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
     const answerLengths = new Map<string, number>();
     gameRounds.forEach((round) => {
       if (!round.answers) {
-        console.warn('[Achievements] Round missing answers:', round);
+        logger.warn('Round missing answers', { round });
         return;
       }
       Object.entries(round.answers).forEach(([playerId, answer]) => {
         if (typeof answer !== 'string') {
-          console.warn('[Achievements] Invalid answer type for player:', playerId);
+          logger.warn('Invalid answer type for player', { playerId });
           return;
         }
         const currentLength = answerLengths.get(playerId) || 0;
@@ -266,10 +269,10 @@ export function calculateAchievements(gameState: GameState): Achievement[] {
       }
     }
 
-    console.log(`[Achievements] Calculated ${achievements.length} achievements`);
+    logger.info('Calculated achievements', { count: achievements.length });
     return achievements;
   } catch (error) {
-    console.error('[Achievements] Error calculating achievements:', error);
+    logger.error('Error calculating achievements', error);
     return achievements; // Return empty or partial achievements on error
   }
 }

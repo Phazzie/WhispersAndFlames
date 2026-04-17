@@ -7,13 +7,13 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { SPICY_LEVELS } from '@/lib/constants';
-import type { StepProps, SpicyLevel } from '@/lib/game-types';
+import type { SpicyLevel, SpicyStepProps } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
 
-export function SpicyStep({ gameState, me, handlers }: StepProps) {
-  const { updateGameState, setIsLoading, setError, generateQuestionAction, toast } = handlers;
+export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
+  const { updateGameState, generateQuestionAction, toast } = handlers;
   const { players } = gameState;
   const [selectedLevel, setSelectedLevel] = useState<SpicyLevel['name'] | undefined>(
     me.selectedSpicyLevel
@@ -21,8 +21,6 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
   const [chaosMode, setChaosMode] = useState(gameState.chaosMode || false);
 
   const startFirstQuestion = async (level: SpicyLevel['name'], categories: string[]) => {
-    setIsLoading(true);
-    setError(null);
     try {
       const result = await generateQuestionAction({
         categories: [categories[0]],
@@ -50,8 +48,6 @@ export function SpicyStep({ gameState, me, handlers }: StepProps) {
         selectedSpicyLevel: undefined,
       }));
       await updateGameState({ players: unreadyPlayers });
-    } finally {
-      setIsLoading(false);
     }
   };
 

@@ -1,6 +1,9 @@
 'use server';
 
 import { generateVisualMemory } from '@/ai/flows/generate-visual-memory';
+import { createLogger } from '@/lib/utils/logger';
+
+const logger = createLogger('image-generation');
 
 export interface GenerateSessionImageResult {
   imageUrl: string;
@@ -19,9 +22,9 @@ export async function generateSessionImage(
   sharedThemes: string[]
 ): Promise<GenerateSessionImageResult | null> {
   const startTime = Date.now();
-  
+
   try {
-    console.log('[ImageGeneration] Starting generation with:', {
+    logger.info('Starting generation', {
       summaryLength: summary.length,
       spicyLevel,
       themesCount: sharedThemes.length,
@@ -29,7 +32,7 @@ export async function generateSessionImage(
 
     // Validate inputs
     if (!summary || summary.trim().length === 0) {
-      console.error('[ImageGeneration] Invalid summary: empty or undefined');
+      logger.error('Invalid summary: empty or undefined');
       return null;
     }
 
@@ -41,11 +44,11 @@ export async function generateSessionImage(
     });
 
     if (!result || !result.imagePrompt) {
-      console.error('[ImageGeneration] AI returned invalid result:', result);
+      logger.error('AI returned invalid result', undefined, { result });
       return null;
     }
 
-    console.log('[ImageGeneration] AI prompt generated:', {
+    logger.info('AI prompt generated', {
       promptLength: result.imagePrompt.length,
       safetyLevel: result.safetyLevel,
     });
@@ -57,7 +60,7 @@ export async function generateSessionImage(
     const imageUrl = createPlaceholderImage(result.imagePrompt, spicyLevel);
 
     const elapsed = Date.now() - startTime;
-    console.log(`[ImageGeneration] Generated successfully in ${elapsed}ms`);
+    logger.info('Generated successfully', { elapsedMs: elapsed });
 
     return {
       imageUrl,
@@ -65,16 +68,16 @@ export async function generateSessionImage(
     };
   } catch (error) {
     const elapsed = Date.now() - startTime;
-    console.error(`[ImageGeneration] Failed after ${elapsed}ms:`, error);
-    
+    logger.error('Failed to generate image', error, { elapsedMs: elapsed });
+
     // Log additional context
     if (error instanceof Error) {
-      console.error('[ImageGeneration] Error details:', {
+      logger.error('Error details', undefined, {
         message: error.message,
         stack: error.stack,
       });
     }
-    
+
     return null;
   }
 }
@@ -94,9 +97,9 @@ function createPlaceholderImage(prompt: string, spicyLevel: string): string {
     };
 
     const colors = colorSchemes[spicyLevel] || colorSchemes.Mild;
-    
+
     if (!colorSchemes[spicyLevel]) {
-      console.warn(`[ImageGeneration] Unknown spicy level: ${spicyLevel}, using Mild`);
+      logger.warn('Unknown spicy level; using Mild fallback', { spicyLevel });
     }
 
     // Sanitize prompt for SVG
@@ -138,7 +141,7 @@ function createPlaceholderImage(prompt: string, spicyLevel: string): string {
 
     return dataUri;
   } catch (error) {
-    console.error('[ImageGeneration] Error creating placeholder image:', error);
+    logger.error('Error creating placeholder image', error);
     // Return a minimal fallback SVG
     const fallbackSvg = `<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="600" fill="#212936"/></svg>`;
     return `data:image/svg+xml;base64,${Buffer.from(fallbackSvg).toString('base64')}`;

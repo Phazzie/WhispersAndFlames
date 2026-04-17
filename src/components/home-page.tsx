@@ -8,15 +8,20 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { clientGame } from '@/lib/client-game';
 import { generateRoomCode } from '@/lib/game-utils';
+import { localGame } from '@/lib/local-game';
 
 export default function HomePageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [roomCode, setRoomCode] = useState('');
   const [playerName, setPlayerName] = useState('');
+  const [playLocally, setPlayLocally] = useState(false);
+  const [localPlayerNames, setLocalPlayerNames] = useState(['', '']);
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
   const { toast } = useToast();
@@ -47,6 +52,31 @@ export default function HomePageClient() {
 
   const handleCreateRoom = async () => {
     if (!user) return;
+    if (playLocally) {
+      const names = localPlayerNames.map((name) => name.trim()).filter(Boolean);
+      if (names.length < 1 || names.length > 3) {
+        toast({
+          title: 'Invalid local players',
+          description: 'Enter 1 to 3 player names to play locally.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        const local = localGame.create(names);
+        router.push(`/game/${local.roomCode}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
     if (!playerName) {
       toast({
         title: 'Name Required',
@@ -154,15 +184,47 @@ export default function HomePageClient() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <Input
-              placeholder="Your name"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-            />
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label htmlFor="play-locally" className="font-medium">
+                Play Locally
+              </Label>
+              <Switch id="play-locally" checked={playLocally} onCheckedChange={setPlayLocally} />
+            </div>
+            {playLocally ? (
+              <div className="space-y-2">
+                {localPlayerNames.map((name, index) => (
+                  <Input
+                    key={`local-player-${index + 1}`}
+                    placeholder={`Player ${index + 1} name`}
+                    value={name}
+                    onChange={(e) => {
+                      const next = [...localPlayerNames];
+                      next[index] = e.target.value;
+                      setLocalPlayerNames(next);
+                    }}
+                  />
+                ))}
+                {localPlayerNames.length < 3 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setLocalPlayerNames((prev) => [...prev, ''])}
+                  >
+                    Add player
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Input
+                placeholder="Your name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+              />
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button onClick={handleCreateRoom} className="w-full" size="lg">
                 <Play className="mr-2 h-5 w-5" />
-                Create New Room
+                {playLocally ? 'Play Locally' : 'Create New Room'}
               </Button>
               <Button onClick={() => router.push('/profile')} variant="outline" size="lg">
                 <History className="mr-2 h-5 w-5" />
@@ -171,21 +233,23 @@ export default function HomePageClient() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground text-center">Or join an existing room</p>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Room Code"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                maxLength={6}
-              />
-              <Button onClick={handleJoinRoom}>
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Join
-              </Button>
+          {!playLocally && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground text-center">Or join an existing room</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Room Code"
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                  maxLength={6}
+                />
+                <Button onClick={handleJoinRoom}>
+                  <ArrowRight className="mr-2 h-4 w-4" />
+                  Join
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="pt-4 border-t">
             <Button onClick={handleLogout} variant="ghost" className="w-full">

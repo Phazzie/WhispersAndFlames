@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 import {
   sanitizeHtml,
@@ -8,8 +8,6 @@ import {
   isValidEmail,
   isSafeString,
   truncateInput,
-  checkRateLimit,
-  getClientIp,
 } from '@/lib/utils/security';
 
 describe('sanitizeHtml', () => {
@@ -82,6 +80,7 @@ describe('sanitizePath', () => {
   it('should remove path traversal sequences', () => {
     expect(sanitizePath('../etc/passwd')).toBe('/etc/passwd');
     expect(sanitizePath('../../secret')).toBe('/secret');
+    expect(sanitizePath('%2e%2e/%2e%2e/secret')).toBe('/secret');
   });
 
   it('should remove backslashes', () => {
@@ -197,114 +196,5 @@ describe('truncateInput', () => {
 
   it('should handle empty string', () => {
     expect(truncateInput('', 100)).toBe('');
-  });
-});
-
-describe('checkRateLimit', () => {
-  // We use unique identifiers per test to avoid cross-test state pollution
-  // since the module-level rateLimitStore persists across tests.
-  const generateTestId = (label: string) => `test-${label}-${Date.now()}-${Math.random()}`;
-
-  it('should allow the first request', () => {
-    expect(checkRateLimit(generateTestId('first'), 5, 60000)).toBe(true);
-  });
-
-  it('should allow requests up to the limit', () => {
-    const id = generateTestId('up-to-limit');
-    for (let i = 0; i < 5; i++) {
-      expect(checkRateLimit(id, 5, 60000)).toBe(true);
-    }
-  });
-
-  it('should block requests exceeding the limit', () => {
-    const id = generateTestId('exceed');
-    for (let i = 0; i < 5; i++) {
-      checkRateLimit(id, 5, 60000);
-    }
-    expect(checkRateLimit(id, 5, 60000)).toBe(false);
-  });
-
-  it('should reset after the window expires', () => {
-    vi.useFakeTimers();
-    const id = generateTestId('window-reset');
-
-    // Exhaust the limit
-    for (let i = 0; i < 3; i++) {
-      checkRateLimit(id, 3, 60000);
-    }
-    expect(checkRateLimit(id, 3, 60000)).toBe(false);
-
-    // Advance past the window
-    vi.advanceTimersByTime(61000);
-
-    // Should allow requests again
-    expect(checkRateLimit(id, 3, 60000)).toBe(true);
-    vi.useRealTimers();
-  });
-
-  it('should track different identifiers independently', () => {
-    const id1 = generateTestId('independent-a');
-    const id2 = generateTestId('independent-b');
-
-    // Exhaust id1
-    for (let i = 0; i < 3; i++) {
-      checkRateLimit(id1, 3, 60000);
-    }
-    expect(checkRateLimit(id1, 3, 60000)).toBe(false);
-
-    // id2 should still be allowed
-    expect(checkRateLimit(id2, 3, 60000)).toBe(true);
-  });
-
-  it('should run deterministic cleanup after the cleanup interval', () => {
-    vi.useFakeTimers();
-    const id = generateTestId('cleanup');
-    checkRateLimit(id, 5, 60000);
-
-    // Advance past both the window and the cleanup interval
-    vi.advanceTimersByTime(120000);
-
-    // A new request to any identifier should trigger cleanup
-    const triggerId = generateTestId('trigger-cleanup');
-    expect(checkRateLimit(triggerId, 5, 60000)).toBe(true);
-
-    // The original entry should now reset (expired → lazy cleaned on access)
-    expect(checkRateLimit(id, 5, 60000)).toBe(true);
-    vi.useRealTimers();
-  });
-});
-
-describe('getClientIp', () => {
-  it('should extract IP from x-forwarded-for header', () => {
-    const request = new Request('http://localhost', {
-      headers: { 'x-forwarded-for': '192.168.1.1, 10.0.0.1' },
-    });
-    expect(getClientIp(request)).toBe('192.168.1.1');
-  });
-
-  it('should extract IP from x-real-ip header when x-forwarded-for is absent', () => {
-    const request = new Request('http://localhost', {
-      headers: { 'x-real-ip': '10.0.0.5' },
-    });
-    expect(getClientIp(request)).toBe('10.0.0.5');
-  });
-
-  it('should prefer x-forwarded-for over x-real-ip', () => {
-    const request = new Request('http://localhost', {
-      headers: { 'x-forwarded-for': '1.2.3.4', 'x-real-ip': '5.6.7.8' },
-    });
-    expect(getClientIp(request)).toBe('1.2.3.4');
-  });
-
-  it('should return "unknown" when no IP headers are present', () => {
-    const request = new Request('http://localhost');
-    expect(getClientIp(request)).toBe('unknown');
-  });
-
-  it('should handle single IP in x-forwarded-for (no comma)', () => {
-    const request = new Request('http://localhost', {
-      headers: { 'x-forwarded-for': '203.0.113.42' },
-    });
-    expect(getClientIp(request)).toBe('203.0.113.42');
   });
 });

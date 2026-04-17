@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QRCodeShare } from './qr-code-share';
 
 // Mock qrcode library
@@ -49,9 +49,7 @@ describe('QRCodeShare', () => {
   it('renders native share button when available', async () => {
     // Mock navigator.share
     const shareMock = vi.fn();
-    Object.assign(navigator, {
-        share: shareMock,
-    });
+    vi.stubGlobal('navigator', { ...navigator, share: shareMock });
 
     render(<QRCodeShare {...defaultProps} />);
     await screen.findByText('Share Game');
@@ -65,9 +63,12 @@ describe('QRCodeShare', () => {
 
     shareButton.click();
     expect(shareMock).toHaveBeenCalledWith({
-        title: 'Join Whispers and Flames',
-        text: 'Join my game with room code: ABCD',
-        url: 'https://example.com/game/ABCD',
+      title: 'Join Whispers and Flames',
+      text: 'Join my game with room code: ABCD',
+      url: 'https://example.com/game/ABCD',
     });
   });
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
 });

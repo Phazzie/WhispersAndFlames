@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 interface QRCodeShareProps {
   roomCode: string;
@@ -15,12 +16,12 @@ interface QRCodeShareProps {
 const SocialIcon = ({ path }: { path: string }) => (
   <svg
     viewBox="0 0 24 24"
-    width="16"
-    height="16"
     stroke="currentColor"
     fill="currentColor"
     strokeWidth="0"
     className="h-4 w-4"
+    aria-hidden="true"
+    focusable="false"
   >
     <path d={path} />
   </svg>
@@ -36,6 +37,7 @@ const ICONS = {
 };
 
 export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
+  const { toast } = useToast();
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
   const [qrError, setQrError] = useState<string>('');
@@ -43,7 +45,11 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
 
   useEffect(() => {
     // Check if native sharing is available
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    if (
+      typeof navigator !== 'undefined' &&
+      'share' in navigator &&
+      typeof navigator.share === 'function'
+    ) {
       setCanShareNative(true);
     }
 
@@ -61,11 +67,15 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
         setQrError('');
       })
       .catch((err) => {
-        console.error('Failed to generate QR code:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         setQrError(`Failed to generate QR code: ${errorMessage}`);
+        toast({
+          title: 'QR code generation failed',
+          description: errorMessage,
+          variant: 'destructive',
+        });
       });
-  }, [gameUrl]);
+  }, [gameUrl, toast]);
 
   const handleCopyLink = async () => {
     try {
@@ -73,7 +83,11 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy:', error);
+      toast({
+        title: 'Copy failed',
+        description: error instanceof Error ? error.message : 'Unable to copy link',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -94,7 +108,11 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
         url: gameUrl,
       });
     } catch (error) {
-      console.error('Share failed:', error);
+      toast({
+        title: 'Share failed',
+        description: error instanceof Error ? error.message : 'Unable to share link',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -116,7 +134,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
   };
 
   const handleSocialShare = (platform: 'whatsapp' | 'twitter' | 'facebook') => {
-    window.open(getShareUrl(platform), '_blank', 'width=600,height=400,noopener,noreferrer');
+    window.open(getShareUrl(platform), '_blank', 'noopener,noreferrer');
   };
 
   if (qrError) {

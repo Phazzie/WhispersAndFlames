@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { createLogger } from '@/lib/utils/logger';
+
+const logger = createLogger('env');
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -9,6 +12,8 @@ const envSchema = z.object({
   XAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   DATABASE_URL: z.string().optional(), // Optional - falls back to in-memory storage
+  CRON_SECRET: z.string().min(1).optional(),
+  SENTRY_DSN: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:9002'),
 });
 
@@ -23,12 +28,20 @@ export function validateEnv(): Env {
       XAI_API_KEY: process.env.XAI_API_KEY,
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
       DATABASE_URL: process.env.DATABASE_URL,
+      CRON_SECRET: process.env.CRON_SECRET,
+      SENTRY_DSN: process.env.SENTRY_DSN,
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     });
   } catch (error) {
-    console.error('❌ Environment validation failed:', error);
+    logger.error('Environment validation failed', error);
     throw new Error('Invalid environment configuration');
   }
 }
 
 export const env = validateEnv();
+
+if (env.DATABASE_URL && !env.CRON_SECRET) {
+  logger.warn(
+    'DATABASE_URL is set but CRON_SECRET is missing; cron cleanup endpoint will remain protected but unusable.'
+  );
+}

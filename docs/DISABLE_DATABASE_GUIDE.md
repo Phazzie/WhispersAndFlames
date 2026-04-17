@@ -242,7 +242,7 @@ Set up monitoring tools to track the health endpoint:
 DISABLE_DATABASE=true
 
 # Incorrect
-DISABLE_DATABASE="true"  # Extra quotes
+DISABLE_DATABASE='\"true\"'  # Quotes become part of the value
 DISABLE_DATABASE=True    # Capital T
 DISABLE_DATABASE=1       # Not a string "true"
 ```

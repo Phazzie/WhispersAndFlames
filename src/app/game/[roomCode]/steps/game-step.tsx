@@ -9,20 +9,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
-import type { StepProps } from '@/lib/game-types';
+import type { GameStepProps } from '@/lib/game-types';
 import { applyChaosMode } from '@/lib/game-utils';
 
 import { LoadingScreen } from '../loading-screen';
 
-export function GamePlayStep({ gameState, me, handlers }: StepProps) {
-  const {
-    updateGameState,
-    setIsLoading,
-    setError,
-    generateQuestionAction,
-    analyzeAndSummarizeAction,
-    toast,
-  } = handlers;
+export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
+  const { updateGameState, generateQuestionAction, analyzeAndSummarizeAction, toast } = handlers;
   const { players, currentQuestion, gameRounds, totalQuestions, currentQuestionIndex } = gameState;
 
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -71,8 +64,11 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
       setCurrentAnswer('');
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
-      console.error('Failed to submit answer:', errorMessage);
-      setError('There was an issue submitting your answer. Please try again.');
+      toast({
+        title: 'Failed to submit answer',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -83,12 +79,9 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
     me.id,
     updateGameState,
     toast,
-    setError,
   ]);
 
   const handleNextStep = useCallback(async () => {
-    setIsLoading(true);
-
     try {
       // Mark current player as ready
       const updatedPlayers = gameState.players.map((p) =>
@@ -121,13 +114,20 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
                 completedAt: new Date(),
               });
             } else {
-              setError(summaryResult.error);
+              toast({
+                title: 'Summary generation failed',
+                description: summaryResult.error,
+                variant: 'destructive',
+              });
               await updateGameState({ step: 'game' }); // Go back if summary fails
             }
           } catch (e: unknown) {
             const errorMessage = e instanceof Error ? e.message : 'Could not generate summary.';
-            console.error('Summary generation error:', errorMessage);
-            setError(errorMessage);
+            toast({
+              title: 'Summary generation error',
+              description: errorMessage,
+              variant: 'destructive',
+            });
             await updateGameState({ step: 'game' });
           }
         } else {
@@ -156,22 +156,30 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
                 currentQuestionIndex: nextQuestionIndex,
               });
             } else {
-              setError(result.error);
+              toast({
+                title: 'Question generation failed',
+                description: result.error,
+                variant: 'destructive',
+              });
             }
           } catch (e: unknown) {
             const errorMessage =
               e instanceof Error ? e.message : 'Could not generate next question.';
-            console.error('Question generation error:', errorMessage);
-            setError(errorMessage);
+            toast({
+              title: 'Question generation error',
+              description: errorMessage,
+              variant: 'destructive',
+            });
           }
         }
       }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred.';
-      console.error('HandleNextStep error:', errorMessage);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
+      toast({
+        title: 'Unexpected error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
   }, [
     gameState.players,
@@ -183,10 +191,9 @@ export function GamePlayStep({ gameState, me, handlers }: StepProps) {
     gameState.chaosMode,
     me.id,
     updateGameState,
-    setIsLoading,
     analyzeAndSummarizeAction,
-    setError,
     generateQuestionAction,
+    toast,
   ]);
 
   if (isSubmitting) {
