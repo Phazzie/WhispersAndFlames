@@ -11,11 +11,7 @@ import {
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import {
-  getRateLimitIdentifier,
-  RateLimiter,
-  createRateLimitResponse,
-} from '@/lib/utils/rate-limiter';
+import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
 import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
 const updateGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS / 60000);
@@ -84,7 +80,24 @@ export async function POST(request: Request) {
     const clientIp = getRateLimitIdentifier(request);
     const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
     if (!rateLimit.allowed) {
-      return createRateLimitResponse(rateLimit, 'Too many requests. Please slow down.');
+      const rateLimitHeaders: Record<string, string> = {};
+      if (rateLimit.retryAfter !== undefined) {
+        rateLimitHeaders['Retry-After'] = String(rateLimit.retryAfter);
+      }
+      if (rateLimit.limit !== undefined) {
+        rateLimitHeaders['X-RateLimit-Limit'] = String(rateLimit.limit);
+      }
+      if (rateLimit.remaining !== undefined) {
+        rateLimitHeaders['X-RateLimit-Remaining'] = String(rateLimit.remaining);
+      }
+      if (rateLimit.resetAt !== undefined) {
+        rateLimitHeaders['X-RateLimit-Reset'] = String(Math.floor(rateLimit.resetAt / 1000));
+      }
+
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
+        { status: 429, headers: rateLimitHeaders }
+      );
     }
 
     // Clerk authentication

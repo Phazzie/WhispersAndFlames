@@ -25,21 +25,6 @@ vi.mock('@/lib/utils/rate-limiter', () => ({
   RateLimiter: class {
     check = mockRateLimitCheck;
   },
-  createRateLimitResponse: vi.fn(
-    (info: { retryAfter?: number }) =>
-      new Response(
-        JSON.stringify({
-          error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' },
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': String(info.retryAfter ?? 1),
-          },
-        }
-      )
-  ),
 }));
 
 // Mock security utilities
@@ -214,7 +199,13 @@ describe('POST /api/game/update', () => {
   });
 
   it('returns 429 when rate limit is exceeded', async () => {
-    mockRateLimitCheck.mockReturnValue({ allowed: false });
+    mockRateLimitCheck.mockReturnValue({
+      allowed: false,
+      retryAfter: 12,
+      limit: 60,
+      remaining: 0,
+      resetAt: Date.now() + 12000,
+    });
 
     const request = makeRequest({
       roomCode: 'ROOM-01',
@@ -225,6 +216,10 @@ describe('POST /api/game/update', () => {
 
     expect(response.status).toBe(429);
     expect(body.error.code).toBe('RATE_LIMIT_EXCEEDED');
+    expect(response.headers.get('Retry-After')).toBe('12');
+    expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
+    expect(response.headers.get('X-RateLimit-Remaining')).toBe('0');
+    expect(response.headers.get('X-RateLimit-Reset')).toBeTruthy();
   });
 
   it('returns 413 when request body is too large', async () => {
