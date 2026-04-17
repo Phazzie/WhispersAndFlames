@@ -93,6 +93,9 @@ const analyzeAnswersFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('Summary generation returned no output');
+    }
+    return output;
   }
 );

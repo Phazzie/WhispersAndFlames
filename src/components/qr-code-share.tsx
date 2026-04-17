@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 
 interface QRCodeShareProps {
   roomCode: string;
@@ -13,6 +14,7 @@ interface QRCodeShareProps {
 }
 
 export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
+  const { toast } = useToast();
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [isSharing, setIsSharing] = useState(false);
   const [qrError, setQrError] = useState<string>('');
@@ -32,7 +34,6 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
         setQrError('');
       })
       .catch((err) => {
-        console.error('Failed to generate QR code:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         setQrError(`Failed to generate QR code: ${errorMessage}`);
       });
@@ -50,10 +51,14 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(gameUrl);
-        alert('Link copied to clipboard!');
+        toast({ title: 'Link copied to clipboard' });
       }
     } catch (error) {
-      console.error('Share failed:', error);
+      toast({
+        title: 'Share failed',
+        description: error instanceof Error ? error.message : 'Unable to share link',
+        variant: 'destructive',
+      });
     } finally {
       setIsSharing(false);
     }

@@ -27,4 +27,11 @@ describe('withRetry', () => {
     await expect(withRetry(operation, 2, 1)).rejects.toThrow('always fail');
     expect(operation).toHaveBeenCalledTimes(2);
   });
+
+  it('does not retry known non-retryable error codes', async () => {
+    const error = Object.assign(new Error('db constraint failed'), { code: '23505' });
+    const operation = vi.fn().mockRejectedValue(error);
+    await expect(withRetry(operation, 3, 1)).rejects.toThrow('db constraint failed');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
 });

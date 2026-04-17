@@ -101,6 +101,9 @@ const therapistNotesFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('Therapist notes generation returned no output');
+    }
+    return output;
   }
 );

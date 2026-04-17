@@ -17,18 +17,11 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { createLogger } from '@/lib/utils/logger';
-import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
 
 const logger = createLogger('cron-cleanup');
-const cronRateLimiter = new RateLimiter(10, 1);
 
 export async function GET(request: Request) {
   try {
-    const rateLimit = cronRateLimiter.check(`cron-cleanup:${getRateLimitIdentifier(request)}`);
-    if (!rateLimit.allowed) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    }
-
     // Verify cron secret for security
     const authHeader = request.headers.get('authorization');
     const expectedAuth = `Bearer ${env.CRON_SECRET}`;

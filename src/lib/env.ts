@@ -33,7 +33,7 @@ export function validateEnv(): Env {
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     });
   } catch (error) {
-    console.error('❌ Environment validation failed:', error);
+    logger.error('Environment validation failed', error);
     throw new Error('Invalid environment configuration');
   }
 }

@@ -1,5 +1,3 @@
-import { useRouter } from 'next/navigation';
-
 import type {
   generateQuestionAction,
   analyzeAndSummarizeAction,
@@ -48,6 +46,10 @@ export type GameState = {
   completedAt?: Date;
 };
 
+export type RouterLike = {
+  push: (href: string) => void;
+};
+
 type SharedStepHandlers = {
   roomCode: string;
   updateGameState: (newState: Partial<GameState>) => Promise<void>;
@@ -57,7 +59,7 @@ type SharedStepHandlers = {
     variant?: 'default' | 'destructive';
     duration?: number;
   }) => void;
-  router: ReturnType<typeof useRouter>;
+  router: RouterLike;
 };
 
 export type StepProps = {

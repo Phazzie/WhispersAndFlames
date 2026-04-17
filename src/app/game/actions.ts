@@ -17,7 +17,11 @@ import {
   AI_THERAPIST_NOTES_TIMEOUT_MS,
 } from '@/lib/api-constants';
 import { generateSessionImage } from '@/lib/image-generation';
+import { createLogger } from '@/lib/utils/logger';
 import { withRetry } from '@/lib/utils/retry';
+
+const logger = createLogger('game-actions');
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 const FALLBACK_QUESTIONS = [
   "What's one secret you've never told your partner about something you find attractive in them?",
@@ -57,11 +61,10 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export async function generateQuestionAction(
   input: GenerateContextualQuestionsInput
 ): Promise<{ question: string } | { error: string }> {
-  const isDev = process.env.NODE_ENV === 'development';
-  const startTime = isDev ? Date.now() : 0;
+  const startTime = IS_DEV ? Date.now() : 0;
 
   try {
-    if (isDev) console.log('[AI] Starting question generation...');
+    if (IS_DEV) logger.debug('Starting question generation');
 
     const result = await withRetry(
       async () => withTimeout(generateContextualQuestions(input), AI_QUESTION_TIMEOUT_MS),
@@ -69,20 +72,20 @@ export async function generateQuestionAction(
       200
     );
     if (result.question && result.question.length >= 20 && result.question.length <= 500) {
-      if (isDev) {
+      if (IS_DEV) {
         const elapsed = Date.now() - startTime;
-        console.log(`[AI] Question generated successfully in ${elapsed}ms`);
+        logger.debug('Question generated successfully', { elapsedMs: elapsed });
       }
       return { question: result.question };
     }
     return { question: getFallbackQuestion() };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    if (isDev) {
+    if (IS_DEV) {
       const elapsed = Date.now() - startTime;
-      console.error(`[AI] Question generation failed after ${elapsed}ms:`, errorMessage);
+      logger.error('Question generation failed', undefined, { elapsedMs: elapsed, errorMessage });
     }
-    console.error('AI question generation failed permanently:', errorMessage);
+    logger.error('AI question generation failed permanently', undefined, { errorMessage });
     return { error: 'The AI is taking too long to respond. Please try again in a moment.' };
   }
 }

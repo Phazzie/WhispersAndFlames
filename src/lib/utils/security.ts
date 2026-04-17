@@ -3,6 +3,9 @@
  */
 
 import sanitizeHtmlLib from 'sanitize-html';
+import { createLogger } from './logger';
+
+const logger = createLogger('security');
 
 /**
  * Sanitizes user input to prevent XSS attacks.
@@ -44,7 +47,10 @@ export function sanitizePath(path: string): string {
   let decodedPath = path;
   try {
     decodedPath = decodeURIComponent(path);
-  } catch {
+  } catch (error) {
+    logger.warn('Failed to decode path input', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return '';
   }
 
