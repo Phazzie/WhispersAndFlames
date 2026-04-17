@@ -16,12 +16,12 @@ interface QRCodeShareProps {
 const SocialIcon = ({ path }: { path: string }) => (
   <svg
     viewBox="0 0 24 24"
-    width="16"
-    height="16"
     stroke="currentColor"
     fill="currentColor"
     strokeWidth="0"
     className="h-4 w-4"
+    aria-hidden="true"
+    focusable="false"
   >
     <path d={path} />
   </svg>
@@ -134,7 +134,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
   };
 
   const handleSocialShare = (platform: 'whatsapp' | 'twitter' | 'facebook') => {
-    window.open(getShareUrl(platform), '_blank', 'width=600,height=400,noopener,noreferrer');
+    window.open(getShareUrl(platform), '_blank', 'noopener,noreferrer');
   };
 
   if (qrError) {
