@@ -67,18 +67,21 @@ export async function generateQuestionAction(
     if (IS_DEV) logger.debug('Starting question generation');
 
     const result = await withRetry(
-      async () => withTimeout(generateContextualQuestions(input), AI_QUESTION_TIMEOUT_MS),
+      async () => {
+        const r = await withTimeout(generateContextualQuestions(input), AI_QUESTION_TIMEOUT_MS);
+        if (!r.question || r.question.length < 20 || r.question.length > 500) {
+          throw new Error(`Invalid question length: ${r.question?.length ?? 0}`);
+        }
+        return r;
+      },
       AI_MAX_RETRIES,
       200
     );
-    if (result.question && result.question.length >= 20 && result.question.length <= 500) {
-      if (IS_DEV) {
-        const elapsed = Date.now() - startTime;
-        logger.debug('Question generated successfully', { elapsedMs: elapsed });
-      }
-      return { question: result.question };
+    if (IS_DEV) {
+      const elapsed = Date.now() - startTime;
+      logger.debug('Question generated successfully', { elapsedMs: elapsed });
     }
-    return { question: getFallbackQuestion() };
+    return { question: result.question };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     if (IS_DEV) {

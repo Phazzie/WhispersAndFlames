@@ -11,7 +11,11 @@ import {
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+import {
+  getRateLimitIdentifier,
+  RateLimiter,
+  createRateLimitResponse,
+} from '@/lib/utils/rate-limiter';
 import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
 const updateGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS / 60000);
@@ -37,7 +41,12 @@ const visualMemorySchema = z.object({
 });
 
 const updateGameSchema = z.object({
-  roomCode: z.string().min(4).max(8),
+  roomCode: z
+    .string()
+    .trim()
+    .min(4)
+    .max(64)
+    .transform((value) => value.toUpperCase()),
   updates: z
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
@@ -75,10 +84,7 @@ export async function POST(request: Request) {
     const clientIp = getRateLimitIdentifier(request);
     const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
     if (!rateLimit.allowed) {
-      return NextResponse.json(
-        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
-        { status: 429 }
-      );
+      return createRateLimitResponse(rateLimit, 'Too many requests. Please slow down.');
     }
 
     // Clerk authentication

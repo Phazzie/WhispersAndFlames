@@ -25,6 +25,21 @@ vi.mock('@/lib/utils/rate-limiter', () => ({
   RateLimiter: class {
     check = mockRateLimitCheck;
   },
+  createRateLimitResponse: vi.fn(
+    (info: { retryAfter?: number }) =>
+      new Response(
+        JSON.stringify({
+          error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' },
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': String(info.retryAfter ?? 1),
+          },
+        }
+      )
+  ),
 }));
 
 // Mock security utilities

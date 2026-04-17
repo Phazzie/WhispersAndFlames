@@ -51,7 +51,6 @@ export default function HomePageClient() {
   };
 
   const handleCreateRoom = async () => {
-    if (!user) return;
     if (playLocally) {
       const names = localPlayerNames.map((name) => name.trim()).filter(Boolean);
       if (names.length < 1 || names.length > 3) {
@@ -76,6 +75,8 @@ export default function HomePageClient() {
       }
       return;
     }
+
+    if (!user) return;
 
     if (!playerName) {
       toast({
