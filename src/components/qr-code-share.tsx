@@ -36,6 +36,11 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
       .catch((err) => {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         setQrError(`Failed to generate QR code: ${errorMessage}`);
+        toast({
+          title: 'QR code generation failed',
+          description: errorMessage,
+          variant: 'destructive',
+        });
       });
   }, [gameUrl]);
 

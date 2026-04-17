@@ -49,6 +49,7 @@ export function sanitizePath(path: string): string {
     decodedPath = decodeURIComponent(path);
   } catch (error) {
     logger.warn('Failed to decode path input', {
+      path,
       error: error instanceof Error ? error.message : String(error),
     });
     return '';
