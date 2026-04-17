@@ -243,8 +243,8 @@ DISABLE_DATABASE=true
 
 # Incorrect
 DISABLE_DATABASE="true"   # Actual value includes quotes, so it is not true
-DISABLE_DATABASE=True       # Capital T
-DISABLE_DATABASE=1          # Not the string "true"
+DISABLE_DATABASE=True     # Capital T
+DISABLE_DATABASE=1        # Not the string "true"
 ```
 
 ### Issue: Application crashes after disabling database
