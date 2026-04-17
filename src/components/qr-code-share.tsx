@@ -42,7 +42,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
           variant: 'destructive',
         });
       });
-  }, [gameUrl]);
+  }, [gameUrl, toast]);
 
   const handleShare = async () => {
     setIsSharing(true);
