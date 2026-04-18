@@ -86,9 +86,13 @@ export async function generateQuestionAction(
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     if (IS_DEV) {
       const elapsed = Date.now() - startTime;
-      logger.error('Question generation failed', undefined, { elapsedMs: elapsed, errorMessage });
+      logger.error('Question generation failed permanently', undefined, {
+        elapsedMs: elapsed,
+        errorMessage,
+      });
+    } else {
+      logger.error('AI question generation failed permanently', undefined, { errorMessage });
     }
-    logger.error('AI question generation failed permanently', undefined, { errorMessage });
     return { error: 'The AI is taking too long to respond. Please try again in a moment.' };
   }
 }
@@ -98,14 +102,17 @@ export async function analyzeAndSummarizeAction(
 ): Promise<{ summary: string } | { error: string }> {
   try {
     const result = await withRetry(
-      async () => withTimeout(analyzeAnswersAndGenerateSummary(input), AI_SUMMARY_TIMEOUT_MS),
+      async () => {
+        const r = await withTimeout(analyzeAnswersAndGenerateSummary(input), AI_SUMMARY_TIMEOUT_MS);
+        if (!r.summary || r.summary.length < 100) {
+          throw new Error(`Summary too short: ${r.summary?.length ?? 0}`);
+        }
+        return r;
+      },
       AI_MAX_RETRIES,
       200
     );
-    if (result.summary && result.summary.length >= 100) {
-      return { summary: result.summary };
-    }
-    return { error: 'Failed to generate summary after multiple attempts.' };
+    return { summary: result.summary };
   } catch {
     return { error: 'Failed to generate summary after multiple attempts.' };
   }
@@ -116,14 +123,17 @@ export async function generateTherapistNotesAction(
 ): Promise<{ notes: string } | { error: string }> {
   try {
     const result = await withRetry(
-      async () => withTimeout(generateTherapistNotes(input), AI_THERAPIST_NOTES_TIMEOUT_MS),
+      async () => {
+        const r = await withTimeout(generateTherapistNotes(input), AI_THERAPIST_NOTES_TIMEOUT_MS);
+        if (!r.notes || r.notes.length < 100) {
+          throw new Error(`Therapist notes too short: ${r.notes?.length ?? 0}`);
+        }
+        return r;
+      },
       AI_MAX_RETRIES,
       200
     );
-    if (result.notes && result.notes.length >= 100) {
-      return { notes: result.notes };
-    }
-    return { error: 'Could not generate therapist notes at this time. Please try again later.' };
+    return { notes: result.notes };
   } catch {
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
   }
