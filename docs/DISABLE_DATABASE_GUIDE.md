@@ -242,9 +242,9 @@ Set up monitoring tools to track the health endpoint:
 DISABLE_DATABASE=true
 
 # Incorrect
-DISABLE_DATABASE='\"true\"'  # Quotes become part of the value
-DISABLE_DATABASE=True    # Capital T
-DISABLE_DATABASE=1       # Not a string "true"
+DISABLE_DATABASE="true"   # Actual value includes quotes, so it is not true
+DISABLE_DATABASE=True     # Capital T
+DISABLE_DATABASE=1        # Not the string "true"
 ```
 
 ### Issue: Application crashes after disabling database

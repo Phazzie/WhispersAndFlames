@@ -89,15 +89,17 @@ const prompt = `${EMBER_CORE_IDENTITY}\n${EMBER_RULES}\n...`;
   'Bright Ideas',
   'Trust & Alliance',
   'The Unspeakable',
-][
-  // NEW (src/lib/utils/constants.ts) - 7 categories with different names
-  ('Hidden Attractions',
+];
+
+// NEW (src/lib/utils/constants.ts) - 7 categories with different names
+[
+  'Hidden Attractions',
   'Power Play',
   'Fantasy Confessions',
   'Emotional Intimacy',
   'Sensory Exploration',
   'Public/Private',
-  'Roleplay & Scenarios')
+  'Roleplay & Scenarios',
 ];
 
 // 🚨 CRITICAL: Categories don't even match!

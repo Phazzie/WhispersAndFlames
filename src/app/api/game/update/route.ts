@@ -37,7 +37,12 @@ const visualMemorySchema = z.object({
 });
 
 const updateGameSchema = z.object({
-  roomCode: z.string().min(4).max(8),
+  roomCode: z
+    .string()
+    .trim()
+    .min(4)
+    .max(64)
+    .transform((value) => value.toUpperCase()),
   updates: z
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
@@ -75,9 +80,23 @@ export async function POST(request: Request) {
     const clientIp = getRateLimitIdentifier(request);
     const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
     if (!rateLimit.allowed) {
+      const rateLimitHeaders: Record<string, string> = {};
+      if (rateLimit.retryAfter !== undefined) {
+        rateLimitHeaders['Retry-After'] = String(rateLimit.retryAfter);
+      }
+      if (rateLimit.limit !== undefined) {
+        rateLimitHeaders['X-RateLimit-Limit'] = String(rateLimit.limit);
+      }
+      if (rateLimit.remaining !== undefined) {
+        rateLimitHeaders['X-RateLimit-Remaining'] = String(rateLimit.remaining);
+      }
+      if (rateLimit.resetAt !== undefined) {
+        rateLimitHeaders['X-RateLimit-Reset'] = String(Math.floor(rateLimit.resetAt / 1000));
+      }
+
       return NextResponse.json(
         { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
-        { status: 429 }
+        { status: 429, headers: rateLimitHeaders }
       );
     }
 

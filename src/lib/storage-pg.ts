@@ -53,7 +53,7 @@ const pool = new Pool({
 pool.on('connect', () => {
   poolMetrics.connectionAttempts++;
   poolMetrics.lastConnectionTime = Date.now();
-  logger.info('New database connection established');
+  logger.debug('New database connection established');
 });
 
 pool.on('error', (err) => {
