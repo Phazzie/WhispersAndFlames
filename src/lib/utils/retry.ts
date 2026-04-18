@@ -15,11 +15,11 @@ function defaultShouldRetry(error: unknown): boolean {
 
   if (error instanceof Error) {
     const errorMessage = error.message.toLowerCase();
-    if (
-      errorMessage.includes('duplicate') ||
-      errorMessage.includes('constraint') ||
-      errorMessage.includes('invalid')
-    ) {
+    // Only block retries for messages that clearly indicate a permanent DB constraint error.
+    // Avoid matching "invalid" here because application-level validation errors (e.g. AI
+    // responses that are too short/long) contain "invalid" and ARE transient — they should
+    // be retried. DB-level "invalid" errors are already caught via NON_RETRYABLE_CODES above.
+    if (errorMessage.includes('duplicate') || errorMessage.includes('constraint')) {
       return false;
     }
   }
