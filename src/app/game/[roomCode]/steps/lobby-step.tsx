@@ -86,7 +86,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
 
   // Share a join link that prefills the room code on home so guests can enter their name and join.
   const gameUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/?join=${roomCode}` : '';
+    typeof window !== 'undefined' ? `${window.location.origin}/?join=${encodeURIComponent(roomCode)}` : '';
 
   return (
     <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
