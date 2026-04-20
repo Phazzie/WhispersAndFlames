@@ -107,8 +107,7 @@ export async function analyzeAndSummarizeAction(
     }
     return { error: 'Failed to generate summary after multiple attempts.' };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    logger.error('Summary generation failed', undefined, { errorMessage });
+    logger.error('Summary generation failed', error);
     return { error: 'Failed to generate summary after multiple attempts.' };
   }
 }
@@ -127,8 +126,7 @@ export async function generateTherapistNotesAction(
     }
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    logger.error('Therapist notes generation failed', undefined, { errorMessage });
+    logger.error('Therapist notes generation failed', error);
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
   }
 }
@@ -150,8 +148,7 @@ export async function generateVisualMemoryAction(
     }
     return { error: 'Could not generate visual memory at this time. Please try again later.' };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    logger.error('Visual memory generation failed', undefined, { errorMessage });
+    logger.error('Visual memory generation failed', error);
     return { error: 'Could not generate visual memory at this time. Please try again later.' };
   }
 }
