@@ -85,7 +85,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   }
 
   // Share a join link that prefills the room code on home so guests can enter their name and join.
-  const gameUrl =
+  const joinUrl =
     typeof window !== 'undefined' ? `${window.location.origin}/?join=${encodeURIComponent(roomCode)}` : '';
 
   return (
@@ -145,7 +145,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
         </CardContent>
       </Card>
 
-      {gameUrl && <QRCodeShare roomCode={roomCode} gameUrl={gameUrl} />}
+      {joinUrl && <QRCodeShare roomCode={roomCode} gameUrl={joinUrl} />}
     </div>
   );
 }
