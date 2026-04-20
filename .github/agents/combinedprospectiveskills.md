@@ -1,6 +1,9 @@
-name	suggest-awesome-github-copilot-agents
-description	Suggest relevant GitHub Copilot Custom Agents files from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing custom agents in this repository, and identifying outdated agents that need updates.
-Suggest Awesome GitHub Copilot Custom Agents
+---
+name: suggest-awesome-github-copilot-agents
+description: Suggest relevant GitHub Copilot Custom Agents files from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing custom agents in this repository, and identifying outdated agents that need updates.
+---
+
+# Suggest Awesome GitHub Copilot Custom Agents
 Analyze current repository context and suggest relevant Custom Agents files from the GitHub awesome-copilot repository that are not already available in this repository. Custom Agent files are located in the agents folder of the awesome-copilot repository.
 
 Process
