@@ -55,7 +55,7 @@ const gameStateUpdatesSchema = z.object({
   summary: z.string().optional(),
   visualMemories: z.array(visualMemorySchema).optional(),
   imageGenerationCount: z.number().optional(),
-  completedAt: z.date().optional(),
+  completedAt: z.coerce.date().optional(),
 });
 
 const updateGameSchema = z.object({
