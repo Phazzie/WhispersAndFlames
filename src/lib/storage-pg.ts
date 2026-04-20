@@ -200,15 +200,15 @@ export const storage = {
             Array.isArray(updates.players) &&
             Array.isArray(currentState.players)
           ) {
-            const existingIds = new Set(currentState.players.map((p) => p.id));
-            const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
-            if (incomingNewPlayers.length === 0) {
-              await client.query('ROLLBACK');
-              return currentState;
-            }
+            currentState.playerIds = updates.players.map((p) => p.id);
           }
 
-          const updatedState = { ...currentState, ...updates };
+          const updatedState = {
+            ...currentState,
+            ...updates,
+            players: updates.players ?? currentState.players,
+            playerIds: updates.players ? updates.players.map((p) => p.id) : currentState.playerIds,
+          };
 
           await client.query(
             'UPDATE games SET state = $1, updated_at = NOW() WHERE room_code = $2',

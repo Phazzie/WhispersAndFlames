@@ -53,6 +53,28 @@ describe('storage-memory games', () => {
     expect(updated?.step).toBe('categories');
   });
 
+  it('updates existing players and keeps playerIds in sync', () => {
+    const roomCode = `ROOM-${Date.now()}-PLAYERS`;
+    const game = createGame(roomCode);
+    const secondPlayer = {
+      id: 'u2',
+      name: 'Player Two',
+      isReady: false,
+      email: '',
+      selectedCategories: [],
+    };
+    game.players.push(secondPlayer);
+    game.playerIds.push(secondPlayer.id);
+
+    memoryStorage.games.create(roomCode, game);
+
+    const updatedPlayers = game.players.map((p) => ({ ...p, isReady: true }));
+    const updated = memoryStorage.games.update(roomCode, { players: updatedPlayers });
+
+    expect(updated?.players.every((p) => p.isReady)).toBe(true);
+    expect(updated?.playerIds).toEqual(updatedPlayers.map((p) => p.id));
+  });
+
   it('lists games by player id', () => {
     const playerId = `user-${Date.now()}`;
     const roomCode = `ROOM-${Date.now()}-LIST`;
