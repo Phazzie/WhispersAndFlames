@@ -200,12 +200,30 @@ export const storage = {
             Array.isArray(updates.players) &&
             Array.isArray(currentState.players)
           ) {
-            const existingIds = new Set(currentState.players.map((p) => p.id));
-            const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
-            if (incomingNewPlayers.length === 0) {
-              await client.query('ROLLBACK');
-              return currentState;
+            const mergedPlayers = [...currentState.players];
+
+            for (const incomingPlayer of updates.players) {
+              const existingIndex = mergedPlayers.findIndex(
+                (player) => player.id === incomingPlayer.id
+              );
+              if (existingIndex >= 0) {
+                mergedPlayers[existingIndex] = incomingPlayer;
+              } else {
+                mergedPlayers.push(incomingPlayer);
+              }
             }
+
+            updates.players = mergedPlayers;
+          }
+
+          if (
+            updates.playerIds &&
+            Array.isArray(updates.playerIds) &&
+            Array.isArray(currentState.playerIds)
+          ) {
+            updates.playerIds = Array.from(
+              new Set([...currentState.playerIds, ...updates.playerIds])
+            );
           }
 
           const updatedState = { ...currentState, ...updates };

@@ -53,6 +53,48 @@ describe('storage-memory games', () => {
     expect(updated?.step).toBe('categories');
   });
 
+  it('updates existing players even when no new player ids are introduced', () => {
+    const roomCode = `ROOM-${Date.now()}-PLAYERS-UPD`;
+    const game = createGame(roomCode);
+    memoryStorage.games.create(roomCode, game);
+
+    const updated = memoryStorage.games.update(roomCode, {
+      players: [
+        {
+          ...game.players[0],
+          isReady: true,
+          selectedCategories: ['Hidden Attractions'],
+        },
+      ],
+    });
+
+    expect(updated?.players[0].isReady).toBe(true);
+    expect(updated?.players[0].selectedCategories).toEqual(['Hidden Attractions']);
+  });
+
+  it('merges players without dropping existing player ids', () => {
+    const roomCode = `ROOM-${Date.now()}-PLAYER-MERGE`;
+    const game = createGame(roomCode);
+    memoryStorage.games.create(roomCode, game);
+
+    const updated = memoryStorage.games.update(roomCode, {
+      players: [
+        ...game.players,
+        {
+          id: 'u2',
+          name: 'Player Two',
+          isReady: false,
+          email: '',
+          selectedCategories: [],
+        },
+      ],
+      playerIds: ['u1', 'u2'],
+    });
+
+    expect(updated?.players).toHaveLength(2);
+    expect(updated?.playerIds).toEqual(['u1', 'u2']);
+  });
+
   it('lists games by player id', () => {
     const playerId = `user-${Date.now()}`;
     const roomCode = `ROOM-${Date.now()}-LIST`;
