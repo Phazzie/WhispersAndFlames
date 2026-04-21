@@ -1,4 +1,14 @@
 {
   "python-envs.defaultEnvManager": "ms-python.python:system",
-  "python-envs.pythonProjects": []
+  "python-envs.pythonProjects": [],
+  "chat.mcp.serverSampling": {
+    "WhispersAndFlames/.vscode/mcp.json: io.github.vercel/next-devtools-mcp": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilotcli/claude-haiku-4.5",
+        "copilotcli/gpt-5.2-codex",
+        "copilotcli/gpt-5.3-codex"
+      ]
+    }
+  }
 }
