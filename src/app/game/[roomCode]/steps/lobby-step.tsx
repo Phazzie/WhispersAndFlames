@@ -84,8 +84,9 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     allPlayers.push(null);
   }
 
-  // Generate game URL for sharing
-  const gameUrl = typeof window !== 'undefined' ? `${window.location.origin}/game/${roomCode}` : '';
+  // Share a join link that prefills the room code on home so guests can enter their name and join.
+  const joinUrl =
+    typeof window !== 'undefined' ? `${window.location.origin}/?join=${encodeURIComponent(roomCode)}` : '';
 
   return (
     <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -144,7 +145,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
         </CardContent>
       </Card>
 
-      {gameUrl && <QRCodeShare roomCode={roomCode} gameUrl={gameUrl} />}
+      {joinUrl && <QRCodeShare roomCode={roomCode} gameUrl={joinUrl} />}
     </div>
   );
 }

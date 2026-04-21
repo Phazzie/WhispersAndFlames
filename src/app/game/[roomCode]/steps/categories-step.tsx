@@ -101,7 +101,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
         {CATEGORIES.map((cat) => {
           const isSelectedByMe = me.selectedCategories.includes(cat.name);
           const selections = players.filter((p) => p.selectedCategories?.includes(cat.name));
-          const isCommon = players.length >= 2 && selections.length === players.length;
+          const isCommon = players.length > 1 && selections.length === players.length;
 
           return (
             <Card
