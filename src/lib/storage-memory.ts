@@ -22,15 +22,29 @@ export const storage = {
       const game = games.get(roomCode);
       if (!game) return undefined;
 
+      const updated = { ...game, ...updates };
+
       if (updates.players && Array.isArray(updates.players) && Array.isArray(game.players)) {
-        const existingIds = new Set(game.players.map((p) => p.id));
-        const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
-        if (incomingNewPlayers.length === 0) {
-          return game;
+        const mergedPlayers = [...game.players];
+
+        for (const incomingPlayer of updates.players) {
+          const existingIndex = mergedPlayers.findIndex(
+            (player) => player.id === incomingPlayer.id
+          );
+          if (existingIndex >= 0) {
+            mergedPlayers[existingIndex] = incomingPlayer;
+          } else {
+            mergedPlayers.push(incomingPlayer);
+          }
         }
+
+        updated.players = mergedPlayers;
       }
 
-      const updated = { ...game, ...updates };
+      if (updates.playerIds && Array.isArray(updates.playerIds) && Array.isArray(game.playerIds)) {
+        updated.playerIds = Array.from(new Set([...game.playerIds, ...updates.playerIds]));
+      }
+
       games.set(roomCode, updated);
 
       const subscribers = gameSubscribers.get(roomCode);
