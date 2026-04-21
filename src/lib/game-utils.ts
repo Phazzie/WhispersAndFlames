@@ -1,3 +1,4 @@
+import { CHAOS_MODE_UPGRADE_PROBABILITY } from './api-constants';
 import { createLogger } from './utils/logger';
 
 const ANIMALS: string[] = [
@@ -84,7 +85,7 @@ export function applyChaosMode(
       return { level: baseLevel, wasUpgraded: false };
     }
 
-    if (randomValue > 0.8 && currentIndex < levels.length - 1) {
+    if (randomValue > 1 - CHAOS_MODE_UPGRADE_PROBABILITY && currentIndex < levels.length - 1) {
       const upgradedLevel = levels[currentIndex + 1];
       logger.info('Chaos mode upgraded spicy level', { baseLevel, upgradedLevel });
       return { level: upgradedLevel, wasUpgraded: true };

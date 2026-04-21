@@ -63,7 +63,16 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
     try {
       const result = await generateTherapistNotesAction({
         questions: gameState.gameRounds.map((r) => r.question),
-        answers: gameState.gameRounds.flatMap((r) => Object.values(r.answers)),
+        // Build one combined-answer string per question so the AI template
+        // correctly pairs answers[i] with questions[i] for all players.
+        answers: gameState.gameRounds.map((round) =>
+          Object.entries(round.answers)
+            .map(([playerId, answer]) => {
+              const player = gameState.players.find((p) => p.id === playerId);
+              return `${player?.name ?? 'Player'}: "${answer}"`;
+            })
+            .join(' | ')
+        ),
         categories: gameState.commonCategories,
         spicyLevel: gameState.finalSpicyLevel,
         playerCount: gameState.players.length,

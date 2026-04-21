@@ -5,6 +5,7 @@
 import { Pool } from 'pg';
 
 import type { GameState } from './game-types';
+import { DB_POOL_MAX, PG_CONNECTION_TIMEOUT_MS, PG_IDLE_TIMEOUT_MS } from './api-constants';
 import { createLogger } from './utils/logger';
 import { withRetry } from './utils/retry';
 
@@ -44,9 +45,9 @@ const poolMetrics: PoolMetrics = {
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: DB_POOL_MAX,
+  idleTimeoutMillis: PG_IDLE_TIMEOUT_MS,
+  connectionTimeoutMillis: PG_CONNECTION_TIMEOUT_MS,
   statement_timeout: 10000,
 });
 
@@ -193,19 +194,6 @@ export const storage = {
             }
           } else {
             currentState = rawState;
-          }
-
-          if (
-            updates.players &&
-            Array.isArray(updates.players) &&
-            Array.isArray(currentState.players)
-          ) {
-            const existingIds = new Set(currentState.players.map((p) => p.id));
-            const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
-            if (incomingNewPlayers.length === 0) {
-              await client.query('ROLLBACK');
-              return currentState;
-            }
           }
 
           const updatedState = { ...currentState, ...updates };

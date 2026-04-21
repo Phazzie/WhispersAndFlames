@@ -22,14 +22,6 @@ export const storage = {
       const game = games.get(roomCode);
       if (!game) return undefined;
 
-      if (updates.players && Array.isArray(updates.players) && Array.isArray(game.players)) {
-        const existingIds = new Set(game.players.map((p) => p.id));
-        const incomingNewPlayers = updates.players.filter((p) => !existingIds.has(p.id));
-        if (incomingNewPlayers.length === 0) {
-          return game;
-        }
-      }
-
       const updated = { ...game, ...updates };
       games.set(roomCode, updated);
 

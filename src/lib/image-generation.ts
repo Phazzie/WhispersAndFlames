@@ -48,6 +48,14 @@ export async function generateSessionImage(
       return null;
     }
 
+    // Block explicit content — the AI is instructed never to return this, but guard defensively.
+    if (result.safetyLevel === 'explicit') {
+      logger.error('AI returned explicit safety level; blocking image generation', undefined, {
+        safetyLevel: result.safetyLevel,
+      });
+      return null;
+    }
+
     logger.info('AI prompt generated', {
       promptLength: result.imagePrompt.length,
       safetyLevel: result.safetyLevel,

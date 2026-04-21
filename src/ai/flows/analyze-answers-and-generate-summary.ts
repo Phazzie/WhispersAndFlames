@@ -15,7 +15,9 @@ const AnalyzeAnswersInputSchema = z.object({
   questions: z.array(z.string()).describe('The questions asked during the session.'),
   answers: z
     .array(z.string())
-    .describe('The answers provided by all players during the session, interleaved.'),
+    .describe(
+      'One combined-answer string per question. Each element corresponds to the question at the same index and contains all players\' answers formatted as "PlayerName: \\"answer\\"" joined by " | ".'
+    ),
   categories: z.array(z.string()).describe('The categories selected for the session.'),
   spicyLevel: z
     .string()

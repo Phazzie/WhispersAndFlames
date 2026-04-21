@@ -39,7 +39,7 @@ export const RATE_LIMIT_GAME_UPDATE = 60;
 // Database
 export const PG_MAX_CONNECTIONS = 20;
 export const PG_IDLE_TIMEOUT_MS = 30_000; // 30 seconds
-export const PG_CONNECTION_TIMEOUT_MS = 2_000; // 2 seconds
+export const PG_CONNECTION_TIMEOUT_MS = 5_000; // 5 seconds (matches storage-pg.ts pool config)
 
 // Chaos Mode
 export const CHAOS_MODE_UPGRADE_PROBABILITY = 0.2; // 20% chance

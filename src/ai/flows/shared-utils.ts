@@ -68,18 +68,22 @@ export function validateSpicyLevel(level: string): 'Mild' | 'Medium' | 'Hot' | '
 }
 
 /**
- * Validate and sanitize category input
+ * Validate and sanitize category input.
+ * Valid names MUST match the `name` field of every entry in `src/lib/constants.ts → CATEGORIES`.
+ * If categories are added or renamed there, update this list accordingly.
  */
 export function validateCategories(categories: string[]): string[] {
   const validCategories = [
-    'Emotional Connection',
-    'Physical Attraction',
-    'Communication',
-    'Trust & Vulnerability',
-    'Intimacy & Desire',
+    'Hidden Attractions',
+    'Power Play',
+    'Emotional Depths',
+    'Mind Games',
+    'Shared Pasts',
     'Future Dreams',
-    'Past & Present',
-    'Playfulness',
+    'Core Values',
+    'Bright Ideas',
+    'Trust & Alliance',
+    'The Unspeakable',
   ];
 
   const sanitized = sanitizeArray(categories, 100);

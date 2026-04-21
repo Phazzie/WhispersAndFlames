@@ -100,9 +100,17 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
           try {
             const summaryResult = await analyzeAndSummarizeAction({
               questions: gameState.gameRounds.map((r) => r.question),
-              answers: gameState.gameRounds
-                .flatMap((r) => Object.values(r.answers))
-                .filter((a) => typeof a === 'string' && a.trim().length > 0),
+              // Build one combined-answer string per question so the AI template
+              // correctly pairs answers[i] with questions[i] for all players.
+              answers: gameState.gameRounds.map((round) =>
+                Object.entries(round.answers)
+                  .filter(([, answer]) => typeof answer === 'string' && answer.trim().length > 0)
+                  .map(([playerId, answer]) => {
+                    const player = gameState.players.find((p) => p.id === playerId);
+                    return `${player?.name ?? 'Player'}: "${answer}"`;
+                  })
+                  .join(' | ')
+              ),
               categories: gameState.commonCategories,
               spicyLevel: gameState.finalSpicyLevel,
               playerCount: gameState.players.length,
