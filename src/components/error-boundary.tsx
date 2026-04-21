@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+
 import { logger } from '@/lib/utils/logger';
 
 interface ErrorBoundaryProps {
