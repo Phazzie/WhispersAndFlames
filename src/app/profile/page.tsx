@@ -35,7 +35,9 @@ export default function ProfilePage() {
       try {
         const response = await fetch('/api/game/list', { credentials: 'include' });
         if (!response.ok) {
-          const error = new Error(`Failed to load games: ${response.statusText}`);
+          const error = new Error(
+            `Failed to load games: ${response.status} ${response.statusText}`
+          );
           (error as any).status = response.status;
           throw error;
         }
