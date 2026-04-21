@@ -37,7 +37,7 @@ export default function ProfilePage() {
         const data = await response.json();
         setGames(Array.isArray(data.games) ? data.games : []);
       } catch (error) {
-        logger.warn(
+        logger.error(
           'Failed to load game history',
           error instanceof Error ? error : new Error(String(error))
         );
