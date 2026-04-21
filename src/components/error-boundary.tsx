@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error('Error caught by ErrorBoundary', error, {
-      errorInfo: errorInfo.componentStack,
+      componentStack: errorInfo.componentStack,
       isDevelopment: process.env.NODE_ENV === 'development',
     });
 

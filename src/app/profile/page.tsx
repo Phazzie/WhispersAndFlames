@@ -23,7 +23,10 @@ export default function ProfilePage() {
       await signOut();
       router.push('/');
     } catch (error) {
-      logger.error('Failed to sign out', error instanceof Error ? error : new Error(String(error)));
+      const signOutError = error instanceof Error ? error : new Error('Unknown sign-out error');
+      logger.error('Failed to sign out', signOutError, {
+        originalError: error instanceof Error ? undefined : String(error),
+      });
     }
   };
 
@@ -32,15 +35,20 @@ export default function ProfilePage() {
       try {
         const response = await fetch('/api/game/list', { credentials: 'include' });
         if (!response.ok) {
-          throw new Error(`Failed to load games: ${response.statusText}`);
+          const error = new Error(`Failed to load games: ${response.statusText}`);
+          (error as any).status = response.status;
+          throw error;
         }
         const data = await response.json();
         setGames(Array.isArray(data.games) ? data.games : []);
       } catch (error) {
-        logger.error(
-          'Failed to load game history',
-          error instanceof Error ? error : new Error(String(error))
-        );
+        const gameHistoryError =
+          error instanceof Error ? error : new Error('Unknown game history error');
+        const status = (error as any)?.status;
+        logger.error('Failed to load game history', gameHistoryError, {
+          originalError: error instanceof Error ? undefined : String(error),
+          httpStatus: status,
+        });
         setGames([]);
       } finally {
         setIsLoadingGames(false);
