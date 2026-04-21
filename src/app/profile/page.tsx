@@ -9,6 +9,7 @@ import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { GameState } from '@/lib/game-types';
+import { logger } from '@/lib/utils/logger';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function ProfilePage() {
       await signOut();
       router.push('/');
     } catch (error) {
-      console.error('Sign out error:', error);
+      logger.error('Failed to sign out', error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -31,11 +32,15 @@ export default function ProfilePage() {
       try {
         const response = await fetch('/api/game/list', { credentials: 'include' });
         if (!response.ok) {
-          throw new Error('Failed to load games');
+          throw new Error(`Failed to load games: ${response.statusText}`);
         }
         const data = await response.json();
         setGames(Array.isArray(data.games) ? data.games : []);
-      } catch {
+      } catch (error) {
+        logger.warn(
+          'Failed to load game history',
+          error instanceof Error ? error : new Error(String(error))
+        );
         setGames([]);
       } finally {
         setIsLoadingGames(false);
