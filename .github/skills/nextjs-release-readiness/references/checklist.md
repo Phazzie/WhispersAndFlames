@@ -9,11 +9,12 @@ Use this checklist to decide if a same-night release is realistic.
 - [ ] At least one complete happy-path game session works with two players.
 - [ ] Required runtime secrets are configured in the target environment.
 - [ ] No known high-severity security issue is introduced by launch config.
+- [ ] Typecheck and lint pass.
+- [ ] Core unit tests pass (or known failures are documented and unrelated).
+- [ ] Production build succeeds (`npm run build`).
 
 ## Strongly Recommended (should pass)
 
-- [ ] Typecheck and lint pass.
-- [ ] Core unit tests pass (or known failures are documented and unrelated).
 - [ ] Preview URL tested on at least 2 devices/browsers.
 - [ ] Error monitoring/logging path is checked.
 

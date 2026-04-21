@@ -4,6 +4,7 @@
 			"type": "stdio",
 			"command": "npx",
 			"args": [
+				"-y",
 				"next-devtools-mcp@0.3.6"
 			],
 			"gallery": "https://api.mcp.github.com",
