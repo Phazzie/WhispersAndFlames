@@ -5,9 +5,8 @@
     "WhispersAndFlames/.vscode/mcp.json: io.github.vercel/next-devtools-mcp": {
       "allowedModels": [
         "copilot/auto",
-        "copilotcli/claude-haiku-4.5",
-        "copilotcli/gpt-5.2-codex",
-        "copilotcli/gpt-5.3-codex"
+        "gpt-4o",
+        "claude-3.5-sonnet"
       ]
     }
   }

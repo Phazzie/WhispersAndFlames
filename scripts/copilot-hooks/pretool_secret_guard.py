@@ -25,8 +25,8 @@ PATTERNS = {
     "github-pat": r"\bghp_[A-Za-z0-9]{36}\b",
     "github-fg-pat": r"\bgithub_pat_[A-Za-z0-9_]{20,}\b",
     "generic-sk-token": r"\bsk-[A-Za-z0-9]{20,}\b",
-    "supabase-service-role-assignment": r"SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*[\"'][^\"']{10,}[\"']",
-    "clerk-secret-assignment": r"CLERK_SECRET_KEY\s*[:=]\s*[\"'][^\"']{10,}[\"']",
+    "supabase-service-role-assignment": r"SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*[\"']?[^\"'\s\n]{10,}(?=[\"'\s\n]|$)",
+    "clerk-secret-assignment": r"CLERK_SECRET_KEY\s*[:=]\s*[\"']?[^\"'\s\n]{10,}(?=[\"'\s\n]|$)",
     "jwt-like-token": r"\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9._-]{20,}\.[A-Za-z0-9._-]{20,}\b",
 }
 
