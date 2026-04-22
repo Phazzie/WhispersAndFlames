@@ -105,11 +105,12 @@ export function applyChaosMode(
  * Empty or whitespace-only answers are excluded.
  */
 export function buildCombinedAnswers(gameRounds: GameRound[], players: Player[]): string[] {
+  const playerMap = new Map(players.map((p) => [p.id, p]));
   return gameRounds.map((round) =>
     Object.entries(round.answers)
       .filter(([, answer]) => typeof answer === 'string' && answer.trim().length > 0)
       .map(([playerId, answer]) => {
-        const player = players.find((p) => p.id === playerId);
+        const player = playerMap.get(playerId);
         return `${player?.name ?? 'Player'}: "${answer}"`;
       })
       .join(' | ')
