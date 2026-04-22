@@ -21,8 +21,8 @@ export default function ProfilePage() {
     try {
       await signOut();
       router.push('/');
-    } catch (error) {
-      console.error('Sign out error:', error);
+    } catch {
+      // Sign out error is handled silently as user is being redirected
     }
   };
 
