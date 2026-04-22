@@ -3,6 +3,8 @@
  * Provides input validation and sanitization to prevent prompt injection
  */
 
+import { CATEGORIES } from '@/lib/constants';
+
 /**
  * Sanitize user input to prevent prompt injection attacks
  * Removes or escapes characters that could be used to manipulate AI prompts
@@ -69,22 +71,10 @@ export function validateSpicyLevel(level: string): 'Mild' | 'Medium' | 'Hot' | '
 
 /**
  * Validate and sanitize category input.
- * Valid names MUST match the `name` field of every entry in `src/lib/constants.ts → CATEGORIES`.
- * If categories are added or renamed there, update this list accordingly.
+ * Valid names are derived from `CATEGORIES` in `src/lib/constants.ts` to keep a single source of truth.
  */
 export function validateCategories(categories: string[]): string[] {
-  const validCategories = [
-    'Hidden Attractions',
-    'Power Play',
-    'Emotional Depths',
-    'Mind Games',
-    'Shared Pasts',
-    'Future Dreams',
-    'Core Values',
-    'Bright Ideas',
-    'Trust & Alliance',
-    'The Unspeakable',
-  ];
+  const validCategories = CATEGORIES.map((c) => c.name);
 
   const sanitized = sanitizeArray(categories, 100);
 

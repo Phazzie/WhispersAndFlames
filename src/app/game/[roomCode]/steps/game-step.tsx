@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { GameStepProps } from '@/lib/game-types';
-import { applyChaosMode } from '@/lib/game-utils';
+import { applyChaosMode, buildCombinedAnswers } from '@/lib/game-utils';
 
 import { LoadingScreen } from '../loading-screen';
 
@@ -102,15 +102,7 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
               questions: gameState.gameRounds.map((r) => r.question),
               // Build one combined-answer string per question so the AI template
               // correctly pairs answers[i] with questions[i] for all players.
-              answers: gameState.gameRounds.map((round) =>
-                Object.entries(round.answers)
-                  .filter(([, answer]) => typeof answer === 'string' && answer.trim().length > 0)
-                  .map(([playerId, answer]) => {
-                    const player = gameState.players.find((p) => p.id === playerId);
-                    return `${player?.name ?? 'Player'}: "${answer}"`;
-                  })
-                  .join(' | ')
-              ),
+              answers: buildCombinedAnswers(gameState.gameRounds, gameState.players),
               categories: gameState.commonCategories,
               spicyLevel: gameState.finalSpicyLevel,
               playerCount: gameState.players.length,

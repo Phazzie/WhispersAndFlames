@@ -1,4 +1,5 @@
 import { CHAOS_MODE_UPGRADE_PROBABILITY } from './api-constants';
+import type { GameRound, Player } from './game-types';
 import { createLogger } from './utils/logger';
 
 const ANIMALS: string[] = [
@@ -96,4 +97,21 @@ export function applyChaosMode(
     logger.error('Error applying chaos mode', error);
     return { level: baseLevel, wasUpgraded: false };
   }
+}
+
+/**
+ * Build one combined-answer string per question so the AI template correctly
+ * pairs answers[i] with questions[i] across all players.
+ * Empty or whitespace-only answers are excluded.
+ */
+export function buildCombinedAnswers(gameRounds: GameRound[], players: Player[]): string[] {
+  return gameRounds.map((round) =>
+    Object.entries(round.answers)
+      .filter(([, answer]) => typeof answer === 'string' && answer.trim().length > 0)
+      .map(([playerId, answer]) => {
+        const player = players.find((p) => p.id === playerId);
+        return `${player?.name ?? 'Player'}: "${answer}"`;
+      })
+      .join(' | ')
+  );
 }

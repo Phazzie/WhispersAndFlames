@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { calculateAchievements, getPlayerName, type Achievement } from '@/lib/achievements';
 import type { SummaryStepProps } from '@/lib/game-types';
+import { buildCombinedAnswers } from '@/lib/game-utils';
 import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
@@ -65,14 +66,7 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
         questions: gameState.gameRounds.map((r) => r.question),
         // Build one combined-answer string per question so the AI template
         // correctly pairs answers[i] with questions[i] for all players.
-        answers: gameState.gameRounds.map((round) =>
-          Object.entries(round.answers)
-            .map(([playerId, answer]) => {
-              const player = gameState.players.find((p) => p.id === playerId);
-              return `${player?.name ?? 'Player'}: "${answer}"`;
-            })
-            .join(' | ')
-        ),
+        answers: buildCombinedAnswers(gameState.gameRounds, gameState.players),
         categories: gameState.commonCategories,
         spicyLevel: gameState.finalSpicyLevel,
         playerCount: gameState.players.length,
