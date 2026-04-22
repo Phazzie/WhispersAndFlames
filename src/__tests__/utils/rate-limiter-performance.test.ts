@@ -256,8 +256,11 @@ describe('Rate Limiter Cleanup Behavior Analysis', () => {
     }
 
     // Old limiter should have varying sizes due to random cleanup
-    // With random cleanup, we expect some variation
-    // (Though with 10 runs, might not always show variation - that's the problem!)
+    // Verify that size is within expected bounds (0-1000 entries possible)
+    sizes.forEach((size) => {
+      expect(size).toBeGreaterThanOrEqual(0);
+      expect(size).toBeLessThanOrEqual(1000);
+    });
   });
 
   it('should demonstrate new limiter predictability', () => {
