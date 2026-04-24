@@ -28,7 +28,9 @@ const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
 
 const EmptyPlayerSlot = () => (
   <div className="flex items-center justify-center p-3 rounded-lg bg-secondary/50 border border-dashed">
-    <div className="text-sm text-muted-foreground text-center">Waiting for a player to join...</div>
+    <div className="text-sm text-muted-foreground text-center">
+      Open seat (optional, up to 3 players)
+    </div>
   </div>
 );
 
@@ -86,7 +88,9 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
 
   // Share a join link that prefills the room code on home so guests can enter their name and join.
   const joinUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/?join=${encodeURIComponent(roomCode)}` : '';
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/?join=${encodeURIComponent(roomCode)}`
+      : '';
 
   return (
     <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
