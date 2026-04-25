@@ -195,7 +195,12 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 p-4 bg-secondary/50 rounded-lg max-w-2xl mx-auto">
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-4 mt-8 p-4 bg-secondary/50 rounded-lg max-w-2xl mx-auto',
+          players.length >= 3 ? 'sm:grid-cols-3' : players.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
+        )}
+      >
         {players.map((player) => (
           <div key={player.id} className="text-center">
             <p className="font-semibold">

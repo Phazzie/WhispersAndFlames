@@ -57,7 +57,7 @@ export function GameLayout({ children, gameState, error }: GameLayoutProps) {
             {players.length > 0 && (
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Users className="w-5 h-5" />
-                <span>{players.length} / 3</span>
+                <span aria-label={`${players.length} of 3 seats filled`}>{players.length} / 3 seats</span>
               </div>
             )}
             {step !== 'lobby' && <Progress value={progress} className="w-32 sm:w-64" />}

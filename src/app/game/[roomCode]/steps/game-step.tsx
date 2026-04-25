@@ -214,7 +214,11 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
             </blockquote>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div
+              className={`grid grid-cols-1 gap-4 ${
+                players.length >= 3 ? 'md:grid-cols-3' : players.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1'
+              }`}
+            >
               {players.map((player) => (
                 <div key={player.id} className="space-y-2">
                   <Label className="font-semibold text-base">{player.name}&apos;s Answer:</Label>
