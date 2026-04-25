@@ -106,7 +106,8 @@ export async function analyzeAndSummarizeAction(
       return { summary: result.summary };
     }
     return { error: 'Failed to generate summary after multiple attempts.' };
-  } catch {
+  } catch (error) {
+    logger.error('Summary generation failed', error);
     return { error: 'Failed to generate summary after multiple attempts.' };
   }
 }
@@ -124,7 +125,8 @@ export async function generateTherapistNotesAction(
       return { notes: result.notes };
     }
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
-  } catch {
+  } catch (error) {
+    logger.error('Therapist notes generation failed', error);
     return { error: 'Could not generate therapist notes at this time. Please try again later.' };
   }
 }
@@ -145,7 +147,8 @@ export async function generateVisualMemoryAction(
       return result;
     }
     return { error: 'Could not generate visual memory at this time. Please try again later.' };
-  } catch {
+  } catch (error) {
+    logger.error('Visual memory generation failed', error);
     return { error: 'Could not generate visual memory at this time. Please try again later.' };
   }
 }
