@@ -198,7 +198,7 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
       <div
         className={cn(
           'grid grid-cols-1 gap-4 mt-8 p-4 bg-secondary/50 rounded-lg max-w-2xl mx-auto',
-          players.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
+          players.length >= 3 ? 'sm:grid-cols-3' : players.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
         )}
       >
         {players.map((player) => (
