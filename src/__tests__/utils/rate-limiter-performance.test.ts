@@ -188,10 +188,6 @@ describe('Rate Limiter Performance Comparison', () => {
     }
     const newDuration = performance.now() - newStart;
 
-    // Both should be fast, but new should have more consistent timing
-    console.log(`Old limiter: ${oldDuration.toFixed(2)}ms for 1000 requests`);
-    console.log(`New limiter: ${newDuration.toFixed(2)}ms for 1000 requests`);
-
     // Both should complete reasonably fast
     expect(oldDuration).toBeLessThan(100);
     expect(newDuration).toBeLessThan(100);
@@ -260,12 +256,11 @@ describe('Rate Limiter Cleanup Behavior Analysis', () => {
     }
 
     // Old limiter should have varying sizes due to random cleanup
-    const uniqueSizes = new Set(sizes).size;
-    console.log(`Old limiter sizes across ${runs} runs:`, sizes);
-    console.log(`Unique size values: ${uniqueSizes}`);
-
-    // With random cleanup, we expect some variation
-    // (Though with 10 runs, might not always show variation - that's the problem!)
+    // Verify that size is within expected bounds (0-1000 entries possible)
+    sizes.forEach((size) => {
+      expect(size).toBeGreaterThanOrEqual(0);
+      expect(size).toBeLessThanOrEqual(1000);
+    });
   });
 
   it('should demonstrate new limiter predictability', () => {
@@ -284,8 +279,6 @@ describe('Rate Limiter Cleanup Behavior Analysis', () => {
     }
 
     // New limiter should have consistent sizes (all should be 1000)
-    console.log(`New limiter sizes across ${runs} runs:`, sizes);
-
     // All sizes should be identical (deterministic)
     expect(new Set(sizes).size).toBe(1);
     expect(sizes[0]).toBe(1000);

@@ -9,6 +9,7 @@ import { Logo } from '@/components/icons/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { GameState } from '@/lib/game-types';
+import { logger } from '@/lib/utils/logger';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -20,9 +21,10 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
     } catch (error) {
-      console.error('Sign out error:', error);
+      logger.error('Sign out failed', error);
+    } finally {
+      router.push('/');
     }
   };
 
