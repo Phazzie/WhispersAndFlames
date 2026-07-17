@@ -18,3 +18,5 @@ npm run dev
 ```
 
 Open the printed local URL in two isolated browsers. Create a room in one, enter its six-character code in the other, and complete the private game together. OpenAI powers Ember, match analysis, and Scribe when `OPENAI_API_KEY` is present; curated fallbacks keep the complete flow available when it is not.
+
+To let a second device on the same trusted Wi-Fi open the demo, run `npm run dev:lan` and use the Network URL printed by Next.js. Keep the terminal running for the entire game because this demo's rooms live in that process.
