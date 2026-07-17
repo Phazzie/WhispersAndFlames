@@ -34,6 +34,10 @@ This is a fresh implementation. The archived rebuild and legacy application are 
 - Subagents use separate branches/worktrees with explicit owned and prohibited paths. Root is the sole integrator and cloud operator.
 - Review the coherent change, batch feedback, then run the expensive global gate once before merge.
 
+## ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan as described in `.agent/PLANS.md` from design through implementation.
+
 ## Verification
 
 - During editing, run only directly related tests and formatting.
