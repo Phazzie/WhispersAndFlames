@@ -1,0 +1,19 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+coverage/
+output/
+playwright-report/
+test-results/
+
+# Local configuration and managed-service state
+.env*
+!.env.example
+.vercel/
+supabase/.temp/
+
+# Editor and operating-system files
+.DS_Store
+*.log
+*.tsbuildinfo
