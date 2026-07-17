@@ -9,10 +9,10 @@ Build a polished local demo that two isolated browsers can complete today. One p
 ## Progress
 
 - [x] Create `demo/guest-ready` from the clean `fresh-main` history.
-- [ ] Scaffold a current patched Next.js App Router application and freeze shared contracts.
-- [ ] Implement the server-authoritative in-memory demo room engine and route handlers.
-- [ ] Implement provider-neutral Ember, match-analysis, and Scribe ports with OpenAI and fallbacks.
-- [ ] Implement the responsive full-game interface and local session recovery.
+- [x] Scaffold a current patched Next.js App Router application and freeze shared contracts.
+- [ ] Implement the server-authoritative in-memory demo room engine and route handlers. (In progress in `demo/server-engine`.)
+- [ ] Implement provider-neutral Ember, match-analysis, and Scribe ports with OpenAI and fallbacks. (In progress in `demo/ai-personas`.)
+- [ ] Implement the responsive full-game interface and local session recovery. (In progress in `demo/game-ui`.)
 - [ ] Prove the complete path with unit tests, production build, and two isolated browser contexts.
 - [ ] Commit, push, and open one meaningful PR into `fresh-main`.
 
