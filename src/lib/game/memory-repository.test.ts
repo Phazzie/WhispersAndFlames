@@ -235,6 +235,75 @@ describe("MemoryGameRepository", () => {
     expect(result.view.discussion.candidate.candidateId).toBe(shared.candidateId);
   });
 
+  it("gates each discussion on both players and completes with approved themes only", async () => {
+    const candidates: MatchCandidateProposal[] = [
+      {
+        theme: "First mutual spark",
+        discussionPrompt: "Talk about the first spark.",
+        compatibility: "shared",
+      },
+      {
+        theme: "Second mutual spark",
+        discussionPrompt: "Talk about the second spark.",
+        compatibility: "complementary",
+      },
+    ];
+    const ai = createAi(candidates);
+    const repository = new MemoryGameRepository(() => ai);
+    const room = await createJoinedRoom(repository);
+    await startQuestions(repository, room);
+    await answerAllQuestions(repository, room);
+    const review = (await repository.getRoom(room.roomId, room.host.playerToken)).view;
+    expectPhase(review, "review");
+    const decisions = review.review.candidates.map((candidate) => ({
+      candidateId: candidate.candidateId,
+      approve: true,
+    }));
+
+    await repository.submitBallot(room.roomId, room.host.playerToken, {
+      operationId: randomUUID(),
+      decisions,
+    });
+    await repository.submitBallot(room.roomId, room.guest.playerToken, {
+      operationId: randomUUID(),
+      decisions,
+    });
+
+    const firstWaiting = await repository.markReady(
+      room.roomId,
+      room.host.playerToken,
+      { operationId: randomUUID() },
+    );
+    expectPhase(firstWaiting.view, "discussion");
+    expect(firstWaiting.view.discussion.ordinal).toBe(1);
+    expect(firstWaiting.view.discussion.selfReady).toBe(true);
+    expect(firstWaiting.view.discussion.partnerReady).toBe(false);
+
+    const secondDiscussion = await repository.markReady(
+      room.roomId,
+      room.guest.playerToken,
+      { operationId: randomUUID() },
+    );
+    expectPhase(secondDiscussion.view, "discussion");
+    expect(secondDiscussion.view.discussion.ordinal).toBe(2);
+
+    await repository.markReady(room.roomId, room.host.playerToken, {
+      operationId: randomUUID(),
+    });
+    const completed = await repository.markReady(
+      room.roomId,
+      room.guest.playerToken,
+      { operationId: randomUUID() },
+    );
+    expectPhase(completed.view, "complete");
+    expect(completed.view.complete.approvedCount).toBe(2);
+
+    const summaryInput = vi.mocked(ai.writeSummary).mock.calls[0][0];
+    expect(summaryInput.approved).toEqual(review.review.candidates);
+    expect(JSON.stringify(summaryInput)).not.toContain("host answer");
+    expect(JSON.stringify(summaryInput)).not.toContain("guest answer");
+  });
+
   it("completes cleanly when analysis finds zero matches", async () => {
     const ai = createAi([]);
     const repository = new MemoryGameRepository(() => ai);
