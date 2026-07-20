@@ -143,6 +143,7 @@ export interface PreferencesRoomView extends BaseRoomView {
   preferences: {
     selfSubmitted: boolean;
     partnerSubmitted: boolean;
+    retryReason: "no_shared_categories" | null;
   };
 }
 

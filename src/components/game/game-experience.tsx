@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Flame, RefreshCw } from "lucide-react";
 
 import { AmbientBackdrop } from "@/components/game/ambient-backdrop";
@@ -13,9 +14,32 @@ import { ReviewScreen } from "@/components/game/review-screen";
 import { RoomShell } from "@/components/game/room-shell";
 import { StatusNotice } from "@/components/game/status-notice";
 import { useRoomSession } from "@/components/game/use-room-session";
+import type { RoomView } from "@/lib/game/contracts";
+
+function viewStepKey(view: RoomView | null): string {
+  if (!view) return "landing";
+  if (view.phase === "preferences") {
+    return `preferences:${view.preferences.selfSubmitted}`;
+  }
+  if (view.phase === "questions") {
+    return `questions:${view.question.ordinal}:${view.question.selfSubmitted}`;
+  }
+  if (view.phase === "review") {
+    return `review:${view.review.selfSubmitted}`;
+  }
+  if (view.phase === "discussion") {
+    return `discussion:${view.discussion.ordinal}:${view.discussion.selfReady}`;
+  }
+  return view.phase;
+}
 
 export function GameExperience() {
   const game = useRoomSession();
+  const stepKey = viewStepKey(game.view);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [stepKey]);
 
   if (game.isRestoring && !game.view) {
     return (

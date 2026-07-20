@@ -59,6 +59,7 @@ interface InternalRoom {
   aiMode: AiMode;
   host: InternalPlayer;
   guest?: InternalPlayer;
+  preferenceRetry: "no_shared_categories" | null;
   questions: GameQuestionContent[];
   currentQuestion: number;
   candidates: MatchCandidateView[];
@@ -92,6 +93,7 @@ export class MemoryGameRepository implements GameRepository {
       busy: null,
       aiMode: "fallback",
       host,
+      preferenceRetry: null,
       questions: [],
       currentQuestion: 0,
       candidates: [],
@@ -180,13 +182,28 @@ export class MemoryGameRepository implements GameRepository {
         return { view: this.project(room, player) };
       }
 
+      const combinedPreferences = this.combinePreferences(
+        player.preferences,
+        partner.preferences,
+      );
+      if (combinedPreferences.categories.length === 0) {
+        room.host.preferences = undefined;
+        if (room.guest) {
+          room.guest.preferences = undefined;
+        }
+        room.preferenceRetry = "no_shared_categories";
+        room.version += 1;
+        throw new GameError(
+          "BAD_REQUEST",
+          "Your private choices did not overlap yet. Both were cleared so you can choose again.",
+        );
+      }
+
       room.busy = "weaving_questions";
       room.version += 1;
       try {
         const ai = await this.resolveAi();
-        const result = await ai.generateQuestions(
-          this.combinePreferences(player.preferences, partner.preferences),
-        );
+        const result = await ai.generateQuestions(combinedPreferences);
         room.questions = this.validateQuestions(result.value);
         room.currentQuestion = 0;
         room.aiMode = result.mode;
@@ -557,7 +574,7 @@ export class MemoryGameRepository implements GameRepository {
   ): { categories: CategoryId[]; intensity: IntensityId } {
     const categories = categoryIds.filter(
       (category) =>
-        first.categories.includes(category) || second.categories.includes(category),
+        first.categories.includes(category) && second.categories.includes(category),
     );
     const intensity =
       intensityRank[first.intensity] <= intensityRank[second.intensity]
@@ -682,6 +699,7 @@ export class MemoryGameRepository implements GameRepository {
         preferences: {
           selfSubmitted: Boolean(player.preferences),
           partnerSubmitted: Boolean(partner?.preferences),
+          retryReason: room.preferenceRetry,
         },
       };
     }

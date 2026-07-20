@@ -105,6 +105,44 @@ describe("MemoryGameRepository", () => {
     ).rejects.toMatchObject({ code: "ROOM_FULL" } satisfies Partial<GameError>);
   });
 
+  it("uses only shared categories and privately resets a no-overlap round", async () => {
+    const ai = createAi();
+    const repository = new MemoryGameRepository(() => ai);
+    const room = await createJoinedRoom(repository);
+
+    await repository.submitPreferences(room.roomId, room.host.playerToken, {
+      operationId: randomUUID(),
+      categories: ["connection"],
+      intensity: "medium",
+    });
+    await expect(
+      repository.submitPreferences(room.roomId, room.guest.playerToken, {
+        operationId: randomUUID(),
+        categories: ["fantasy"],
+        intensity: "hot",
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" } satisfies Partial<GameError>);
+
+    const hostView = (await repository.getRoom(room.roomId, room.host.playerToken))
+      .view;
+    const guestView = (
+      await repository.getRoom(room.roomId, room.guest.playerToken)
+    ).view;
+    expectPhase(hostView, "preferences");
+    expectPhase(guestView, "preferences");
+    expect(hostView.preferences).toEqual({
+      selfSubmitted: false,
+      partnerSubmitted: false,
+      retryReason: "no_shared_categories",
+    });
+    expect(guestView.preferences).toEqual({
+      selfSubmitted: false,
+      partnerSubmitted: false,
+      retryReason: "no_shared_categories",
+    });
+    expect(ai.generateQuestions).not.toHaveBeenCalled();
+  });
+
   it("synchronizes the same question while never projecting a partner answer", async () => {
     const repository = new MemoryGameRepository(() => createAi());
     const room = await createJoinedRoom(repository);

@@ -93,9 +93,17 @@ export function PreferencesScreen({
   if (view.preferences.selfSubmitted) {
     return (
       <WaitingCard
-        eyebrow="Your choices are sealed"
+        eyebrow={
+          view.preferences.retryReason
+            ? "A fresh private choice"
+            : "Your choices are sealed"
+        }
         title="The mood is set."
-        message="Your selections stay yours. When both of you are ready, Ember will weave the first question from only what overlaps."
+        message={
+          view.preferences.retryReason
+            ? "Your first picks did not overlap, so both private lists were cleared. Your new selections stay sealed while your partner chooses again."
+            : "Your selections stay yours. When both of you are ready, Ember will weave the first question from only what overlaps."
+        }
         partnerReady={view.preferences.partnerSubmitted}
       />
     );
@@ -118,6 +126,12 @@ export function PreferencesScreen({
           Choose every lane that feels welcome tonight. Your partner sees only
           when you&apos;re done—not what you chose.
         </p>
+        {view.preferences.retryReason ? (
+          <p className="status-notice" role="status">
+            Your first choices did not overlap. Both private lists were cleared,
+            so choose again—nothing about either list was revealed.
+          </p>
+        ) : null}
       </header>
 
       <fieldset className="preference-fieldset">
