@@ -4,14 +4,15 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-20 05:18 EDT
-- Verified by: live Git/worktree/remote/GitHub state, `docs/DEMO_SPRINT_EXEC_PLAN.md`, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
+- Last verified: 2026-07-20 07:23 EDT
+- Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
-- Integration branch: `fresh-main` at `e0be32d`
-- Active delivery branch: `production/core-foundation` at `f28e324`
-- Active working tree: dirty; 12 changed paths are not committed, including the untracked canonical ledger and generated `next-env.d.ts`
-- GitHub state: neither `fresh-main` nor `production/core-foundation` exists on the remote; there is no fresh-rebuild PR (legacy PRs against `main` are unrelated)
+- Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
+- Active delivery branch: `production/core-foundation`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
+- Active implementation state: no production code changes follow `a0cae22`; until the first contract-frozen slice, any later branch delta is restricted to the root-owned ledger, production plan, Jules packets, and Jules controller
+- GitHub state: draft production PR [#80](https://github.com/Phazzie/WhispersAndFlames/pull/80) is open from `production/core-foundation` into `fresh-main`; it is a checkpoint, not release approval
 - Deployment state: the fresh rebuild has not been deployed
+- Active ExecPlan: `docs/PRODUCTION_CORE_EXEC_PLAN.md`
 - Legacy checkout: `/Users/hbpheonix/whispersandflames`; it is not an implementation source for the rebuild
 
 If the recorded branch, commit, worktree, PR, test, or deployment state disagrees with live evidence, update this file before doing substantial work.
@@ -26,11 +27,11 @@ Planning estimates, not coverage metrics:
 | --- | ---: | --- |
 | Production behavior foundation | 55% | The complete happy path exists locally, but several trust boundaries and temporary adapters must be replaced rather than polished as a demo. |
 | Production-ready core release | 25% | Safe matching, Supabase durability, database authorization, retention, reproducible proof, release hardening, and deployment remain. |
-| Fresh rebuild deployed | 0% | No fresh branch or deployment is live remotely. |
+| Fresh rebuild deployed | 0% | The production branch and draft checkpoint PR now exist remotely, but no preview or production deployment exists. |
 
 ## Current direction: production only
 
-Decision recorded 2026-07-20: do not finish and ship a separate demo. Preserve the current dirty tree as a recoverable prototype checkpoint, then treat every subsequent PR as a production-core slice. A repair is in scope only when it is required for the production product, the production migration, or trustworthy verification. Demo-only polish and temporary-adapter hardening that will be deleted during the production replacement are out of scope.
+Decision recorded 2026-07-20: do not finish and ship a separate demo. The dirty prototype tree was preserved as recoverable checkpoint `a0cae22`; every subsequent implementation outcome is a production-core slice. A repair is in scope only when it is required for the production product, the production migration, or trustworthy verification. Demo-only polish and temporary-adapter hardening that will be deleted during the production replacement are out of scope.
 
 ## What the urgent demo sprint was
 
@@ -46,7 +47,7 @@ The resulting demo supports:
 
 - exactly two named adult players;
 - room creation and six-character room joining;
-- private category and intensity selection;
+- individually submitted category and intensity settings, with a known production blocker because the resulting question sequence/no-overlap behavior can still leak information by inference;
 - a shared eight-question Ember arc;
 - sealed answers and skips that never appear in the partner projection;
 - sanitized shared-theme matching;
@@ -66,11 +67,11 @@ The resulting demo supports:
 - Desktop and 390-pixel mobile views were visually inspected.
 - A synthetic answer unique to one browser was checked and did not appear in the partner snapshot.
 
-This evidence is meaningful, but it is manual and partly stale. There is no committed Playwright spec in `e2e/`, the production build predates later edits, and the latest dirty working tree has not passed one combined post-edit release gate. Do not treat the manual browser run as a reproducible acceptance test.
+This evidence is meaningful, but it is manual and partly stale. There is no committed Playwright spec in `e2e/`, the production build predates later edits, and checkpoint `a0cae22` has not passed one combined post-edit release gate. Do not treat the manual browser run as a reproducible acceptance test.
 
-## Current uncommitted prototype-foundation work
+## Production prototype-foundation checkpoint
 
-The active working tree contains these final review changes:
+Commit `a0cae22` preserves the final prototype review batch in draft PR #80:
 
 - true shared-category intersection and a private no-overlap retry state;
 - tests for the no-overlap reset behavior;
@@ -78,9 +79,9 @@ The active working tree contains these final review changes:
 - security response headers and explicit Turbopack root configuration;
 - removal of an obsolete temporary AI type shim;
 - updated demo outcomes and evidence in the ExecPlan;
-- generated `next-env.d.ts`, which is currently untracked.
+- generated `next-env.d.ts` required by the current Next.js setup.
 
-Do not discard, overwrite, or silently split these changes. Preserve them as the production prototype-foundation checkpoint; they remain unverified and carry the audit blockers below.
+This checkpoint is pushed and recoverable. It has not passed the combined production gate and carries the audit blockers below. Do not merge it merely because the branch and PR exist.
 
 ## Temporary prototype limitations to replace for production
 
@@ -89,7 +90,7 @@ Do not discard, overwrite, or silently split these changes. Preserve them as the
 - Synchronization uses short polling.
 - Create and join do not yet have replay-safe operation IDs; in-room mutations do.
 - Player tokens live in `sessionStorage` in the current prototype.
-- The rebuild has no remote branch, PR, preview deployment, or production deployment.
+- The rebuild has a remote branch and draft checkpoint PR, but no preview or production deployment.
 - The complete release security, accessibility, adversarial database, secret-scan, and deployment-smoke gates have not run.
 
 These are production follow-ups. They do not invalidate the proven local product flow, but they prevent calling the rebuild released.
@@ -100,9 +101,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ### 0. Convert the prototype into a recoverable production starting point
 
-- [ ] Preserve and review the current 12-path dirty integration batch as the production prototype checkpoint; do not discard it or add unrelated work.
+- [x] Preserve and review the 12-path dirty integration batch as production prototype checkpoint `a0cae22`; do not treat that preservation commit as release approval.
 - [x] Correct the demo ExecPlan's stale claims about committed browser proof, create/join operation IDs, AI interfaces, and current verification.
-- [ ] Turn the reviewed batch into one coherent recovery commit, rename/re-scope the delivery as production foundation work, push it, and open a draft production PR before more implementation.
+- [x] Turn the reviewed batch into one coherent recovery commit, rename/re-scope the delivery as production foundation work, push it, and open draft production PR #80.
 - [ ] Keep one major implementation PR open at a time; no dependent local PR stack.
 
 ### 1. Repair production trust and correctness in the existing foundation
@@ -163,6 +164,8 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 - [x] Install and verify the official Jules CLI `v0.1.42` at `/Users/hbpheonix/.local/bin/jules` without requiring sudo.
 - [x] Complete Google OAuth and prove the authenticated Jules account can list its connected repositories without printing credentials; `Phazzie/WhispersAndFlames` is available.
+- [x] Create three exact-scope horizon packets plus `scripts/jules-lookahead.mjs`, which binds prompts to remote Git blobs, requires human-confirmed plan digests, records launches outside the worktree, and rejects wrong-base/change artifacts.
+- [ ] Run the three-session Jules look-ahead experiment from the exact `production/core-foundation` source context without automatic PR creation; harvest only reusable review/test/design artifacts.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
 - [ ] Define a schema-validated `DeliverySpec` with stable requirement/test IDs, non-goals, contracts, debt/waivers, PR order, deployment target, and unresolved unknowns.
 - [ ] Bind approval to a protected-field digest, base SHA, critic/prompt/schema versions, verdict, finding dispositions, required checks, and waiver authority.
@@ -174,6 +177,12 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 - [ ] Stop unchanged one-second snapshots from rerendering the full experience and pause polling when appropriate.
 - [ ] Clean up clipboard timers/pending states, sticky mobile submission behavior, overly chatty character-count announcements, tab Home/End behavior, error-dismissal focus, forced-colors selection states, placeholder contrast, and very small explanatory text.
+
+## Exact next action
+
+Complete and hostile-review the production contract-freeze milestone in `docs/PRODUCTION_CORE_EXEC_PLAN.md`. In parallel, launch the three bounded Jules look-ahead sessions described in `docs/jules/` from a controller-verified remote source whose frozen production-code base is `a0cae22`. The Jules sessions may prepare future evidence and design artifacts, but they may not create alternative implementations, modify shared contracts, open PRs, merge, deploy, or read environment values.
+
+The immediate blocker to launching those sessions through the exact-branch Jules API is a Jules API key stored outside the repository. Do not paste or commit it. CLI OAuth is already complete but does not remove the API-key requirement for the public REST API.
 
 ## Ledger update contract
 
