@@ -94,7 +94,6 @@ export async function analyzeOpenAiMatches(
 
 export async function writeOpenAiSummary(
   input: {
-    playerNames: [string, string];
     approved: MatchCandidateView[];
   },
   signal: AbortSignal,

@@ -656,7 +656,6 @@ export class MemoryGameRepository implements GameRepository {
     room.busy = "writing_summary";
     room.version += 1;
     const result = await ai.writeSummary({
-      playerNames: [room.host.name, guest.name],
       approved: approved.map((candidate) => ({
         candidateId: candidate.candidateId,
         theme: candidate.theme,

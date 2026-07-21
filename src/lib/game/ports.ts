@@ -35,7 +35,6 @@ export interface GameAiPort {
   }): Promise<AiResult<MatchCandidateProposal[]>>;
 
   writeSummary(input: {
-    playerNames: [string, string];
     approved: MatchCandidateView[];
   }): Promise<AiResult<string>>;
 }
