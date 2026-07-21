@@ -102,6 +102,8 @@ export function QuestionScreen({
           onClick={() =>
             void onSubmit({
               operationId: crypto.randomUUID(),
+              expectedVersion: view.version,
+              ordinal: view.question.ordinal,
               skip: true,
             })
           }
@@ -117,6 +119,8 @@ export function QuestionScreen({
           onClick={() =>
             void onSubmit({
               operationId: crypto.randomUUID(),
+              expectedVersion: view.version,
+              ordinal: view.question.ordinal,
               answer: answer.trim(),
             })
           }

@@ -5,7 +5,7 @@ import type { DiscussionRoomView } from "@/lib/game/contracts";
 interface DiscussionScreenProps {
   view: DiscussionRoomView;
   isSubmitting: boolean;
-  onReady: () => Promise<void> | void;
+  onReady: (input: { expectedVersion: number; candidateId: string; ordinal: number }) => Promise<void> | void;
 }
 
 export function DiscussionScreen({
@@ -66,7 +66,13 @@ export function DiscussionScreen({
           className="primary-button"
           data-testid="discussion-ready"
           disabled={isSubmitting || selfReady}
-          onClick={() => void onReady()}
+          onClick={() =>
+            void onReady({
+              expectedVersion: view.version,
+              candidateId: candidate.candidateId,
+              ordinal,
+            })
+          }
         >
           {selfReady
             ? partnerReady

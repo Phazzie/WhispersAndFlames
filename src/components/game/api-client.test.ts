@@ -53,6 +53,8 @@ describe("game API client", () => {
 
     await gameApi.submitAnswer("room-123", "player-secret", {
       operationId: "00000000-0000-4000-8000-000000000001",
+      expectedVersion: 5,
+      ordinal: 1,
       skip: true,
     });
 
@@ -61,6 +63,8 @@ describe("game API client", () => {
     expect(options.method).toBe("POST");
     expect(JSON.parse(String(options.body))).toEqual({
       operationId: "00000000-0000-4000-8000-000000000001",
+      expectedVersion: 5,
+      ordinal: 1,
       skip: true,
     });
   });

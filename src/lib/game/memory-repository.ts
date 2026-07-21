@@ -152,14 +152,17 @@ export class MemoryGameRepository implements GameRepository {
     return this.exclusive(room, async () => {
       const player = this.authenticate(room, playerToken);
       const signature = JSON.stringify({
-        categories: input.categories,
+        categories: [...input.categories].sort(),
         intensity: input.intensity,
       });
       if (this.isReplay(room, player, input.operationId, "preferences", signature)) {
         return { view: this.project(room, player) };
       }
 
-      this.assertAvailable(room, "preferences");
+      if (room.version !== input.expectedVersion || room.phase !== "preferences" || room.busy !== null) {
+        throw new GameError("STALE_COMMAND");
+      }
+
       if (player.preferences) {
         throw new GameError("ALREADY_SUBMITTED");
       }
@@ -193,6 +196,13 @@ export class MemoryGameRepository implements GameRepository {
         }
         room.preferenceRetry = "no_shared_categories";
         room.version += 1;
+        this.completeOperation(
+          room,
+          player,
+          input.operationId,
+          "preferences",
+          signature,
+        );
         throw new GameError(
           "BAD_REQUEST",
           "Your private choices did not overlap yet. Both were cleared so you can choose again.",
@@ -235,12 +245,25 @@ export class MemoryGameRepository implements GameRepository {
     const room = this.requireRoom(roomId);
     return this.exclusive(room, async () => {
       const player = this.authenticate(room, playerToken);
-      const signature = JSON.stringify({ answer: input.answer, skip: input.skip });
+      const signature = JSON.stringify({
+        answer: input.answer ?? null,
+        skip: input.skip === true,
+        ordinal: input.ordinal,
+      });
       if (this.isReplay(room, player, input.operationId, "answer", signature)) {
         return { view: this.project(room, player) };
       }
 
-      this.assertAvailable(room, "questions");
+      const expectedOrdinal = room.currentQuestion + 1;
+      if (
+        room.version !== input.expectedVersion ||
+        room.phase !== "questions" ||
+        room.busy !== null ||
+        input.ordinal !== expectedOrdinal
+      ) {
+        throw new GameError("STALE_COMMAND");
+      }
+
       const ordinal = room.currentQuestion;
       if (player.answers.has(ordinal)) {
         throw new GameError("ALREADY_SUBMITTED");
@@ -322,25 +345,32 @@ export class MemoryGameRepository implements GameRepository {
     const room = this.requireRoom(roomId);
     return this.exclusive(room, async () => {
       const player = this.authenticate(room, playerToken);
-      const signature = JSON.stringify({ decisions: input.decisions });
+      const signature = JSON.stringify({
+        decisions: [...input.decisions].sort((a, b) =>
+          a.candidateId.localeCompare(b.candidateId),
+        ),
+      });
       if (this.isReplay(room, player, input.operationId, "ballot", signature)) {
         return { view: this.project(room, player) };
       }
 
-      this.assertAvailable(room, "review");
-      if (player.ballot) {
-        throw new GameError("ALREADY_SUBMITTED");
+      const currentCandidateIds = room.candidates.map((c) => c.candidateId).sort();
+      const inputCandidateIds = input.decisions.map((d) => d.candidateId).sort();
+      const candidatesMatch =
+        currentCandidateIds.length === inputCandidateIds.length &&
+        currentCandidateIds.every((id, idx) => id === inputCandidateIds[idx]);
+
+      if (
+        room.version !== input.expectedVersion ||
+        room.phase !== "review" ||
+        room.busy !== null ||
+        !candidatesMatch
+      ) {
+        throw new GameError("STALE_COMMAND");
       }
 
-      const candidateIds = new Set(
-        room.candidates.map((candidate) => candidate.candidateId),
-      );
-      if (
-        input.decisions.some(
-          (decision) => !candidateIds.has(decision.candidateId),
-        )
-      ) {
-        throw new GameError("BAD_REQUEST");
+      if (player.ballot) {
+        throw new GameError("ALREADY_SUBMITTED");
       }
 
       player.ballot = new Map(
@@ -401,23 +431,33 @@ export class MemoryGameRepository implements GameRepository {
     const room = this.requireRoom(roomId);
     return this.exclusive(room, async () => {
       const player = this.authenticate(room, playerToken);
-      const signature = "ready";
+      const signature = JSON.stringify({
+        candidateId: input.candidateId,
+        ordinal: input.ordinal,
+      });
       if (this.isReplay(room, player, input.operationId, "ready", signature)) {
         return { view: this.project(room, player) };
       }
 
-      this.assertAvailable(room, "discussion");
-      const candidate = room.approved[room.discussionIndex];
-      if (!candidate) {
-        throw internalGameError();
+      const currentCandidate = room.approved[room.discussionIndex];
+      const currentOrdinal = room.discussionIndex + 1;
+      if (
+        room.version !== input.expectedVersion ||
+        room.phase !== "discussion" ||
+        room.busy !== null ||
+        !currentCandidate ||
+        input.candidateId !== currentCandidate.candidateId ||
+        input.ordinal !== currentOrdinal
+      ) {
+        throw new GameError("STALE_COMMAND");
       }
 
-      const ready = room.readyByCandidate.get(candidate.candidateId) ?? new Set();
+      const ready = room.readyByCandidate.get(currentCandidate.candidateId) ?? new Set();
       if (ready.has(player.seat)) {
         throw new GameError("ALREADY_SUBMITTED");
       }
       ready.add(player.seat);
-      room.readyByCandidate.set(candidate.candidateId, ready);
+      room.readyByCandidate.set(currentCandidate.candidateId, ready);
       room.version += 1;
 
       const partner = this.partnerFor(room, player);

@@ -135,6 +135,7 @@ export function ReviewScreen({
           onClick={() =>
             void onSubmit({
               operationId: crypto.randomUUID(),
+              expectedVersion: view.version,
               decisions: candidates.map((candidate) => ({
                 candidateId: candidate.candidateId,
                 approve: decisions[candidate.candidateId] === true,
