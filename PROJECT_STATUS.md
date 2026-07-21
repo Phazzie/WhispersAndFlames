@@ -4,12 +4,12 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-20 23:57 EDT
-- Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, authenticated Jules CLI repository listing, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
+- Last verified: 2026-07-21 00:15 EDT
+- Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, authenticated Jules CLI and REST session/activity reads, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
 - Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
-- Active delivery branch: `production/core-foundation`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
-- Active implementation state: no production code changes follow `a0cae22`; the user has authorized a time-boxed Jules capability trial whose two code outputs remain isolated review proposals unless root accepts them
+- Active delivery branch: `production/core-foundation`; Jules trial source snapshot `8eeb1f7a7f943bff470cf6abab8f1af043dfc36d`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
+- Active implementation state: no production code change after `a0cae22` has been accepted; three Jules capability-trial sessions now run from exact source `8eeb1f7`, and their two code outputs remain isolated review proposals unless root accepts them
 - GitHub state: draft production PR [#80](https://github.com/Phazzie/WhispersAndFlames/pull/80) is open from `production/core-foundation` into `fresh-main`; it is a checkpoint, not release approval
 - Deployment state: the fresh rebuild has not been deployed
 - Active ExecPlan: `docs/PRODUCTION_CORE_EXEC_PLAN.md`
@@ -165,10 +165,10 @@ This is one production roadmap. The existing flow is the starting foundation, no
 - [x] Install and verify the official Jules CLI `v0.1.42` at `/Users/hbpheonix/.local/bin/jules` without requiring sudo.
 - [x] Complete Google OAuth and prove the authenticated Jules account can list its connected repositories without printing credentials; `Phazzie/WhispersAndFlames` is available.
 - [x] Create three exact-scope horizon packets plus `scripts/jules-lookahead.mjs`, which binds prompts to remote Git blobs, requires human-confirmed plan digests, records launches outside the worktree, and rejects wrong-base/change artifacts.
-- [ ] Run the superseding three-mode Jules trial from the exact `production/core-foundation` source: one bounded Scribe privacy slice, one hostile read-only whole-code audit, and one substantial full-stack replay-safe command/stale-tab feature.
+- [x] Launch the superseding three-mode Jules trial from exact production source `8eeb1f7`: bounded Scribe slice `11259483656580049044`, hostile audit `4328476836767870128`, and replay-safe command feature `5984020699228841651`. Completion and disposition remain open.
 - [ ] Permit the two code trials to publish draft PRs targeting `production/core-foundation` for comparison; verify and disposition them promptly, never auto-merge them, and keep the audit session PR-free.
 - [x] Define, commit, and push the three trial packets at source commit `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`.
-- [x] With explicit user authorization, delete all 61 sessions that were in `AWAITING_USER_FEEDBACK`; all 61 deletions succeeded. Preserve 378 completed, 18 failed, 2 paused, 2 in-progress, and 2 legacy records without state.
+- [x] With explicit user authorization, delete 61 sessions in `AWAITING_USER_FEEDBACK` plus two named stale in-progress sessions; all 63 deletions succeeded. Other Jules history was left untouched.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
 - [ ] Define a schema-validated `DeliverySpec` with stable requirement/test IDs, non-goals, contracts, debt/waivers, PR order, deployment target, and unresolved unknowns.
 - [ ] Bind approval to a protected-field digest, base SHA, critic/prompt/schema versions, verdict, finding dispositions, required checks, and waiver authority.
@@ -183,9 +183,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Commit and push the corrected Jules base check, then use the guided CLI branch picker to start the deep read-only audit from `production/core-foundation`. Verify that the initial HEAD of Jules's own branch equals the newly pushed source SHA before launching the bounded Scribe slice and full-stack feature. The two code results may become PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
+Monitor the three bounded Jules sessions, approve no plan that weakens its packet, and inspect every final change and claimed finding. Retarget any generated PR from the temporary launch alias to `production/core-foundation`, convert it to draft if needed, run root verification, and accept, repair, or close it promptly. No Jules result may merge or deploy without root review and verification.
 
-Before cleanup, both the strict REST path and official CLI returned `FAILED_PRECONDITION`. Deleting all 61 explicitly authorized waiting sessions unblocked CLI creation, confirming stale concurrency was at least the CLI blocker; the public REST path still fails separately. Headless CLI session `15263271724263973882` then created a valid isolated Jules branch but based it on default `main` at `79dabd6`, so it correctly performed no audit. The next launch must use the guided branch picker for `production/core-foundation`; Jules's own output branch is expected and is not itself a mismatch.
+Headless CLI session `15263271724263973882` proved that `jules new --repo` creates the correct isolated Jules branch but silently bases it on default `main`; it stopped with `BASE_MISMATCH`. The REST API accepts a `startingBranch`, but returned `FAILED_PRECONDITION` for the slash-containing `production/core-foundation` name while accepting slash-free branches. Temporary remote alias `jules-production-core-8eeb1f7` therefore points to the exact same `8eeb1f7` commit and is the launch base for all three current sessions. Jules's own output branches are expected. The check is their `baseCommitId`, already observed as exact `8eeb1f7` for the audit and feature. The supposedly read-only audit also acquired an automatic `package-lock.json` change in its disposable environment; root instructed it to restore the file and will score that as a scope-control defect even though it never touched the canonical worktree.
 
 ## Ledger update contract
 

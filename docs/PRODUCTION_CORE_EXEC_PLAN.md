@@ -12,6 +12,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 
 - [x] (2026-07-20) Preserve prototype foundation commit `a0cae22`, push `fresh-main` and `production/core-foundation`, and open draft PR #80.
 - [x] (2026-07-20) Record the production-only decision and close the demo sprint as historical rather than a second delivery track.
+- [x] (2026-07-21) Launch all three Jules trial modes from exact production snapshot `8eeb1f7` through the temporary slash-free branch alias; all three corrected plans were reviewed and approved before implementation.
 - [ ] Milestone 1: hostile-review and freeze the production contracts and acceptance map.
 - [ ] Milestone 2: repair the domain/privacy/recovery behavior behind the existing adapter and prove it with deterministic tests.
 - [ ] Milestone 3: replace process-local identity and storage with Supabase Auth, Postgres transactions/RPCs, and deny-by-default RLS.
@@ -32,6 +33,8 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - The strict REST launch reached Jules but returned `FAILED_PRECONDITION` before creating a session. The authenticated CLI remains a useful independent launch surface, but its undocumented base selection must be verified rather than assumed.
 - The CLI pilot returned the same `FAILED_PRECONDITION` before creating a session. The repository source is connected and advertises the required branch. An API-only aggregate found 61 sessions awaiting user feedback, 2 in progress, 2 paused, 378 completed, 18 failed, and 2 legacy records without state. Stale concurrency is the leading explanation because Ultra publishes a 60-task concurrent ceiling, but Jules did not provide enough error detail to call that cause proven.
 - After the 61 waiting sessions were deleted, headless CLI creation succeeded. Jules correctly created its own isolated branch, but because `jules new --repo` exposes no starting-branch option, it based that branch on remote default `main` at `79dabd6`, not `production/core-foundation`. The first audit therefore stopped with `BASE_MISMATCH`. The original packet also incorrectly treated the expected `jules-*` output branch name as a mismatch; packets now validate the initial base HEAD instead of demanding the starting branch's name.
+- The REST API accepted `main` and `fresh-main` as `startingBranch` values but returned `FAILED_PRECONDITION` for the slash-containing `production/core-foundation` branch. Temporary alias `jules-production-core-8eeb1f7` was therefore created at the exact same `8eeb1f7a7f943bff470cf6abab8f1af043dfc36d` commit. Current session artifacts independently report that exact `baseCommitId`; the alias changes no source code and will be deleted after generated PRs are safely retargeted.
+- The read-only audit's disposable checkout acquired a `package-lock.json` diff during Jules environment setup despite an approved no-write plan. This did not touch the canonical worktree, but proves prompt-level read-only intent is not a technical sandbox. Root immediately instructed Jules to restore the file and will treat any non-clean final result as a failed scope-obedience score.
 
 ## Decision Log
 
@@ -44,12 +47,12 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Decision: the feature trial must carry architectural weight. It spans command contracts, server idempotency ordering, exact step identity, API error behavior, client response-loss handling, and adversarial tests, while explicitly excluding create/join identity, Supabase, AI changes, dependencies, and release configuration. Date: 2026-07-20.
 - Decision: a Jules-created PR is a review artifact, not an acceptance signal. Root must verify its base, owned paths, tests, privacy behavior, and review comments, then explicitly accept, repair, or close it. Temporary trial PRs do not authorize a dependent merge stack. Date: 2026-07-20.
 - Decision: do not delete old Jules sessions merely to unblock the trial without the user's explicit permission. Session deletion removes external task history and is not implied by permission to launch new work. Date: 2026-07-20.
-- Decision: Jules-owned branches and PRs are desirable isolation. The safety check applies to the commit from which Jules's branch starts, not the output branch's name. Use the guided CLI/web branch picker for `production/core-foundation`; do not use headless `jules new --repo` for non-default branches. Date: 2026-07-20.
+- Decision: Jules-owned branches and PRs are desirable isolation. The safety check applies to the commit from which Jules's branch starts, not the output branch's name. Do not use headless `jules new --repo` for non-default branches. Until the API accepts the slash-containing production name, launch through a uniquely named alias pinned to the exact production SHA, validate every returned `baseCommitId`, retarget PRs to `production/core-foundation`, then remove the alias. Date: 2026-07-21.
 - Decision: tests are part of each slice rather than a postponed test phase. Each frozen requirement receives a stable ID and at least one named proof obligation before implementation begins. Date: 2026-07-20.
 
 ## Outcomes & Retrospective
 
-No production milestone is complete yet. The branch and draft PR make the prototype recoverable; they do not make it production-ready. The three Jules trial packets are pushed at `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`, but the first CLI launch was rejected before session creation and direct reconciliation found no trial session. Update this section after each merged milestone with the exact merge SHA, observable behavior gained, evidence run, remaining risk, and any change to the next slice.
+No production milestone is complete yet. The branch and draft PR make the prototype recoverable; they do not make it production-ready. All three Jules trial modes are now running from exact source `8eeb1f7` under reviewed plans; none is accepted production work, merged, or deployed. The feature and bounded slice are producing isolated candidate patches, while the audit remains in progress after a disposable lockfile-mutation correction. Update this section after each disposition and merged milestone with the exact SHA, observable behavior gained, evidence run, remaining risk, and any change to the next slice.
 
 ## Context and Orientation
 
@@ -135,7 +138,7 @@ On 2026-07-20 the user authorized a deliberately broader comparison instead of t
 
 This is an evaluation, not permission to bypass the contract freeze. The code outputs are isolated draft proposals targeting `production/core-foundation`. They become production work only after root verifies the exact base and scope, reviews every changed line, runs the required evidence, resolves conflicts with the freeze, and deliberately accepts them. A weak or stale proposal is closed rather than patched indefinitely. The audit never edits or publishes code.
 
-The official CLI is used to test the simpler operator experience. Its headless `new` command has no documented branch flag and selected default `main` in the first pilot, so non-default work uses the guided CLI or web branch picker. Every packet receives the exact expected starting SHA and checks the initial HEAD of Jules's own branch before work. Root launches the audit first and launches code sessions only after that base evidence is credible. No failed or ambiguous launch is blindly repeated.
+The official CLI was used to test the simpler operator experience. Its headless `new` command has no documented branch flag and selected default `main` in the first pilot. The public API does expose `startingBranch`, but rejected the production branch's slash-containing name, so the current trial uses temporary alias `jules-production-core-8eeb1f7`, which resolves to the same exact source commit. Every packet receives the expected full SHA and checks the initial HEAD of Jules's own branch before work. No failed or ambiguous launch is blindly repeated.
 
 ## Concrete Steps
 
@@ -151,9 +154,9 @@ Run commands from `/Users/hbpheonix/whispersandflames-fresh` unless stated other
 
 3. Preserve the strict REST controller as an experimental automation path, but do not expand it while its create-session call returns `FAILED_PRECONDITION`. Keep its API key outside the repository and never print it.
 
-4. Commit and push the three-mode packets and this decision. Record the exact remote `production/core-foundation` SHA. Through the guided Jules CLI or web flow, select `Phazzie/WhispersAndFlames` and starting branch `production/core-foundation`, then launch `TRIAL_2_DEEP_CODE_AUDIT.md` with the packet path and exact starting SHA. The resulting branch should be Jules-owned; validate its initial HEAD, not its branch name. Launch neither code task until that base evidence is credible.
+4. Completed: commit and push the packets, pin temporary alias `jules-production-core-8eeb1f7` to exact production SHA `8eeb1f7`, and launch the corrected audit. Validate the initial commit from Jules activity evidence rather than treating its generated branch name as a mismatch.
 
-5. If the audit proves the correct source, launch the bounded slice and complete feature as separate CLI sessions. Poll with bounded one-shot list/status checks. For any code result, verify the base, owned paths, tests, and diff before allowing draft PR publication. Record session IDs, PR URLs, elapsed time, root review/correction time, accepted findings, and accept/repair/close disposition under `Artifacts and Notes`; do not copy claims without checking cited paths.
+5. In progress: monitor the bounded slice, audit, and feature with bounded one-shot status/activity reads. For any code result, verify base, owned paths, tests, and diff; retarget any alias-based PR to `production/core-foundation` and make it draft before review. Record PR URLs, elapsed time, root correction/review time, accepted findings, and accept/repair/close disposition here; do not copy claims without checking cited paths.
 
 6. Complete Milestone 1, revalidate every accepted H2/H3 item against the frozen digest, update `PROJECT_STATUS.md`, and decide the first reviewable production outcome for draft PR #80. Keep one major implementation PR open at a time.
 
@@ -187,8 +190,9 @@ Database migrations must be forward and rollback aware. Destructive schema/data 
 - Draft checkpoint PR: https://github.com/Phazzie/WhispersAndFlames/pull/80.
 - Historical sprint record: `docs/DEMO_SPRINT_EXEC_PLAN.md` (superseded; not an active delivery plan).
 - Initial Jules packet IDs: `WF-JULES-H1-ARCH-001`, `WF-JULES-H2-PRIVACY-001`, and `WF-JULES-H3-DATA-001`.
-- Three-mode trial packet IDs: `WF-JULES-TRIAL-SLICE-001`, `WF-JULES-TRIAL-AUDIT-001`, and `WF-JULES-TRIAL-FEATURE-001`.
-- Jules audit pilot session: `15263271724263973882`. It completed without auditing after reporting `BASE_MISMATCH`: headless CLI based its Jules-owned branch on default `main` at `79dabd66e5d4afe5be5c2b875fe7d791d8af850b` instead of expected production source `4ba78d5165d864a12359f128687fed1af0de60d6`. No changes, output artifact, branch publication, or PR resulted. Slice/feature session IDs and trial PR URLs: none yet.
+- Three-mode trial packet/session IDs: replacement bounded slice `WF-JULES-TRIAL-SLICE-002` / `11259483656580049044`; corrected audit `WF-JULES-TRIAL-AUDIT-002` / `4328476836767870128`; feature `WF-JULES-TRIAL-FEATURE-001` / `5984020699228841651`.
+- Jules audit pilot session: `15263271724263973882`. It completed without auditing after reporting `BASE_MISMATCH`: headless CLI based its Jules-owned branch on default `main` at `79dabd66e5d4afe5be5c2b875fe7d791d8af850b` instead of expected production source. No changes, output artifact, branch publication, or PR resulted.
+- Current trial launch base: temporary alias `jules-production-core-8eeb1f7`, exactly equal to `production/core-foundation` at launch SHA `8eeb1f7a7f943bff470cf6abab8f1af043dfc36d`. Audit and feature activity artifacts report that exact base. Trial PR URLs: none yet.
 - Frozen contract digest: not yet created; Milestone 1 output.
 - Release merge SHA and deployment evidence: not yet available.
 
