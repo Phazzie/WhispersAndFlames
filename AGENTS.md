@@ -2,6 +2,14 @@
 
 This is a fresh implementation. The archived rebuild and legacy application are reference archives, not code sources.
 
+## Canonical project status
+
+- Read `PROJECT_STATUS.md` at the start of every root-agent session, before reconstructing status from chat history or broad repository archaeology.
+- Treat its recorded worktree, branch, head commit, working-tree state, PR state, deployment state, evidence, and next action as a freshness checksum. Verify those fields with live tools before substantial work.
+- If live state disagrees, update `PROJECT_STATUS.md` immediately. Do not continue from a stale ledger.
+- The root integrator owns status updates. Workers report evidence in their handoffs and must not create competing status documents.
+- Update the ledger whenever a meaningful commit, verification result, PR, merge, deployment, blocker, or active-work change occurs. Distinguish local implementation from verified, pushed, reviewed, merged, and deployed work.
+
 ## Product invariants
 
 - Build a Next.js two-player conversation game backed by Supabase.
@@ -33,6 +41,12 @@ This is a fresh implementation. The archived rebuild and legacy application are 
 - Commit coherent recovery points locally. A PR represents a meaningful user-visible or trust-boundary outcome, not a tiny file change.
 - Subagents use separate branches/worktrees with explicit owned and prohibited paths. Root is the sole integrator and cloud operator.
 - Review the coherent change, batch feedback, then run the expensive global gate once before merge.
+
+## ExecPlans
+
+When writing complex features or significant refactors, use an ExecPlan as described in `.agent/PLANS.md` from design through implementation.
+
+ExecPlans explain how and why a milestone is being built. `PROJECT_STATUS.md` is the concise cross-milestone handoff and must point to the active ExecPlan rather than duplicating its full history.
 
 ## Verification
 
