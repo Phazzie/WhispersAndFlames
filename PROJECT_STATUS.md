@@ -4,13 +4,13 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-21 00:15 EDT
-- Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, authenticated Jules CLI and REST session/activity reads, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
+- Last verified: 2026-07-21 04:00 EDT
+- Verified by: live Git/worktree/remote state, PRs #80–#82, independent isolated builds/tests of both Jules code branches, unresolved review-thread inspection, authenticated Jules session listing, both controller self-tests, the active production plan, and the historical demo evidence
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
 - Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
-- Active delivery branch: `production/core-foundation`; Jules trial source snapshot `8eeb1f7a7f943bff470cf6abab8f1af043dfc36d`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
-- Active implementation state: no production code change after `a0cae22` has been accepted; three Jules capability-trial sessions now run from exact source `8eeb1f7`, and their two code outputs remain isolated review proposals unless root accepts them
-- GitHub state: draft production PR [#80](https://github.com/Phazzie/WhispersAndFlames/pull/80) is open from `production/core-foundation` into `fresh-main`; it is a checkpoint, not release approval
+- Active delivery branch: `production/core-foundation` at verified pre-follow-up head `09072d6`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
+- Active implementation state: no Jules code has been accepted. The first three trials are complete and independently dispositioned; two decision-complete larger-feature follow-ups are being prepared from one new exact source commit to test whether richer prompting changes the result.
+- GitHub state: draft checkpoint PR [#80](https://github.com/Phazzie/WhispersAndFlames/pull/80) remains open; trial [#81](https://github.com/Phazzie/WhispersAndFlames/pull/81) is rejected as a merge candidate; trial [#82](https://github.com/Phazzie/WhispersAndFlames/pull/82) is a viable bounded privacy candidate after minor cleanup. Neither trial PR is merged or accepted production work.
 - Deployment state: the fresh rebuild has not been deployed
 - Active ExecPlan: `docs/PRODUCTION_CORE_EXEC_PLAN.md`
 - Legacy checkout: `/Users/hbpheonix/whispersandflames`; it is not an implementation source for the rebuild
@@ -88,7 +88,7 @@ This checkpoint is pushed and recoverable. It has not passed the combined produc
 - Rooms are stored in server memory and disappear whenever the Next.js process restarts.
 - There is no Supabase Auth, Postgres persistence, Realtime invalidation, RLS, cleanup job, or retention enforcement yet.
 - Synchronization uses short polling.
-- Create and join do not yet have replay-safe operation IDs; in-room mutations do.
+- In-room mutations carry operation IDs, but the accepted branch does not bind them to immutable client intents, observed versions, or exact step identities; create/join also remain non-replay-safe.
 - Player tokens live in `sessionStorage` in the current prototype.
 - The rebuild has a remote branch and draft checkpoint PR, but no preview or production deployment.
 - The complete release security, accessibility, adversarial database, secret-scan, and deployment-smoke gates have not run.
@@ -165,8 +165,10 @@ This is one production roadmap. The existing flow is the starting foundation, no
 - [x] Install and verify the official Jules CLI `v0.1.42` at `/Users/hbpheonix/.local/bin/jules` without requiring sudo.
 - [x] Complete Google OAuth and prove the authenticated Jules account can list its connected repositories without printing credentials; `Phazzie/WhispersAndFlames` is available.
 - [x] Create three exact-scope horizon packets plus `scripts/jules-lookahead.mjs`, which binds prompts to remote Git blobs, requires human-confirmed plan digests, records launches outside the worktree, and rejects wrong-base/change artifacts.
-- [x] Launch the superseding three-mode Jules trial from exact production source `8eeb1f7`: bounded Scribe slice `11259483656580049044`, hostile audit `4328476836767870128`, and replay-safe command feature `5984020699228841651`. Completion and disposition remain open.
-- [ ] Permit the two code trials to publish draft PRs targeting `production/core-foundation` for comparison; verify and disposition them promptly, never auto-merge them, and keep the audit session PR-free.
+- [x] Launch and complete the superseding three-mode Jules trial from exact production source `8eeb1f7`: bounded Scribe slice `11259483656580049044`, hostile audit `4328476836767870128`, and replay-safe command feature `5984020699228841651`.
+- [x] Independently verify and disposition the first trial: PR #82 is a viable bounded result after minor cleanup; the audit is advisory; PR #81 is not mergeable despite passing its checks because its architecture and tests miss material replay failures.
+- [x] Write two richer, decision-complete feature packets and a guarded implementation-trial launcher: replay-safety A/B rerun `WF-JULES-TRIAL-FEATURE-002` and AI trust boundary `WF-JULES-TRIAL-AI-FEATURE-001`.
+- [ ] Commit/push the follow-up control artifacts, pin exact alias `jules-production-core-v2-prompts`, launch both sessions, review their plans, and record source/session/plan digests before implementation.
 - [x] Define, commit, and push the three trial packets at source commit `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`.
 - [x] With explicit user authorization, delete 61 sessions in `AWAITING_USER_FEEDBACK` plus two named stale in-progress sessions; all 63 deletions succeeded. Other Jules history was left untouched.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
@@ -183,9 +185,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Monitor the three bounded Jules sessions, approve no plan that weakens its packet, and inspect every final change and claimed finding. Retarget any generated PR from the temporary launch alias to `production/core-foundation`, convert it to draft if needed, run root verification, and accept, repair, or close it promptly. No Jules result may merge or deploy without root review and verification.
+Commit and push the two follow-up packets and `scripts/jules-feature-trials.mjs`, pin slash-free alias `jules-production-core-v2-prompts` to that exact commit, launch both sessions through REST with plan approval required, and approve only plans that implement the frozen contract without secrets, dependency/migration work, legacy/prior-trial code, merge, or deployment. Then record exact session IDs and plan digests here and inspect every final branch independently before any PR disposition.
 
-Headless CLI session `15263271724263973882` proved that `jules new --repo` creates the correct isolated Jules branch but silently bases it on default `main`; it stopped with `BASE_MISMATCH`. The REST API accepts a `startingBranch`, but returned `FAILED_PRECONDITION` for the slash-containing `production/core-foundation` name while accepting slash-free branches. Temporary remote alias `jules-production-core-8eeb1f7` therefore points to the exact same `8eeb1f7` commit and is the launch base for all three current sessions. Jules's own output branches are expected. The check is their `baseCommitId`, already observed as exact `8eeb1f7` for the audit and feature. The supposedly read-only audit also acquired an automatic `package-lock.json` change in its disposable environment; root instructed it to restore the file and will score that as a scope-control defect even though it never touched the canonical worktree.
+The follow-up is deliberately an experiment, not a new local PR stack. Trial 4 reruns the failed replay feature with every discovered failure made explicit. Trial 5 gives Jules a different large cross-lane AI boundary with equally complete architecture. Their relative correctness and review burden will tell us whether the first result was primarily a prompt-information failure.
 
 ## Ledger update contract
 
