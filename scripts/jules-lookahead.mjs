@@ -209,12 +209,18 @@ function asString(value, label) {
   return value;
 }
 
-function validateSession(value) {
+function validateSession(value, { requireState = true } = {}) {
   const session = asObject(value, "session");
   asString(session.name, "session.name");
   asString(session.id, "session.id");
   asString(session.title, "session.title");
-  const state = asString(session.state, "session.state");
+  let state = session.state;
+  if (!requireState && (state === undefined || state === null || state === "")) {
+    state = "STATE_UNSPECIFIED";
+    session.state = state;
+  } else {
+    state = asString(state, "session.state");
+  }
   if (!KNOWN_STATES.has(state)) {
     fail(`Jules ${API_VERSION} schema drift: unknown session state '${state}'`);
   }
@@ -394,7 +400,9 @@ function sessionTitle(packet, sourceSha) {
 }
 
 async function listSessions() {
-  return (await listAll("/sessions", "sessions")).map(validateSession);
+  return (await listAll("/sessions", "sessions")).map((session) =>
+    validateSession(session, { requireState: false }),
+  );
 }
 
 async function listActivities(sessionId) {
@@ -964,6 +972,26 @@ function assertSelfTest(condition, message) {
 }
 
 function selfTest() {
+  const historicalSession = {
+    name: "sessions/historical",
+    id: "historical",
+    title: "Historical session",
+  };
+  assertSelfTest(
+    validateSession(structuredClone(historicalSession), { requireState: false }).state ===
+      "STATE_UNSPECIFIED",
+    "historical list session without state was rejected",
+  );
+  let activeMissingStateRejected = false;
+  try {
+    validateSession(structuredClone(historicalSession));
+  } catch {
+    activeMissingStateRejected = true;
+  }
+  assertSelfTest(
+    activeMissingStateRejected,
+    "actively managed session without state was accepted",
+  );
   const packet = packets[0];
   const entry = {
     packetBlobSha: "packet-blob-test",
