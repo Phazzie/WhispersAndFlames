@@ -19,7 +19,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - [ ] Milestone 5: harden provider adapters, prompts, schemas, and eval integration against the frozen repository acceptance boundary.
 - [ ] Milestone 6: complete accessible client recovery, consent/provider disclosure, and two-context browser privacy proof.
 - [ ] Milestone 7: install exact-head CI, review closure, preview/production deployment, live smoke, and rollback evidence.
-- [ ] Run and disposition the user-authorized three-mode Jules capability trial: one bounded privacy slice, one hostile read-only audit, and one complete safe Start Over feature.
+- [ ] Run and disposition the user-authorized three-mode Jules capability trial: one bounded privacy slice, one hostile read-only audit, and one substantial replay-safe command/stale-tab feature.
 - [ ] Close draft PR #80 only after deciding whether its large checkpoint diff is reviewable as the first production outcome or should be replaced by a clean, contract-frozen successor PR without creating a dependent PR stack.
 
 ## Surprises & Discoveries
@@ -39,7 +39,8 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Decision: keep at most one major implementation PR open. Jules look-ahead sessions are not a hidden dependent PR stack; until their contract is current, they produce analysis, test oracles, fixtures, and attack designs rather than mergeable feature code. Date: 2026-07-20.
 - Decision: use a rolling three-horizon queue. While slice N is active, bounded sessions may prepare N+1, N+2, and N+3. Promotion requires matching base/contract metadata and root review. Date: 2026-07-20.
 - Decision: initial Jules sessions are read-only, require exact source branch `production/core-foundation`, forbid automatic PRs, and may not inspect `.env*`. Date: 2026-07-20.
-- Decision: supersede the initial all-read-only queue with a time-boxed three-mode capability trial requested by the user: bounded Scribe privacy implementation, hostile whole-repository audit, and complete safe Start Over UI/recovery feature. The two code sessions may publish draft evaluation PRs targeting `production/core-foundation`; they may never target `fresh-main`, merge, deploy, or silently expand scope. The audit remains read-only and creates no PR. Date: 2026-07-20.
+- Decision: supersede the initial all-read-only queue with a time-boxed three-mode capability trial requested by the user: bounded Scribe privacy implementation, hostile whole-repository audit, and a substantial full-stack replay-safe command/stale-tab feature. The two code sessions may publish draft evaluation PRs targeting `production/core-foundation`; they may never target `fresh-main`, merge, deploy, or silently expand scope. The audit remains read-only and creates no PR. Date: 2026-07-20.
+- Decision: the feature trial must carry architectural weight. It spans command contracts, server idempotency ordering, exact step identity, API error behavior, client response-loss handling, and adversarial tests, while explicitly excluding create/join identity, Supabase, AI changes, dependencies, and release configuration. Date: 2026-07-20.
 - Decision: a Jules-created PR is a review artifact, not an acceptance signal. Root must verify its base, owned paths, tests, privacy behavior, and review comments, then explicitly accept, repair, or close it. Temporary trial PRs do not authorize a dependent merge stack. Date: 2026-07-20.
 - Decision: do not delete old Jules sessions merely to unblock the trial without the user's explicit permission. Session deletion removes external task history and is not implied by permission to launch new work. Date: 2026-07-20.
 - Decision: tests are part of each slice rather than a postponed test phase. Each frozen requirement receives a stable ID and at least one named proof obligation before implementation begins. Date: 2026-07-20.
@@ -128,7 +129,7 @@ On 2026-07-20 the user authorized a deliberately broader comparison instead of t
 
 1. `docs/jules/TRIAL_1_BOUNDED_SCRIBE_SLICE.md`: one small, real privacy correction that removes names from the Scribe boundary.
 2. `docs/jules/TRIAL_2_DEEP_CODE_AUDIT.md`: a hostile read-only search for concrete privacy, correctness, recovery, AI, accessibility, and proof defects.
-3. `docs/jules/TRIAL_3_SAFE_START_OVER_FEATURE.md`: a complete UI/recovery feature with confirmation, honest deletion language, request cancellation, stale-response protection, accessibility, and tests.
+3. `docs/jules/TRIAL_3_REPLAY_SAFE_COMMANDS_FEATURE.md`: a full-stack feature binding every in-room mutation to the observed room version and step, making exact retries idempotent after response loss, rejecting stale tabs and conflicting operation-ID reuse, and proving it across repository, API, and client tests.
 
 This is an evaluation, not permission to bypass the contract freeze. The code outputs are isolated draft proposals targeting `production/core-foundation`. They become production work only after root verifies the exact base and scope, reviews every changed line, runs the required evidence, resolves conflicts with the freeze, and deliberately accepts them. A weak or stale proposal is closed rather than patched indefinitely. The audit never edits or publishes code.
 

@@ -165,10 +165,10 @@ This is one production roadmap. The existing flow is the starting foundation, no
 - [x] Install and verify the official Jules CLI `v0.1.42` at `/Users/hbpheonix/.local/bin/jules` without requiring sudo.
 - [x] Complete Google OAuth and prove the authenticated Jules account can list its connected repositories without printing credentials; `Phazzie/WhispersAndFlames` is available.
 - [x] Create three exact-scope horizon packets plus `scripts/jules-lookahead.mjs`, which binds prompts to remote Git blobs, requires human-confirmed plan digests, records launches outside the worktree, and rejects wrong-base/change artifacts.
-- [ ] Run the superseding three-mode Jules trial from the exact `production/core-foundation` source: one bounded Scribe privacy slice, one hostile read-only whole-code audit, and one complete safe Start Over UI/recovery feature.
+- [ ] Run the superseding three-mode Jules trial from the exact `production/core-foundation` source: one bounded Scribe privacy slice, one hostile read-only whole-code audit, and one substantial full-stack replay-safe command/stale-tab feature.
 - [ ] Permit the two code trials to publish draft PRs targeting `production/core-foundation` for comparison; verify and disposition them promptly, never auto-merge them, and keep the audit session PR-free.
 - [x] Define, commit, and push the three trial packets at source commit `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`.
-- [ ] Clear enough stale Jules concurrency only with user authorization: the account currently reports 61 sessions awaiting user feedback, 2 in progress, 2 paused, 378 completed, 18 failed, and 2 legacy records without state.
+- [x] With explicit user authorization, delete all 61 sessions that were in `AWAITING_USER_FEEDBACK`; all 61 deletions succeeded. Preserve 378 completed, 18 failed, 2 paused, 2 in-progress, and 2 legacy records without state.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
 - [ ] Define a schema-validated `DeliverySpec` with stable requirement/test IDs, non-goals, contracts, debt/waivers, PR order, deployment target, and unresolved unknowns.
 - [ ] Bind approval to a protected-field digest, base SHA, critic/prompt/schema versions, verdict, finding dispositions, required checks, and waiver authority.
@@ -183,9 +183,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Obtain user authorization before deleting any stale Jules session. If authorized, remove only enough of the oldest 19-plus-day `AWAITING_USER_FEEDBACK` sessions to free capacity, reconcile the count, and launch the deep read-only audit first with the exact branch/SHA stop check. Verify its source context before launching the bounded code slice and complete feature. The two code results may become draft PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
+Commit and push the strengthened replay-safe command feature packet, then launch the deep read-only audit first with the exact branch/SHA stop check. Verify its source context before launching the bounded Scribe slice and full-stack feature. The two code results may become draft PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
 
-Both the strict REST path and the official CLI return `FAILED_PRECONDITION` before creating a session. Direct reconciliation found no matching trial session. The repository source is healthy and advertises 46 branches including `production/core-foundation`; the likely blocker is stale concurrency, because 61 sessions are awaiting feedback while Google's published Ultra ceiling is 60 concurrent tasks. Jules does not include that reason in the error, so keep this conclusion labeled as an inference until a slot is freed or the UI provides a more specific message.
+Before cleanup, both the strict REST path and official CLI returned `FAILED_PRECONDITION` without creating a trial session. The repository source is healthy and advertises 46 branches including `production/core-foundation`. The leading explanation was stale concurrency because 61 sessions awaited feedback against Google's published Ultra ceiling of 60; all 61 exact-state sessions are now deleted, so the next audit launch will confirm or disprove that inference.
 
 ## Ledger update contract
 
