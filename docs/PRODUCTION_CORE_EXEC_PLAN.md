@@ -15,6 +15,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - [x] (2026-07-21) Launch all three Jules trial modes from exact production snapshot `8eeb1f7` through the temporary slash-free branch alias; all three corrected plans were reviewed and approved before implementation.
 - [x] (2026-07-21) Independently disposition the first three-mode trial: PR #82 is a viable bounded slice after minor cleanup, the audit is useful advisory input but not a trusted verdict, and PR #81 is not mergeable because its passing tests conceal replay/client-state defects.
 - [x] (2026-07-21) Freeze two decision-complete follow-up packets plus a guarded feature-trial launcher: an A/B replay-safety rerun and a distinct fail-closed AI trust-boundary feature.
+- [x] (2026-07-21) Launch both follow-up features from exact source `efd7bf1`, send targeted feedback until both generated plans cover the frozen proof/scope contract, approve protected final digests, and confirm both isolated sessions are implementing.
 - [ ] Milestone 1: hostile-review and freeze the production contracts and acceptance map.
 - [ ] Milestone 2: repair the domain/privacy/recovery behavior behind the existing adapter and prove it with deterministic tests.
 - [ ] Milestone 3: replace process-local identity and storage with Supabase Auth, Postgres transactions/RPCs, and deny-by-default RLS.
@@ -39,6 +40,8 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - The read-only audit's disposable checkout acquired a `package-lock.json` diff during Jules environment setup despite an approved no-write plan. This did not touch the canonical worktree, but proves prompt-level read-only intent is not a technical sandbox. Root immediately instructed Jules to restore the file and will treat any non-clean final result as a failed scope-obedience score.
 - Trial PR #81 passed 60 tests, typecheck, lint, and a local production build, yet review found that a global exact-version check rejects normal partner activity, per-screen operation IDs can permanently deadlock repeated preference retries, and several named acceptance tests do not prove their titles. More generated tests did not compensate for missing command-lifecycle architecture.
 - Trial PR #82 passed 49 tests, typecheck, lint, and a local production build; its Scribe input narrowing is coherent and has only minor test-maintenance/style cleanup. Both trial PRs violated the requested handoff posture by opening non-draft PRs against the temporary alias, and both external previews failed even though local builds passed.
+- Both follow-up create calls succeeded remotely but the immediate create response omitted `state`, contrary to the stricter controller assumption. Exact-title reconciliation found one and only one session for each POST. The controller now accepts a state-less create response, forbids another POST while an attempt is unresolved, and still requires a known state from list/get before control actions.
+- Better initial packets did not make generated plans automatically complete. The first replay plan omitted several decisive race/privacy proofs and correct PR posture; its first revision proposed an out-of-scope shared HTTP file. The AI plan collapsed twelve hostile proofs into one generic test step and ended with an undefined submit step. Protected-digest feedback produced materially stronger final plans before any approval.
 
 ## Decision Log
 
@@ -55,10 +58,11 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Decision: tests are part of each slice rather than a postponed test phase. Each frozen requirement receives a stable ID and at least one named proof obligation before implementation begins. Date: 2026-07-20.
 - Decision: the follow-up prompt-quality experiment uses one controlled rerun of replay safety and one different large AI-boundary feature from the same exact source. This distinguishes “the first prompt lacked architecture” from “Jules cannot reliably execute a large frozen contract.” Date: 2026-07-21.
 - Decision: the replay rerun freezes immutable pending-intent ownership, preference-round identity, same-step partner concurrency, complete fingerprints, and repository-backed acceptance proofs. The AI trial freezes one provider-independent game-policy layer, repository-owned timeouts/revalidation, Scribe input narrowing, and a deterministic scripted provider. Date: 2026-07-21.
+- Decision: plan approval is an iterative technical gate, not a yes/no formality. Bind feedback to the exact current digest, require Jules to regenerate the plan, re-read every owned path and proof obligation, and approve only the revised digest. A detailed source packet does not excuse omissions or scope drift in the executable plan. Date: 2026-07-21.
 
 ## Outcomes & Retrospective
 
-No production milestone is complete yet. The branch and draft PR make the prototype recoverable; they do not make it production-ready. The first three Jules trials are complete and reviewed: retain PR #82 as a small candidate, retain verified audit findings as advisory backlog input, and reject PR #81 as a merge candidate while using its failures to improve the frozen replay contract. Two larger prompt-quality follow-ups are prepared but remain evaluation work; no Jules output is accepted, merged, or deployed. Update this section after each launch/disposition and merged milestone with exact source/session/commit evidence.
+No production milestone is complete yet. The branch and draft PR make the prototype recoverable; they do not make it production-ready. The first three Jules trials are complete and reviewed: retain PR #82 as a small candidate, retain verified audit findings as advisory backlog input, and reject PR #81 as a merge candidate while using its failures to improve the frozen replay contract. Both larger prompt-quality follow-ups are now implementing from exact source `efd7bf1` under root-corrected plans; no output is accepted, merged, or deployed. Update this section after each disposition and merged milestone with exact source/session/commit evidence.
 
 ## Context and Orientation
 
@@ -172,7 +176,7 @@ Run commands from `/Users/hbpheonix/whispersandflames-fresh` unless stated other
 
 5. Completed: monitor and independently verify the bounded slice, audit, and feature. PR #82 is a viable bounded result after minor cleanup; the audit is advisory; PR #81 is rejected as a merge candidate after root tests and review exposed hidden replay and test-quality defects.
 
-6. Commit and push the two prompt-quality packets and feature-trial launcher, pin `jules-production-core-v2-prompts` to that exact commit, create both sessions, inspect their protected plans, and approve only exact-scope implementations. Record source SHA, packet blob SHA, session IDs, plan digests, and URLs before allowing implementation.
+6. Completed: commit and push the two prompt-quality packets and feature-trial launcher at `efd7bf1`, pin `jules-production-core-v2-prompts`, create both sessions exactly once, revise incomplete plans through digest-bound feedback, approve only the final exact-scope digests, and record the source, packet blobs, session/plan IDs, and URLs.
 
 7. Complete Milestone 1, revalidate every accepted H2/H3 item against the frozen digest, update `PROJECT_STATUS.md`, and decide the first reviewable production outcome for draft PR #80. Keep one major implementation PR open at a time.
 
@@ -198,7 +202,7 @@ The documented Jules create-session request does not expose an idempotency key. 
 
 The CLI trial follows the same no-blind-retry rule. Before launch, list existing sessions for the unique packet ID. After any error, reconcile the remote list before retrying. A `BASE_MISMATCH` result is evidence that headless CLI branch selection is unsuitable; do not ask the session to work around it or treat code from another base as promotable.
 
-The controller pins the current documented `v1alpha` state set and critical response fields as checked on 2026-07-20. It tolerates unknown non-critical fields but fails closed on missing/mistyped critical fields, unknown session states, non-JSON responses, or unexpected result artifacts. Recheck the official schema before changing the controller or after a schema-drift failure.
+The controller pins the current documented `v1alpha` state set and critical response fields. Live use on 2026-07-21 showed that create may omit `state` even though subsequent list/get responses provide it. Creation therefore validates identity, records `STATE_UNSPECIFIED` if needed, and reconciles by exact unique title; all later control actions still fail closed on missing/mistyped critical fields, unknown states, non-JSON responses, or unexpected artifacts. Recheck the official schema after another drift failure.
 
 Database migrations must be forward and rollback aware. Destructive schema/data actions require explicit backups or disposable test environments and root authorization. Cleanup/deletion tests use synthetic fixtures only. Deployment rollback uses the last recorded verified production revision; do not infer it from a mutable branch name.
 
@@ -212,7 +216,9 @@ Database migrations must be forward and rollback aware. Destructive schema/data 
 - First-trial PRs: #81 (`5984020699228841651`) and #82 (`11259483656580049044`), both open as isolated proposals against the old alias at disposition time. PR #81 is not mergeable; PR #82 remains a minor-cleanup candidate.
 - Jules audit pilot session: `15263271724263973882`. It completed without auditing after reporting `BASE_MISMATCH`: headless CLI based its Jules-owned branch on default `main` at `79dabd66e5d4afe5be5c2b875fe7d791d8af850b` instead of expected production source. No changes, output artifact, branch publication, or PR resulted.
 - First-trial launch base: temporary alias `jules-production-core-8eeb1f7`, exactly equal to `production/core-foundation` at launch SHA `8eeb1f7a7f943bff470cf6abab8f1af043dfc36d`.
-- Follow-up packet IDs: `WF-JULES-TRIAL-FEATURE-002` and `WF-JULES-TRIAL-AI-FEATURE-001`. Launch alias: `jules-production-core-v2-prompts`. Session/source/plan IDs are recorded after successful creation and approval, never predicted.
+- Follow-up launch base: alias `jules-production-core-v2-prompts` at exact source `efd7bf1c5815a7208df90672d7bcdd49459dc6a4`.
+- Replay follow-up: packet `WF-JULES-TRIAL-FEATURE-002`, packet blob `891171bcd06ab5de7a95d8520db15733c7f21029`, session [10727333649386443696](https://jules.google.com/session/10727333649386443696), plan `071a27bea6be492887afca6119be6618`, approved digest `cc56e49428691a5b5fe57148ef56cca3bb2d76c376e021af16b0be28347e89a4` after two plan-feedback revisions; `IN_PROGRESS` at last verification.
+- AI follow-up: packet `WF-JULES-TRIAL-AI-FEATURE-001`, packet blob `17eb5142d525dd631df177d2bc0d029d9ca6ee74`, session [2399056443102046209](https://jules.google.com/session/2399056443102046209), plan `9e875dcbbdab40ab8254dc7498a48617`, approved digest `479bd9e5ef06e082f9bbed00da7838b7acfb8560145b65ada1c18cfb6f384c2b` after one plan-feedback revision; `IN_PROGRESS` at last verification.
 - Frozen contract digest: not yet created; Milestone 1 output.
 - Release merge SHA and deployment evidence: not yet available.
 

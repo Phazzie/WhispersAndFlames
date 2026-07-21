@@ -4,12 +4,12 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-21 04:00 EDT
-- Verified by: live Git/worktree/remote state, PRs #80–#82, independent isolated builds/tests of both Jules code branches, unresolved review-thread inspection, authenticated Jules session listing, both controller self-tests, the active production plan, and the historical demo evidence
+- Last verified: 2026-07-21 04:31 EDT
+- Verified by: live Git/worktree/remote state, PRs #80–#82, authenticated Jules REST/CLI session and activity reads, protected plan digests, controller syntax/self-tests plus repository-wide lint/typecheck, the active production plan, and the historical demo evidence
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
 - Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
-- Active delivery branch: `production/core-foundation` at verified pre-follow-up head `09072d6`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
-- Active implementation state: no Jules code has been accepted. The first three trials are complete and independently dispositioned; two decision-complete larger-feature follow-ups are being prepared from one new exact source commit to test whether richer prompting changes the result.
+- Active delivery branch: `production/core-foundation`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; both follow-up sessions are pinned to exact control/source commit `efd7bf1c5815a7208df90672d7bcdd49459dc6a4` through alias `jules-production-core-v2-prompts`; controller hardening commit `2db3011` follows that launch source without changing either session
+- Active implementation state: no Jules code has been accepted. The replay-safety A/B rerun and AI trust-boundary feature are both `IN_PROGRESS` in isolated Jules branches under individually reviewed plans; their output remains evaluation material until root independently verifies and dispositions it.
 - GitHub state: draft checkpoint PR [#80](https://github.com/Phazzie/WhispersAndFlames/pull/80) remains open; trial [#81](https://github.com/Phazzie/WhispersAndFlames/pull/81) is rejected as a merge candidate; trial [#82](https://github.com/Phazzie/WhispersAndFlames/pull/82) is a viable bounded privacy candidate after minor cleanup. Neither trial PR is merged or accepted production work.
 - Deployment state: the fresh rebuild has not been deployed
 - Active ExecPlan: `docs/PRODUCTION_CORE_EXEC_PLAN.md`
@@ -168,7 +168,7 @@ This is one production roadmap. The existing flow is the starting foundation, no
 - [x] Launch and complete the superseding three-mode Jules trial from exact production source `8eeb1f7`: bounded Scribe slice `11259483656580049044`, hostile audit `4328476836767870128`, and replay-safe command feature `5984020699228841651`.
 - [x] Independently verify and disposition the first trial: PR #82 is a viable bounded result after minor cleanup; the audit is advisory; PR #81 is not mergeable despite passing its checks because its architecture and tests miss material replay failures.
 - [x] Write two richer, decision-complete feature packets and a guarded implementation-trial launcher: replay-safety A/B rerun `WF-JULES-TRIAL-FEATURE-002` and AI trust boundary `WF-JULES-TRIAL-AI-FEATURE-001`.
-- [ ] Commit/push the follow-up control artifacts, pin exact alias `jules-production-core-v2-prompts`, launch both sessions, review their plans, and record source/session/plan digests before implementation.
+- [x] Commit/push the follow-up control artifacts at `efd7bf1`, pin exact alias `jules-production-core-v2-prompts`, launch both sessions, iteratively correct and approve their protected plans, and record source/session/plan evidence before implementation.
 - [x] Define, commit, and push the three trial packets at source commit `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`.
 - [x] With explicit user authorization, delete 61 sessions in `AWAITING_USER_FEEDBACK` plus two named stale in-progress sessions; all 63 deletions succeeded. Other Jules history was left untouched.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
@@ -185,9 +185,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Commit and push the two follow-up packets and `scripts/jules-feature-trials.mjs`, pin slash-free alias `jules-production-core-v2-prompts` to that exact commit, launch both sessions through REST with plan approval required, and approve only plans that implement the frozen contract without secrets, dependency/migration work, legacy/prior-trial code, merge, or deployment. Then record exact session IDs and plan digests here and inspect every final branch independently before any PR disposition.
+Monitor the two exact follow-up sessions to completion, then freeze and inspect each candidate independently: verify its initial base, changed paths, real acceptance-test traversal, privacy behavior, final commit, validation transcript, PR target/draft state, and unresolved risks. Compare both against PR #81 on correctness and root review burden before accepting, repairing, or closing either result. Do not merge or deploy a Jules output merely because its own checks pass.
 
-The follow-up is deliberately an experiment, not a new local PR stack. Trial 4 reruns the failed replay feature with every discovered failure made explicit. Trial 5 gives Jules a different large cross-lane AI boundary with equally complete architecture. Their relative correctness and review burden will tell us whether the first result was primarily a prompt-information failure.
+Replay session [10727333649386443696](https://jules.google.com/session/10727333649386443696) uses packet blob `891171bcd06ab5de7a95d8520db15733c7f21029`, plan `071a27bea6be492887afca6119be6618`, and approved digest `cc56e49428691a5b5fe57148ef56cca3bb2d76c376e021af16b0be28347e89a4` after two root feedback revisions. AI session [2399056443102046209](https://jules.google.com/session/2399056443102046209) uses packet blob `17eb5142d525dd631df177d2bc0d029d9ca6ee74`, plan `9e875dcbbdab40ab8254dc7498a48617`, and approved digest `479bd9e5ef06e082f9bbed00da7838b7acfb8560145b65ada1c18cfb6f384c2b` after one root feedback revision. Both started from `efd7bf1`; neither is accepted production work.
 
 ## Ledger update contract
 
