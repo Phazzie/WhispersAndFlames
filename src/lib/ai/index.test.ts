@@ -43,7 +43,6 @@ describe("getGameAi missing-key behavior", () => {
     vi.stubEnv("OPENAI_API_KEY", "");
 
     const result = await getGameAi().writeSummary({
-      playerNames: ["Ash", "Rowan"],
       approved: [],
     });
 
@@ -55,7 +54,6 @@ describe("getGameAi missing-key behavior", () => {
     vi.stubEnv("OPENAI_API_KEY", "");
 
     const result = await getGameAi().writeSummary({
-      playerNames: ["Ash", "Rowan"],
       approved: [
         {
           candidateId: "8ba806b5-21fc-4d5a-b7e7-7d4827753928",

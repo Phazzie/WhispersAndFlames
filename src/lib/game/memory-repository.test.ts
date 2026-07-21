@@ -354,8 +354,88 @@ describe("MemoryGameRepository", () => {
     expect(complete.complete.approvedCount).toBe(0);
     expect(complete.complete.summary).toContain("perfectly good result");
     expect(ai.writeSummary).toHaveBeenCalledWith({
-      playerNames: ["Avery", "Jordan"],
       approved: [],
     });
+
+    const ScribeInput = vi.mocked(ai.writeSummary).mock.calls[0][0];
+    const ScribeInputStr = JSON.stringify(ScribeInput);
+    expect(ScribeInputStr).not.toContain("Avery");
+    expect(ScribeInputStr).not.toContain("Jordan");
+    expect(ScribeInputStr).not.toContain("host answer");
+    expect(ScribeInputStr).not.toContain("guest answer");
+  });
+
+  it("proves end-to-end that serialized Scribe input contains absolutely no player names, raw answers, or rejected candidates", async () => {
+    const candidates: MatchCandidateProposal[] = [
+      {
+        theme: "Approved Scribe theme",
+        discussionPrompt: "Discuss the approved theme.",
+        compatibility: "shared",
+      },
+      {
+        theme: "Rejected Scribe theme",
+        discussionPrompt: "Discuss rejected candidate.",
+        compatibility: "complementary",
+      },
+    ];
+    const ai = createAi(candidates);
+    const repository = new MemoryGameRepository(() => ai);
+    const room = await createJoinedRoom(repository);
+    await startQuestions(repository, room);
+    await answerAllQuestions(repository, room);
+
+    const review = (await repository.getRoom(room.roomId, room.host.playerToken)).view;
+    expectPhase(review, "review");
+    const [approvedCand, rejectedCand] = review.review.candidates;
+
+    // Approve only the first candidate, reject the second
+    await repository.submitBallot(room.roomId, room.host.playerToken, {
+      operationId: randomUUID(),
+      decisions: [
+        { candidateId: approvedCand.candidateId, approve: true },
+        { candidateId: rejectedCand.candidateId, approve: false },
+      ],
+    });
+    await repository.submitBallot(room.roomId, room.guest.playerToken, {
+      operationId: randomUUID(),
+      decisions: [
+        { candidateId: approvedCand.candidateId, approve: true },
+        { candidateId: rejectedCand.candidateId, approve: false },
+      ],
+    });
+
+    // Mark ready for discussion
+    await repository.markReady(room.roomId, room.host.playerToken, {
+      operationId: randomUUID(),
+    });
+    const completed = await repository.markReady(
+      room.roomId,
+      room.guest.playerToken,
+      { operationId: randomUUID() },
+    );
+    expectPhase(completed.view, "complete");
+
+    const writeSummaryCalls = vi.mocked(ai.writeSummary).mock.calls;
+    expect(writeSummaryCalls.length).toBe(1);
+
+    const scribeInputObj = writeSummaryCalls[0][0];
+    const serializedScribeInput = JSON.stringify(scribeInputObj);
+
+    // 1. Prove Player Names are absent
+    expect(serializedScribeInput).not.toContain("Avery");
+    expect(serializedScribeInput).not.toContain("Jordan");
+
+    // 2. Prove Raw Answers are absent
+    expect(serializedScribeInput).not.toContain("host answer");
+    expect(serializedScribeInput).not.toContain("guest answer");
+
+    // 3. Prove Rejected Candidates are absent
+    expect(serializedScribeInput).not.toContain("Rejected Scribe theme");
+    expect(serializedScribeInput).not.toContain(rejectedCand.candidateId);
+
+    // 4. Verify only the approved theme is passed
+    expect(serializedScribeInput).toContain("Approved Scribe theme");
+    expect(scribeInputObj.approved).toHaveLength(1);
+    expect(scribeInputObj.approved[0].candidateId).toBe(approvedCand.candidateId);
   });
 });

@@ -105,7 +105,7 @@ class ResilientGameAi implements GameAiPort {
       const generated = await runBounded(async (signal) => {
         const provider = await import("@/lib/ai/openai-provider");
         return provider.writeOpenAiSummary(
-          { playerNames: input.playerNames, approved },
+          { approved },
           signal,
         );
       });
