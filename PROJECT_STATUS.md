@@ -4,12 +4,12 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-20 07:23 EDT
-- Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
+- Last verified: 2026-07-20 20:46 EDT
+- Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, authenticated Jules CLI repository listing, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
 - Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
 - Active delivery branch: `production/core-foundation`; frozen production-code base `a0cae22b228e2d0f655b37aa140bf3e0bd70b80e`; the matching remote branch exists
-- Active implementation state: no production code changes follow `a0cae22`; until the first contract-frozen slice, any later branch delta is restricted to the root-owned ledger, production plan, Jules packets, and Jules controller
+- Active implementation state: no production code changes follow `a0cae22`; the user has authorized a time-boxed Jules capability trial whose two code outputs remain isolated review proposals unless root accepts them
 - GitHub state: draft production PR [#80](https://github.com/Phazzie/WhispersAndFlames/pull/80) is open from `production/core-foundation` into `fresh-main`; it is a checkpoint, not release approval
 - Deployment state: the fresh rebuild has not been deployed
 - Active ExecPlan: `docs/PRODUCTION_CORE_EXEC_PLAN.md`
@@ -165,7 +165,8 @@ This is one production roadmap. The existing flow is the starting foundation, no
 - [x] Install and verify the official Jules CLI `v0.1.42` at `/Users/hbpheonix/.local/bin/jules` without requiring sudo.
 - [x] Complete Google OAuth and prove the authenticated Jules account can list its connected repositories without printing credentials; `Phazzie/WhispersAndFlames` is available.
 - [x] Create three exact-scope horizon packets plus `scripts/jules-lookahead.mjs`, which binds prompts to remote Git blobs, requires human-confirmed plan digests, records launches outside the worktree, and rejects wrong-base/change artifacts.
-- [ ] Run the three-session Jules look-ahead experiment from the exact `production/core-foundation` source context without automatic PR creation; harvest only reusable review/test/design artifacts.
+- [ ] Run the superseding three-mode Jules trial from the exact `production/core-foundation` source: one bounded Scribe privacy slice, one hostile read-only whole-code audit, and one complete safe Start Over UI/recovery feature.
+- [ ] Permit the two code trials to publish draft PRs targeting `production/core-foundation` for comparison; verify and disposition them promptly, never auto-merge them, and keep the audit session PR-free.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
 - [ ] Define a schema-validated `DeliverySpec` with stable requirement/test IDs, non-goals, contracts, debt/waivers, PR order, deployment target, and unresolved unknowns.
 - [ ] Bind approval to a protected-field digest, base SHA, critic/prompt/schema versions, verdict, finding dispositions, required checks, and waiver authority.
@@ -180,9 +181,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Complete and hostile-review the production contract-freeze milestone in `docs/PRODUCTION_CORE_EXEC_PLAN.md`. In parallel, launch the three bounded Jules look-ahead sessions described in `docs/jules/` from a controller-verified remote source whose frozen production-code base is `a0cae22`. The Jules sessions may prepare future evidence and design artifacts, but they may not create alternative implementations, modify shared contracts, open PRs, merge, deploy, or read environment values.
+Commit and push the three Jules trial packets and revised production plan. Launch the deep read-only audit first through the authenticated CLI with an exact branch/SHA stop check; verify its actual source context before launching the bounded code slice and complete feature. The two code results may become draft PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
 
-The immediate blocker to launching those sessions through the exact-branch Jules API is a Jules API key stored outside the repository. Do not paste or commit it. CLI OAuth is already complete but does not remove the API-key requirement for the public REST API.
+The strict exact-branch REST launch is currently blocked by Jules returning `FAILED_PRECONDITION` before creating a session. The CLI is installed, OAuth-authenticated, and can see `Phazzie/WhispersAndFlames`; because its headless command has no documented branch flag, a base mismatch must stop the trial rather than silently using another branch.
 
 ## Ledger update contract
 

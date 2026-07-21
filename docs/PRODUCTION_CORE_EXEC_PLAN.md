@@ -19,6 +19,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - [ ] Milestone 5: harden provider adapters, prompts, schemas, and eval integration against the frozen repository acceptance boundary.
 - [ ] Milestone 6: complete accessible client recovery, consent/provider disclosure, and two-context browser privacy proof.
 - [ ] Milestone 7: install exact-head CI, review closure, preview/production deployment, live smoke, and rollback evidence.
+- [ ] Run and disposition the user-authorized three-mode Jules capability trial: one bounded privacy slice, one hostile read-only audit, and one complete safe Start Over feature.
 - [ ] Close draft PR #80 only after deciding whether its large checkpoint diff is reviewable as the first production outcome or should be replaced by a clean, contract-frozen successor PR without creating a dependent PR stack.
 
 ## Surprises & Discoveries
@@ -28,6 +29,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Commands carry operation IDs but are not bound to the room version, question ordinal, or candidate the player actually saw. A stale tab can therefore apply intent to a later step.
 - Current matching and Scribe validators are too lexical to enforce consent semantics. Provider structured output does not replace deterministic repository-boundary validation.
 - The official Jules CLI can target a repository but does not expose an exact starting-branch flag. The REST API does expose `startingBranch`; the look-ahead experiment must use that path so it cannot silently analyze legacy `main`.
+- The strict REST launch reached Jules but returned `FAILED_PRECONDITION` before creating a session. The authenticated CLI remains a useful independent launch surface, but its undocumented base selection must be verified rather than assumed.
 
 ## Decision Log
 
@@ -36,6 +38,8 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Decision: keep at most one major implementation PR open. Jules look-ahead sessions are not a hidden dependent PR stack; until their contract is current, they produce analysis, test oracles, fixtures, and attack designs rather than mergeable feature code. Date: 2026-07-20.
 - Decision: use a rolling three-horizon queue. While slice N is active, bounded sessions may prepare N+1, N+2, and N+3. Promotion requires matching base/contract metadata and root review. Date: 2026-07-20.
 - Decision: initial Jules sessions are read-only, require exact source branch `production/core-foundation`, forbid automatic PRs, and may not inspect `.env*`. Date: 2026-07-20.
+- Decision: supersede the initial all-read-only queue with a time-boxed three-mode capability trial requested by the user: bounded Scribe privacy implementation, hostile whole-repository audit, and complete safe Start Over UI/recovery feature. The two code sessions may publish draft evaluation PRs targeting `production/core-foundation`; they may never target `fresh-main`, merge, deploy, or silently expand scope. The audit remains read-only and creates no PR. Date: 2026-07-20.
+- Decision: a Jules-created PR is a review artifact, not an acceptance signal. Root must verify its base, owned paths, tests, privacy behavior, and review comments, then explicitly accept, repair, or close it. Temporary trial PRs do not authorize a dependent merge stack. Date: 2026-07-20.
 - Decision: tests are part of each slice rather than a postponed test phase. Each frozen requirement receives a stable ID and at least one named proof obligation before implementation begins. Date: 2026-07-20.
 
 ## Outcomes & Retrospective
@@ -116,6 +120,18 @@ These sessions have read-only intent because the shared production contract is n
 
 Future implementation promotion requires all of: expected repository, injected session-source SHA, and production-code base SHA; exact protected-contract digest; packet ID; owned/prohibited paths; validation transcript; unresolved risks; no `.env*` access; no dependency/lockfile/migration/shared-contract changes outside root ownership; and root acceptance. A mismatch turns the result into advisory input, never a blind cherry-pick. The three initial pre-freeze packets are categorically ineligible for code promotion.
 
+### Three-mode capability trial
+
+On 2026-07-20 the user authorized a deliberately broader comparison instead of three similar advisory jobs. The trial packets are:
+
+1. `docs/jules/TRIAL_1_BOUNDED_SCRIBE_SLICE.md`: one small, real privacy correction that removes names from the Scribe boundary.
+2. `docs/jules/TRIAL_2_DEEP_CODE_AUDIT.md`: a hostile read-only search for concrete privacy, correctness, recovery, AI, accessibility, and proof defects.
+3. `docs/jules/TRIAL_3_SAFE_START_OVER_FEATURE.md`: a complete UI/recovery feature with confirmation, honest deletion language, request cancellation, stale-response protection, accessibility, and tests.
+
+This is an evaluation, not permission to bypass the contract freeze. The code outputs are isolated draft proposals targeting `production/core-foundation`. They become production work only after root verifies the exact base and scope, reviews every changed line, runs the required evidence, resolves conflicts with the freeze, and deliberately accepts them. A weak or stale proposal is closed rather than patched indefinitely. The audit never edits or publishes code.
+
+The official CLI is used to test the simpler operator experience. Because its headless `new` command has no documented branch flag, every packet receives the exact expected remote SHA in its launch message and must stop before work on any mismatch. Root launches the audit first, immediately inspects the created session's source context where available, and launches the code sessions only after the branch evidence is credible. No failed or ambiguous launch is blindly repeated.
+
 ## Concrete Steps
 
 Run commands from `/Users/hbpheonix/whispersandflames-fresh` unless stated otherwise.
@@ -128,11 +144,11 @@ Run commands from `/Users/hbpheonix/whispersandflames-fresh` unless stated other
 
 2. Draft the freeze artifacts and stable requirement/test IDs on `production/core-foundation`. Do not begin cross-lane implementation until the hostile review is resolved.
 
-3. Generate a Jules API key in Jules settings and store it outside the repository in macOS Keychain service `codex-jules-api` or a non-logged `JULES_API_KEY` process environment. Never print it. Run `node scripts/jules-lookahead.mjs self-test`, commit and push the control packet/controller batch, then run `node scripts/jules-lookahead.mjs check`. The controller resolves the connected source through `GET /v1alpha/sources`, verifies the remote SHA and allowed control-only delta, and fails closed on critical schema drift.
+3. Preserve the strict REST controller as an experimental automation path, but do not expand it while its create-session call returns `FAILED_PRECONDITION`. Keep its API key outside the repository and never print it.
 
-4. Run `node scripts/jules-lookahead.mjs launch all`. The controller records an intent before every POST, uses the packet ID plus source SHA in the unique title, sets plan approval, and leaves automation mode disabled. Run `node scripts/jules-lookahead.mjs status all`; inspect the complete plan and approve each bounded plan individually with `node scripts/jules-lookahead.mjs approve PACKET_ID PLAN_DIGEST`, copying the displayed digest only after human review. Reject any plan containing edits, branch/PR creation, dependency changes, environment access, or legacy-code use.
+4. Commit and push the three-mode packets and this decision. Record the exact remote `production/core-foundation` SHA. Launch `TRIAL_2_DEEP_CODE_AUDIT.md` first through the authenticated Jules CLI with the packet path, expected branch, and exact SHA in the prompt. Reconcile the new session from the remote session list and inspect its source context before launching either code task.
 
-5. Poll with bounded one-shot `status` calls rather than an unbounded resident process. Handle `QUEUED`, `PLANNING`, `AWAITING_PLAN_APPROVAL`, `AWAITING_USER_FEEDBACK`, `IN_PROGRESS`, `PAUSED`, `FAILED`, and `COMPLETED` explicitly. The controller paginates all activities and reconstructs agent messages; `node scripts/jules-lookahead.mjs harvest all` writes validation results under `.git/jules-lookahead/results` and rejects wrong source/control attestations, any `changeSet`, commands outside a read-only allowlist, unknown artifacts, or missing final sections. Record accepted session IDs, root harvest minutes, root correction minutes, and finding dispositions under `Artifacts and Notes`; do not copy claims without checking cited paths.
+5. If the audit proves the correct source, launch the bounded slice and complete feature as separate CLI sessions. Poll with bounded one-shot list/status checks. For any code result, verify the base, owned paths, tests, and diff before allowing draft PR publication. Record session IDs, PR URLs, elapsed time, root review/correction time, accepted findings, and accept/repair/close disposition under `Artifacts and Notes`; do not copy claims without checking cited paths.
 
 6. Complete Milestone 1, revalidate every accepted H2/H3 item against the frozen digest, update `PROJECT_STATUS.md`, and decide the first reviewable production outcome for draft PR #80. Keep one major implementation PR open at a time.
 
@@ -146,13 +162,15 @@ Milestones 2–6 are accepted only by observable tests of the behavior named in 
 
 The production core is accepted only after this exact release family passes from a clean checkout at the final head: clean install, format check, lint, strict typecheck, deterministic unit/integration tests, direct RLS/privacy attacks, accessibility checks, two-context Playwright, dependency/audit disposition, secret scan, and production build. Preview and production smoke evidence must identify the deployed commit. No unresolved P0/P1, review thread, changes-requested review, cleanup failure, or undocumented waiver may remain.
 
-The Jules experiment is accepted if at least two of the three sessions produce an artifact later used by a production milestone, root-recorded harvest plus correction minutes are lower than the root estimate for creating the accepted artifact from scratch, and no session creates duplicate implementation or hidden PR debt. Launch/session timestamps come from controller state; root records harvest, correction, and counterfactual creation estimates beside each disposition. Otherwise retire or narrow the experiment.
+The three-mode Jules trial is successful only if it gives a useful comparison, not merely three completed sessions. Score each result on base/scope obedience, correctness, privacy, test quality, review burden, elapsed time, and whether it is accepted, repaired, or discarded. The audit must yield verified non-duplicate findings; the slice must be small and mergeable after review; the feature must behave coherently rather than merely compile. Close rejected trial PRs so experimentation cannot become hidden PR debt.
 
 ## Idempotence and Recovery
 
 The checkpoint commit and draft PR make the starting state recoverable. Do not rewrite or force-push shared remote history. If a contract changes materially, stop active implementation lanes at clean commits, update the protected contract and digest through root, hostile-review the change, then rebase or discard stale worker output explicitly.
 
 The documented Jules create-session request does not expose an idempotency key. The controller records packet ID, expected source SHA, unique title, and launch-attempt time before every POST. After an ambiguous timeout or response loss it lists/reconciles sessions for that exact title before deciding whether to retry; it never blindly re-POSTs. If duplicates appear, do not approve either until reconciled. Jules documents session deletion but not active-session cancellation guarantees, so deletion is cleanup rather than proof that compute stopped. Polling/paginated activity reads are safe to retry. A failed or malformed horizon result remains advisory and may be rerun once with a corrected, newly identified packet revision.
+
+The CLI trial follows the same no-blind-retry rule. Before launch, list existing sessions for the unique packet ID. After any error, reconcile the remote list before retrying. A `BASE_MISMATCH` result is evidence that headless CLI branch selection is unsuitable; do not ask the session to work around it or treat code from another base as promotable.
 
 The controller pins the current documented `v1alpha` state set and critical response fields as checked on 2026-07-20. It tolerates unknown non-critical fields but fails closed on missing/mistyped critical fields, unknown session states, non-JSON responses, or unexpected result artifacts. Recheck the official schema before changing the controller or after a schema-drift failure.
 
@@ -164,7 +182,8 @@ Database migrations must be forward and rollback aware. Destructive schema/data 
 - Draft checkpoint PR: https://github.com/Phazzie/WhispersAndFlames/pull/80.
 - Historical sprint record: `docs/DEMO_SPRINT_EXEC_PLAN.md` (superseded; not an active delivery plan).
 - Initial Jules packet IDs: `WF-JULES-H1-ARCH-001`, `WF-JULES-H2-PRIVACY-001`, and `WF-JULES-H3-DATA-001`.
-- Jules session IDs: not launched yet; API key setup pending.
+- Three-mode trial packet IDs: `WF-JULES-TRIAL-SLICE-001`, `WF-JULES-TRIAL-AUDIT-001`, and `WF-JULES-TRIAL-FEATURE-001`.
+- Jules session IDs and trial PR URLs: not launched yet.
 - Frozen contract digest: not yet created; Milestone 1 output.
 - Release merge SHA and deployment evidence: not yet available.
 
