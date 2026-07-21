@@ -30,6 +30,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Current matching and Scribe validators are too lexical to enforce consent semantics. Provider structured output does not replace deterministic repository-boundary validation.
 - The official Jules CLI can target a repository but does not expose an exact starting-branch flag. The REST API does expose `startingBranch`; the look-ahead experiment must use that path so it cannot silently analyze legacy `main`.
 - The strict REST launch reached Jules but returned `FAILED_PRECONDITION` before creating a session. The authenticated CLI remains a useful independent launch surface, but its undocumented base selection must be verified rather than assumed.
+- The CLI pilot returned the same `FAILED_PRECONDITION` before creating a session. The repository source is connected and advertises the required branch. An API-only aggregate found 61 sessions awaiting user feedback, 2 in progress, 2 paused, 378 completed, 18 failed, and 2 legacy records without state. Stale concurrency is the leading explanation because Ultra publishes a 60-task concurrent ceiling, but Jules did not provide enough error detail to call that cause proven.
 
 ## Decision Log
 
@@ -40,11 +41,12 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Decision: initial Jules sessions are read-only, require exact source branch `production/core-foundation`, forbid automatic PRs, and may not inspect `.env*`. Date: 2026-07-20.
 - Decision: supersede the initial all-read-only queue with a time-boxed three-mode capability trial requested by the user: bounded Scribe privacy implementation, hostile whole-repository audit, and complete safe Start Over UI/recovery feature. The two code sessions may publish draft evaluation PRs targeting `production/core-foundation`; they may never target `fresh-main`, merge, deploy, or silently expand scope. The audit remains read-only and creates no PR. Date: 2026-07-20.
 - Decision: a Jules-created PR is a review artifact, not an acceptance signal. Root must verify its base, owned paths, tests, privacy behavior, and review comments, then explicitly accept, repair, or close it. Temporary trial PRs do not authorize a dependent merge stack. Date: 2026-07-20.
+- Decision: do not delete old Jules sessions merely to unblock the trial without the user's explicit permission. Session deletion removes external task history and is not implied by permission to launch new work. Date: 2026-07-20.
 - Decision: tests are part of each slice rather than a postponed test phase. Each frozen requirement receives a stable ID and at least one named proof obligation before implementation begins. Date: 2026-07-20.
 
 ## Outcomes & Retrospective
 
-No production milestone is complete yet. The branch and draft PR make the prototype recoverable; they do not make it production-ready. Update this section after each merged milestone with the exact merge SHA, observable behavior gained, evidence run, remaining risk, and any change to the next slice.
+No production milestone is complete yet. The branch and draft PR make the prototype recoverable; they do not make it production-ready. The three Jules trial packets are pushed at `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`, but the first CLI launch was rejected before session creation and direct reconciliation found no trial session. Update this section after each merged milestone with the exact merge SHA, observable behavior gained, evidence run, remaining risk, and any change to the next slice.
 
 ## Context and Orientation
 
@@ -183,7 +185,7 @@ Database migrations must be forward and rollback aware. Destructive schema/data 
 - Historical sprint record: `docs/DEMO_SPRINT_EXEC_PLAN.md` (superseded; not an active delivery plan).
 - Initial Jules packet IDs: `WF-JULES-H1-ARCH-001`, `WF-JULES-H2-PRIVACY-001`, and `WF-JULES-H3-DATA-001`.
 - Three-mode trial packet IDs: `WF-JULES-TRIAL-SLICE-001`, `WF-JULES-TRIAL-AUDIT-001`, and `WF-JULES-TRIAL-FEATURE-001`.
-- Jules session IDs and trial PR URLs: not launched yet.
+- Jules session IDs and trial PR URLs: none. The first audit launch at source `950a6422afbcad4aa054dc87aac0ca6a46ada3c1` returned `FAILED_PRECONDITION`; full session reconciliation found no matching trial record.
 - Frozen contract digest: not yet created; Milestone 1 output.
 - Release merge SHA and deployment evidence: not yet available.
 

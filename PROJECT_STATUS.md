@@ -4,7 +4,7 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-20 20:46 EDT
+- Last verified: 2026-07-20 20:50 EDT
 - Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, authenticated Jules CLI repository listing, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
 - Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
@@ -167,6 +167,8 @@ This is one production roadmap. The existing flow is the starting foundation, no
 - [x] Create three exact-scope horizon packets plus `scripts/jules-lookahead.mjs`, which binds prompts to remote Git blobs, requires human-confirmed plan digests, records launches outside the worktree, and rejects wrong-base/change artifacts.
 - [ ] Run the superseding three-mode Jules trial from the exact `production/core-foundation` source: one bounded Scribe privacy slice, one hostile read-only whole-code audit, and one complete safe Start Over UI/recovery feature.
 - [ ] Permit the two code trials to publish draft PRs targeting `production/core-foundation` for comparison; verify and disposition them promptly, never auto-merge them, and keep the audit session PR-free.
+- [x] Define, commit, and push the three trial packets at source commit `950a6422afbcad4aa054dc87aac0ca6a46ada3c1`.
+- [ ] Clear enough stale Jules concurrency only with user authorization: the account currently reports 61 sessions awaiting user feedback, 2 in progress, 2 paused, 378 completed, 18 failed, and 2 legacy records without state.
 - [ ] Define the enforceable delivery states `DRAFT -> APPROVED -> IMPLEMENTING -> PR_OPEN -> REVIEW_CLEAN -> MERGED -> DEPLOYED -> VERIFIED -> CLOSED`, plus `BLOCKED` and `ABORTED` transitions.
 - [ ] Define a schema-validated `DeliverySpec` with stable requirement/test IDs, non-goals, contracts, debt/waivers, PR order, deployment target, and unresolved unknowns.
 - [ ] Bind approval to a protected-field digest, base SHA, critic/prompt/schema versions, verdict, finding dispositions, required checks, and waiver authority.
@@ -181,9 +183,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Commit and push the three Jules trial packets and revised production plan. Launch the deep read-only audit first through the authenticated CLI with an exact branch/SHA stop check; verify its actual source context before launching the bounded code slice and complete feature. The two code results may become draft PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
+Obtain user authorization before deleting any stale Jules session. If authorized, remove only enough of the oldest 19-plus-day `AWAITING_USER_FEEDBACK` sessions to free capacity, reconcile the count, and launch the deep read-only audit first with the exact branch/SHA stop check. Verify its source context before launching the bounded code slice and complete feature. The two code results may become draft PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
 
-The strict exact-branch REST launch is currently blocked by Jules returning `FAILED_PRECONDITION` before creating a session. The CLI is installed, OAuth-authenticated, and can see `Phazzie/WhispersAndFlames`; because its headless command has no documented branch flag, a base mismatch must stop the trial rather than silently using another branch.
+Both the strict REST path and the official CLI return `FAILED_PRECONDITION` before creating a session. Direct reconciliation found no matching trial session. The repository source is healthy and advertises 46 branches including `production/core-foundation`; the likely blocker is stale concurrency, because 61 sessions are awaiting feedback while Google's published Ultra ceiling is 60 concurrent tasks. Jules does not include that reason in the error, so keep this conclusion labeled as an inference until a slot is freed or the UI provides a more specific message.
 
 ## Ledger update contract
 
