@@ -151,7 +151,7 @@ async function listAll(path, collectionName) {
   return values;
 }
 
-function validateSession(value) {
+function validateSessionIdentity(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     fail("Jules schema drift: session is not an object");
   }
@@ -160,8 +160,21 @@ function validateSession(value) {
       fail(`Jules schema drift: session.${key} is invalid`);
     }
   }
+  return value;
+}
+
+function validateSession(value) {
+  validateSessionIdentity(value);
   if (typeof value.state !== "string" || !KNOWN_STATES.has(value.state)) {
     fail(`Jules schema drift: unknown session state '${value.state}'`);
+  }
+  return value;
+}
+
+function validateCreatedSession(value) {
+  validateSessionIdentity(value);
+  if (value.state !== undefined && !KNOWN_STATES.has(value.state)) {
+    fail(`Jules schema drift: unknown created-session state '${value.state}'`);
   }
   return value;
 }
@@ -264,11 +277,17 @@ async function launch(selector) {
       title,
       sourceSha,
       state: session.state,
+      launchStatus: "RECONCILED",
       reconciledAt: new Date().toISOString(),
     };
     writeState(state);
     console.log(`${packet.id}: existing ${session.state} session ${session.id}`);
     return;
+  }
+  if (state.sessions[packet.id]?.launchStatus === "POSTING") {
+    fail(
+      `Prior POST for ${packet.id} is unresolved; wait for exact-title reconciliation`,
+    );
   }
   if (state.sessions[packet.id]?.id) {
     fail(`Local state already binds ${packet.id}; reconcile before another POST`);
@@ -282,7 +301,7 @@ async function launch(selector) {
     launchAttemptTime: new Date().toISOString(),
   };
   writeState(state);
-  const created = validateSession(
+  const created = validateCreatedSession(
     await apiRequest("/sessions", {
       method: "POST",
       body: {
@@ -302,7 +321,7 @@ async function launch(selector) {
     id: created.id,
     name: created.name,
     url: created.url,
-    state: created.state,
+    state: created.state ?? "STATE_UNSPECIFIED",
     createTime: created.createTime,
   };
   writeState(state);
@@ -346,8 +365,9 @@ function printPlan(plan) {
     console.log("Plan: not available");
     return;
   }
-  for (const step of plan.steps) {
-    console.log(`${Number(step.index) + 1}. ${step.title}: ${step.description}`);
+  for (const [position, step] of plan.steps.entries()) {
+    const displayIndex = Number.isInteger(step.index) ? step.index + 1 : position + 1;
+    console.log(`${displayIndex}. ${step.title}: ${step.description}`);
   }
   console.log(`Plan digest: ${planDigest(plan)}`);
 }
@@ -373,6 +393,32 @@ async function status(selector) {
   printPlan(plan);
   const latestDescription = sessionActivities.at(-1)?.description;
   if (latestDescription) console.log(`Latest: ${latestDescription}`);
+}
+
+async function messages(selector) {
+  const packet = selectPacket(selector);
+  const state = readState();
+  const entry = state.sessions[packet.id];
+  if (!entry?.id) fail(`${packet.id} is not launched`);
+  const sessionActivities = await activities(entry.id);
+  const messages = sessionActivities.flatMap((activity) => {
+    const values = [];
+    if (typeof activity?.agentMessaged?.agentMessage === "string") {
+      values.push({ originator: "agent", text: activity.agentMessaged.agentMessage });
+    }
+    if (typeof activity?.userMessaged?.userMessage === "string") {
+      values.push({ originator: "user", text: activity.userMessaged.userMessage });
+    }
+    return values;
+  });
+  if (!messages.length) {
+    console.log(`${packet.id}: no messages`);
+    return;
+  }
+  console.log(`${packet.id}: ${messages.length} message(s)`);
+  for (const message of messages) {
+    console.log(`\n[${message.originator}]\n${message.text}`);
+  }
 }
 
 function forbiddenPlanText(plan) {
@@ -425,6 +471,75 @@ async function approve(selector, confirmedDigest) {
   console.log(`${packet.id}: plan approved`);
 }
 
+async function feedback(selector, confirmedDigest, prompt) {
+  const packet = selectPacket(selector);
+  const state = readState();
+  const entry = state.sessions[packet.id];
+  if (!entry?.id) fail(`${packet.id} is not launched`);
+  const session = validateSession(
+    await apiRequest(`/sessions/${encodeURIComponent(entry.id)}`),
+  );
+  if (session.state !== "AWAITING_PLAN_APPROVAL") {
+    fail(`${packet.id} is ${session.state}, not AWAITING_PLAN_APPROVAL`);
+  }
+  const plan = findPlan(await activities(entry.id));
+  if (!plan || !Array.isArray(plan.steps)) fail("No valid plan is available");
+  printPlan(plan);
+  const digest = planDigest(plan);
+  if (!confirmedDigest || confirmedDigest !== digest) {
+    fail("Feedback requires the exact printed plan digest after human review");
+  }
+  if (typeof prompt !== "string" || prompt.trim().length < 20) {
+    fail("Feedback must be a substantive non-empty message");
+  }
+  await apiRequest(`/sessions/${encodeURIComponent(entry.id)}:sendMessage`, {
+    method: "POST",
+    body: { prompt: prompt.trim() },
+  });
+  const feedbackSentAt = new Date().toISOString();
+  const planFeedback = Array.isArray(entry.planFeedback)
+    ? entry.planFeedback
+    : [];
+  state.sessions[packet.id] = {
+    ...entry,
+    state: "PLAN_FEEDBACK_SENT",
+    feedbackOnPlanDigest: digest,
+    feedbackSentAt,
+    planFeedback: [...planFeedback, { planDigest: digest, sentAt: feedbackSentAt }],
+  };
+  writeState(state);
+  console.log(`${packet.id}: plan feedback sent; do not approve the old digest`);
+}
+
+async function message(selector, prompt) {
+  const packet = selectPacket(selector);
+  const state = readState();
+  const entry = state.sessions[packet.id];
+  if (!entry?.id) fail(`${packet.id} is not launched`);
+  const session = validateSession(
+    await apiRequest(`/sessions/${encodeURIComponent(entry.id)}`),
+  );
+  if (new Set(["FAILED", "COMPLETED"]).has(session.state)) {
+    fail(`${packet.id} is terminal (${session.state})`);
+  }
+  if (typeof prompt !== "string" || prompt.trim().length < 20) {
+    fail("Message must be a substantive non-empty value");
+  }
+  await apiRequest(`/sessions/${encodeURIComponent(entry.id)}:sendMessage`, {
+    method: "POST",
+    body: { prompt: prompt.trim() },
+  });
+  const sentAt = new Date().toISOString();
+  const sentMessages = Array.isArray(entry.sentMessages) ? entry.sentMessages : [];
+  state.sessions[packet.id] = {
+    ...entry,
+    state: session.state,
+    sentMessages: [...sentMessages, { sentAt, purpose: "operator-message" }],
+  };
+  writeState(state);
+  console.log(`${packet.id}: message sent while ${session.state}`);
+}
+
 function selfTest() {
   const safePlan = {
     id: "safe",
@@ -454,6 +569,9 @@ function usage() {
   node scripts/jules-feature-trials.mjs self-test
   node scripts/jules-feature-trials.mjs launch PACKET_ID
   node scripts/jules-feature-trials.mjs status PACKET_ID
+  node scripts/jules-feature-trials.mjs messages PACKET_ID
+  node scripts/jules-feature-trials.mjs message PACKET_ID "MESSAGE"
+  node scripts/jules-feature-trials.mjs feedback PACKET_ID PLAN_DIGEST "MESSAGE"
   node scripts/jules-feature-trials.mjs approve PACKET_ID PLAN_DIGEST
 
 Starting alias: ${STARTING_BRANCH}
@@ -461,24 +579,39 @@ Required PR target: ${DELIVERY_BRANCH}`);
 }
 
 async function main() {
-  const [command, selector, confirmation, ...extra] = process.argv.slice(2);
-  if (extra.length) fail("Too many arguments");
+  const [command, ...args] = process.argv.slice(2);
   switch (command) {
     case "self-test":
-      if (selector || confirmation) fail("self-test takes no arguments");
+      if (args.length) fail("self-test takes no arguments");
       selfTest();
       break;
     case "launch":
-      if (!selector || confirmation) fail("launch requires one packet ID");
-      await launch(selector);
+      if (args.length !== 1) fail("launch requires one packet ID");
+      await launch(args[0]);
       break;
     case "status":
-      if (!selector || confirmation) fail("status requires one packet ID");
-      await status(selector);
+      if (args.length !== 1) fail("status requires one packet ID");
+      await status(args[0]);
+      break;
+    case "messages":
+      if (args.length !== 1) fail("messages requires one packet ID");
+      await messages(args[0]);
+      break;
+    case "message":
+      if (args.length !== 2) {
+        fail("message requires packet ID and one quoted message");
+      }
+      await message(args[0], args[1]);
+      break;
+    case "feedback":
+      if (args.length !== 3) {
+        fail("feedback requires packet ID, plan digest, and one quoted message");
+      }
+      await feedback(args[0], args[1], args[2]);
       break;
     case "approve":
-      if (!selector || !confirmation) fail("approve requires packet ID and digest");
-      await approve(selector, confirmation);
+      if (args.length !== 2) fail("approve requires packet ID and digest");
+      await approve(args[0], args[1]);
       break;
     default:
       usage();
