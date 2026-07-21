@@ -30,6 +30,22 @@ const subscribeToHydration = () => () => undefined;
 const getClientHydrationSnapshot = () => true;
 const getServerHydrationSnapshot = () => false;
 
+function getStepCoordinate(view: RoomView): string {
+  if (view.phase === "preferences") {
+    return `preferences:${view.preferences.retryReason || "none"}`;
+  }
+  if (view.phase === "questions") {
+    return `questions:${view.question.ordinal}`;
+  }
+  if (view.phase === "review") {
+    return `review`;
+  }
+  if (view.phase === "discussion") {
+    return `discussion:${view.discussion.ordinal}`;
+  }
+  return view.phase;
+}
+
 function initialStoredSession(): StoredRoomSession | null {
   return typeof window === "undefined" ? null : readStoredRoomSession();
 }
@@ -58,13 +74,25 @@ export function useRoomSession() {
   const sessionRef = useRef<StoredRoomSession | null>(session);
   const viewRef = useRef<RoomView | null>(null);
 
+  const operationIdsRef = useRef<Record<string, string>>({});
+
+  const getStableOperationId = useCallback((activeView: RoomView | null, fallbackId?: string) => {
+    if (!activeView) return fallbackId || crypto.randomUUID();
+    const coord = getStepCoordinate(activeView);
+    if (!operationIdsRef.current[coord]) {
+      operationIdsRef.current[coord] = fallbackId || crypto.randomUUID();
+    }
+    return operationIdsRef.current[coord];
+  }, []);
+
   const acceptView = useCallback((nextView: RoomView) => {
-    viewRef.current = nextView;
-    setView((currentView) =>
-      currentView && currentView.version > nextView.version
-        ? currentView
-        : nextView,
-    );
+    setView((currentView) => {
+      if (currentView && currentView.version > nextView.version) {
+        return currentView;
+      }
+      viewRef.current = nextView;
+      return nextView;
+    });
   }, []);
 
   useEffect(() => {
@@ -184,6 +212,17 @@ export function useRoomSession() {
         acceptView(response.view);
         setConnection("connected");
       } catch (error) {
+        if (error instanceof GameApiError && error.code === "STALE_COMMAND") {
+          try {
+            const latest = await gameApi.getRoom(
+              activeSession.roomId,
+              activeSession.playerToken,
+            );
+            acceptView(latest.view);
+          } catch {
+            // ignore
+          }
+        }
         setActionError(errorMessage(error));
       } finally {
         setIsSubmitting(false);
@@ -194,48 +233,53 @@ export function useRoomSession() {
 
   const submitPreferences = useCallback(
     (input: PreferencesInput) =>
-      runRoomAction((activeSession) =>
-        gameApi.submitPreferences(
+      runRoomAction((activeSession) => {
+        const opId = getStableOperationId(viewRef.current, input.operationId);
+        return gameApi.submitPreferences(
           activeSession.roomId,
           activeSession.playerToken,
-          input,
-        ),
-      ),
-    [runRoomAction],
+          { ...input, operationId: opId },
+        );
+      }),
+    [runRoomAction, getStableOperationId],
   );
 
   const submitAnswer = useCallback(
     (input: AnswerInput) =>
-      runRoomAction((activeSession) =>
-        gameApi.submitAnswer(
+      runRoomAction((activeSession) => {
+        const opId = getStableOperationId(viewRef.current, input.operationId);
+        return gameApi.submitAnswer(
           activeSession.roomId,
           activeSession.playerToken,
-          input,
-        ),
-      ),
-    [runRoomAction],
+          { ...input, operationId: opId },
+        );
+      }),
+    [runRoomAction, getStableOperationId],
   );
 
   const submitBallot = useCallback(
     (input: BallotInput) =>
-      runRoomAction((activeSession) =>
-        gameApi.submitBallot(
+      runRoomAction((activeSession) => {
+        const opId = getStableOperationId(viewRef.current, input.operationId);
+        return gameApi.submitBallot(
           activeSession.roomId,
           activeSession.playerToken,
-          input,
-        ),
-      ),
-    [runRoomAction],
+          { ...input, operationId: opId },
+        );
+      }),
+    [runRoomAction, getStableOperationId],
   );
 
   const markReady = useCallback(
-    () =>
-      runRoomAction((activeSession) =>
-        gameApi.markReady(activeSession.roomId, activeSession.playerToken, {
-          operationId: crypto.randomUUID(),
-        }),
-      ),
-    [runRoomAction],
+    (input: { expectedVersion: number; candidateId: string; ordinal: number }) =>
+      runRoomAction((activeSession) => {
+        const opId = getStableOperationId(viewRef.current);
+        return gameApi.markReady(activeSession.roomId, activeSession.playerToken, {
+          operationId: opId,
+          ...input,
+        });
+      }),
+    [runRoomAction, getStableOperationId],
   );
 
   const refresh = useCallback(async () => {

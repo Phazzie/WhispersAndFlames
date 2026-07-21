@@ -212,6 +212,7 @@ export function PreferencesScreen({
           onClick={() =>
             void onSubmit({
               operationId: crypto.randomUUID(),
+              expectedVersion: view.version,
               categories,
               intensity,
             })

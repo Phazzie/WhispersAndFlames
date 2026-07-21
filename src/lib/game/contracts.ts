@@ -36,6 +36,7 @@ export const joinRoomInputSchema = createRoomInputSchema
 export const preferencesInputSchema = z
   .object({
     operationId: z.string().uuid(),
+    expectedVersion: z.number().int(),
     categories: z.array(categorySchema).min(1).max(categoryIds.length),
     intensity: intensitySchema,
   })
@@ -48,6 +49,8 @@ export const preferencesInputSchema = z
 export const answerInputSchema = z
   .object({
     operationId: z.string().uuid(),
+    expectedVersion: z.number().int(),
+    ordinal: z.number().int(),
     answer: z.string().trim().min(1).max(1_000).optional(),
     skip: z.boolean().optional(),
   })
@@ -59,6 +62,7 @@ export const answerInputSchema = z
 export const ballotInputSchema = z
   .object({
     operationId: z.string().uuid(),
+    expectedVersion: z.number().int(),
     decisions: z
       .array(
         z
@@ -81,6 +85,9 @@ export const ballotInputSchema = z
 export const readyInputSchema = z
   .object({
     operationId: z.string().uuid(),
+    expectedVersion: z.number().int(),
+    candidateId: z.string().uuid(),
+    ordinal: z.number().int(),
   })
   .strict();
 
@@ -206,6 +213,7 @@ export interface ApiErrorResponse {
       | "UNAUTHORIZED"
       | "INVALID_PHASE"
       | "ALREADY_SUBMITTED"
+      | "STALE_COMMAND"
       | "INTERNAL_ERROR";
     message: string;
   };

@@ -9,6 +9,7 @@ const defaultMessages: Record<GameErrorCode, string> = {
   UNAUTHORIZED: "This player session is not authorized for that room.",
   INVALID_PHASE: "That action is not available right now.",
   ALREADY_SUBMITTED: "Your response for this step is already locked in.",
+  STALE_COMMAND: "The room has already moved forward. Please refresh to continue.",
   INTERNAL_ERROR: "Something went wrong. Please try again.",
 };
 

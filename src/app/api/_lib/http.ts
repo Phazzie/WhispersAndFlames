@@ -14,6 +14,7 @@ const statusByCode: Record<ApiErrorResponse["error"]["code"], number> = {
   ROOM_FULL: 409,
   INVALID_PHASE: 409,
   ALREADY_SUBMITTED: 409,
+  STALE_COMMAND: 409,
   INTERNAL_ERROR: 500,
 };
 
