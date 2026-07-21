@@ -6,7 +6,7 @@ This is a deep, read-only investigation. Show whether Jules can find concrete de
 
 ## Base check — mandatory before all other work
 
-The launch message supplies an exact expected branch and full expected Git SHA. Run `git status --short --branch`, `git rev-parse --abbrev-ref HEAD`, and `git rev-parse HEAD` first. If the checkout is dirty, the branch is not `production/core-foundation`, or HEAD differs from the supplied SHA, perform no audit and finish with `BASE_MISMATCH`, showing only the observed branch and SHA. Never inspect or print `.env*` files or values. Do not use legacy code, branches, archives, or prior application implementations.
+The launch message supplies an exact expected **starting branch** and full expected Git SHA. Jules is expected to create and work on its own `jules-*` branch; that branch name is not a mismatch. First run `git status --short --branch`, `git rev-parse --abbrev-ref HEAD`, and `git rev-parse HEAD`. The worktree must be clean and the initial HEAD of Jules's branch must equal the supplied SHA, proving that its branch starts from the intended production commit. If HEAD differs or the tree is dirty, perform no audit and finish with `BASE_MISMATCH`, showing the observed Jules branch and SHA. Never inspect or print `.env*` files or values. Do not use legacy code, base branches, archives, or prior application implementations.
 
 Read root `AGENTS.md`, `PROJECT_STATUS.md`, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, every nested `AGENTS.md`, production source, focused tests, and relevant configuration. Do not edit, create, delete, format, commit, publish a branch, or open a PR. Test/build byproducts inside the disposable VM are acceptable, but the Git worktree must remain clean.
 

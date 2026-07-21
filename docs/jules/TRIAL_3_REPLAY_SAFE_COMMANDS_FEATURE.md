@@ -8,7 +8,7 @@ The result is an isolated draft proposal for evaluation. It does not become acce
 
 ## Base check — mandatory before all other work
 
-The launch message supplies an exact expected branch and full expected Git SHA. Run `git status --short --branch`, `git rev-parse --abbrev-ref HEAD`, and `git rev-parse HEAD` before editing. If the checkout is dirty, the branch is not `production/core-foundation`, or HEAD differs from the supplied SHA, make no changes and finish with `BASE_MISMATCH`, showing only the observed branch and SHA. Never inspect or print `.env*` files or values. Do not use legacy code, branches, archives, or copied implementation.
+The launch message supplies an exact expected **starting branch** and full expected Git SHA. Jules is expected to create and work on its own `jules-*` branch; that branch name is not a mismatch. Before editing, run `git status --short --branch`, `git rev-parse --abbrev-ref HEAD`, and `git rev-parse HEAD`. The worktree must be clean and the initial HEAD of Jules's branch must equal the supplied SHA, proving that its branch starts from the intended production commit. If HEAD differs or the tree is dirty, make no changes and finish with `BASE_MISMATCH`, showing the observed Jules branch and SHA. Never inspect or print `.env*` files or values. Do not use legacy code, base branches, archives, or copied implementation.
 
 Read root `AGENTS.md`, `PROJECT_STATUS.md`, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, and every nested `AGENTS.md` governing a path before editing.
 

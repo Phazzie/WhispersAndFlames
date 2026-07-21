@@ -31,6 +31,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - The official Jules CLI can target a repository but does not expose an exact starting-branch flag. The REST API does expose `startingBranch`; the look-ahead experiment must use that path so it cannot silently analyze legacy `main`.
 - The strict REST launch reached Jules but returned `FAILED_PRECONDITION` before creating a session. The authenticated CLI remains a useful independent launch surface, but its undocumented base selection must be verified rather than assumed.
 - The CLI pilot returned the same `FAILED_PRECONDITION` before creating a session. The repository source is connected and advertises the required branch. An API-only aggregate found 61 sessions awaiting user feedback, 2 in progress, 2 paused, 378 completed, 18 failed, and 2 legacy records without state. Stale concurrency is the leading explanation because Ultra publishes a 60-task concurrent ceiling, but Jules did not provide enough error detail to call that cause proven.
+- After the 61 waiting sessions were deleted, headless CLI creation succeeded. Jules correctly created its own isolated branch, but because `jules new --repo` exposes no starting-branch option, it based that branch on remote default `main` at `79dabd6`, not `production/core-foundation`. The first audit therefore stopped with `BASE_MISMATCH`. The original packet also incorrectly treated the expected `jules-*` output branch name as a mismatch; packets now validate the initial base HEAD instead of demanding the starting branch's name.
 
 ## Decision Log
 
@@ -43,6 +44,7 @@ The user-visible outcome is that two adults can privately complete the full Whis
 - Decision: the feature trial must carry architectural weight. It spans command contracts, server idempotency ordering, exact step identity, API error behavior, client response-loss handling, and adversarial tests, while explicitly excluding create/join identity, Supabase, AI changes, dependencies, and release configuration. Date: 2026-07-20.
 - Decision: a Jules-created PR is a review artifact, not an acceptance signal. Root must verify its base, owned paths, tests, privacy behavior, and review comments, then explicitly accept, repair, or close it. Temporary trial PRs do not authorize a dependent merge stack. Date: 2026-07-20.
 - Decision: do not delete old Jules sessions merely to unblock the trial without the user's explicit permission. Session deletion removes external task history and is not implied by permission to launch new work. Date: 2026-07-20.
+- Decision: Jules-owned branches and PRs are desirable isolation. The safety check applies to the commit from which Jules's branch starts, not the output branch's name. Use the guided CLI/web branch picker for `production/core-foundation`; do not use headless `jules new --repo` for non-default branches. Date: 2026-07-20.
 - Decision: tests are part of each slice rather than a postponed test phase. Each frozen requirement receives a stable ID and at least one named proof obligation before implementation begins. Date: 2026-07-20.
 
 ## Outcomes & Retrospective
@@ -133,7 +135,7 @@ On 2026-07-20 the user authorized a deliberately broader comparison instead of t
 
 This is an evaluation, not permission to bypass the contract freeze. The code outputs are isolated draft proposals targeting `production/core-foundation`. They become production work only after root verifies the exact base and scope, reviews every changed line, runs the required evidence, resolves conflicts with the freeze, and deliberately accepts them. A weak or stale proposal is closed rather than patched indefinitely. The audit never edits or publishes code.
 
-The official CLI is used to test the simpler operator experience. Because its headless `new` command has no documented branch flag, every packet receives the exact expected remote SHA in its launch message and must stop before work on any mismatch. Root launches the audit first, immediately inspects the created session's source context where available, and launches the code sessions only after the branch evidence is credible. No failed or ambiguous launch is blindly repeated.
+The official CLI is used to test the simpler operator experience. Its headless `new` command has no documented branch flag and selected default `main` in the first pilot, so non-default work uses the guided CLI or web branch picker. Every packet receives the exact expected starting SHA and checks the initial HEAD of Jules's own branch before work. Root launches the audit first and launches code sessions only after that base evidence is credible. No failed or ambiguous launch is blindly repeated.
 
 ## Concrete Steps
 
@@ -149,7 +151,7 @@ Run commands from `/Users/hbpheonix/whispersandflames-fresh` unless stated other
 
 3. Preserve the strict REST controller as an experimental automation path, but do not expand it while its create-session call returns `FAILED_PRECONDITION`. Keep its API key outside the repository and never print it.
 
-4. Commit and push the three-mode packets and this decision. Record the exact remote `production/core-foundation` SHA. Launch `TRIAL_2_DEEP_CODE_AUDIT.md` first through the authenticated Jules CLI with the packet path, expected branch, and exact SHA in the prompt. Reconcile the new session from the remote session list and inspect its source context before launching either code task.
+4. Commit and push the three-mode packets and this decision. Record the exact remote `production/core-foundation` SHA. Through the guided Jules CLI or web flow, select `Phazzie/WhispersAndFlames` and starting branch `production/core-foundation`, then launch `TRIAL_2_DEEP_CODE_AUDIT.md` with the packet path and exact starting SHA. The resulting branch should be Jules-owned; validate its initial HEAD, not its branch name. Launch neither code task until that base evidence is credible.
 
 5. If the audit proves the correct source, launch the bounded slice and complete feature as separate CLI sessions. Poll with bounded one-shot list/status checks. For any code result, verify the base, owned paths, tests, and diff before allowing draft PR publication. Record session IDs, PR URLs, elapsed time, root review/correction time, accepted findings, and accept/repair/close disposition under `Artifacts and Notes`; do not copy claims without checking cited paths.
 
@@ -186,7 +188,7 @@ Database migrations must be forward and rollback aware. Destructive schema/data 
 - Historical sprint record: `docs/DEMO_SPRINT_EXEC_PLAN.md` (superseded; not an active delivery plan).
 - Initial Jules packet IDs: `WF-JULES-H1-ARCH-001`, `WF-JULES-H2-PRIVACY-001`, and `WF-JULES-H3-DATA-001`.
 - Three-mode trial packet IDs: `WF-JULES-TRIAL-SLICE-001`, `WF-JULES-TRIAL-AUDIT-001`, and `WF-JULES-TRIAL-FEATURE-001`.
-- Jules session IDs and trial PR URLs: none. The first audit launch at source `950a6422afbcad4aa054dc87aac0ca6a46ada3c1` returned `FAILED_PRECONDITION`; full session reconciliation found no matching trial record.
+- Jules audit pilot session: `15263271724263973882`. It completed without auditing after reporting `BASE_MISMATCH`: headless CLI based its Jules-owned branch on default `main` at `79dabd66e5d4afe5be5c2b875fe7d791d8af850b` instead of expected production source `4ba78d5165d864a12359f128687fed1af0de60d6`. No changes, output artifact, branch publication, or PR resulted. Slice/feature session IDs and trial PR URLs: none yet.
 - Frozen contract digest: not yet created; Milestone 1 output.
 - Release merge SHA and deployment evidence: not yet available.
 

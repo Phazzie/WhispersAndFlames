@@ -4,7 +4,7 @@ This is the canonical handoff ledger for the fresh rebuild. Read this file befor
 
 ## Freshness record
 
-- Last verified: 2026-07-20 20:50 EDT
+- Last verified: 2026-07-20 23:57 EDT
 - Verified by: live Git/worktree/remote state, draft PR #80, `docs/PRODUCTION_CORE_EXEC_PLAN.md`, authenticated Jules CLI repository listing, controller syntax/self-tests, the historical demo plan, and three read-only privacy/server/AI, UI/accessibility, and verification/release audits
 - Canonical rebuild worktree: `/Users/hbpheonix/whispersandflames-fresh`
 - Integration branch: `fresh-main` at `e0be32d`; the matching remote branch exists
@@ -183,9 +183,9 @@ This is one production roadmap. The existing flow is the starting foundation, no
 
 ## Exact next action
 
-Commit and push the strengthened replay-safe command feature packet, then launch the deep read-only audit first with the exact branch/SHA stop check. Verify its source context before launching the bounded Scribe slice and full-stack feature. The two code results may become draft PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
+Commit and push the corrected Jules base check, then use the guided CLI branch picker to start the deep read-only audit from `production/core-foundation`. Verify that the initial HEAD of Jules's own branch equals the newly pushed source SHA before launching the bounded Scribe slice and full-stack feature. The two code results may become PRs against `production/core-foundation`, but no Jules result may merge or deploy without root review and verification.
 
-Before cleanup, both the strict REST path and official CLI returned `FAILED_PRECONDITION` without creating a trial session. The repository source is healthy and advertises 46 branches including `production/core-foundation`. The leading explanation was stale concurrency because 61 sessions awaited feedback against Google's published Ultra ceiling of 60; all 61 exact-state sessions are now deleted, so the next audit launch will confirm or disprove that inference.
+Before cleanup, both the strict REST path and official CLI returned `FAILED_PRECONDITION`. Deleting all 61 explicitly authorized waiting sessions unblocked CLI creation, confirming stale concurrency was at least the CLI blocker; the public REST path still fails separately. Headless CLI session `15263271724263973882` then created a valid isolated Jules branch but based it on default `main` at `79dabd6`, so it correctly performed no audit. The next launch must use the guided branch picker for `production/core-foundation`; Jules's own output branch is expected and is not itself a mismatch.
 
 ## Ledger update contract
 
