@@ -103,8 +103,12 @@ in the same commit.
 - [ ] Cross-ticket couplings are written into **both** tickets (e.g., one
       ticket adds a constant another consumes; one makes an env var required
       that another must provide in CI).
-- [ ] Agents sharing a working tree don't run `npm install` or builds
-      concurrently — use worktree isolation for parallel waves.
+- [ ] Parallel tickets run in **isolated worktrees**, always. A shared
+      working tree shares the git index: concurrent agents staging and
+      committing corrupt each other's commits even with disjoint file
+      ownership, and concurrent `npm install` / builds corrupt the tree
+      itself. Same-tree execution is safe only for tickets run
+      sequentially.
 - [ ] The orchestrator — not the agents — merges, runs the full gauntlet once
       on the merged result, pushes, and opens the PR.
 
