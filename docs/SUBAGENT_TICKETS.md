@@ -24,8 +24,10 @@ A ticket is too big if **any** of these is true. Split it.
    and the ticket implements it. If a ticket says "decide", "choose",
    "when unsure", or "conservatively", it is not a ticket yet.
 4. **It mixes investigation and change.** "Find out X" and "change Y" are
-   different tickets, usually in different waves — the finding feeds the
-   orchestrator, who then cuts the change ticket.
+   different tickets, usually in different waves. (A **wave** is a batch of
+   tickets launched in parallel; the next wave starts only after the previous
+   one is merged.) The finding feeds the orchestrator, who then cuts the
+   change ticket.
 5. **It has more than one acceptance criterion.** One ticket, one observable
    "done". (A standard verification gauntlet — typecheck, tests, build —
    counts as one criterion.)
@@ -85,6 +87,10 @@ Rules:
 - Report back: files changed, verification output (paste it), and anything
   surprising you noticed but did not touch.
 ```
+
+The dummy env trio above is throwaway by design, but it must stay in sync with
+the `env:` block in `.github/workflows/ci.yml` — when one changes, change both
+in the same commit.
 
 ## Orchestrator checklist — before launching a wave
 
