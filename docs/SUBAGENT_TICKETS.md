@@ -110,7 +110,8 @@ in the same commit.
 
 ## Worked example
 
-A model ticket, from the August 2026 triage (see `docs/TRIAGE` history):
+A model ticket, from the August 2026 triage — shown without the
+standing-rules block, which is appended verbatim to every real ticket:
 
 ```text
 ### T2 · Add health and cron endpoints to the public-route matcher
@@ -133,7 +134,8 @@ Vercel nightly cleanup cron has never run.
 
 - curl -s -o /dev/null -w '%{http_code}' localhost:9002/api/health → 200
 - curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer wrong" \
-   localhost:9002/api/cron/cleanup → 401 (was 404)
+   localhost:9002/api/cron/cleanup → 403 (was 404 — the route now answers;
+   403 because CRON_SECRET is unset in dev, per route.ts:29-34)
 
 **Out of scope:** the CSRF block, security headers, and CSP strings in the
 same file; any change to the cron route itself.
