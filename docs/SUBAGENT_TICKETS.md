@@ -40,7 +40,7 @@ cut tickets 2–3× too large. When torn, split.
 
 ## Template — all seven fields, every time
 
-```markdown
+```text
 ### T<n> · <verb-first title naming the one deliverable>
 
 **Why:** 1–2 sentences. The motivating problem, not the project history.
@@ -112,7 +112,7 @@ in the same commit.
 
 A model ticket, from the August 2026 triage (see `docs/TRIAGE` history):
 
-```markdown
+```text
 ### T2 · Add health and cron endpoints to the public-route matcher
 
 **Why:** Clerk's auth.protect() answers unauthenticated API calls with 404, so
@@ -124,7 +124,7 @@ Vercel nightly cleanup cron has never run.
 **Task:**
 
 1. In the isPublicRoute matcher (line 5), add two entries:
-   '/api/health(.\*)' and '/api/cron/cleanup'.
+   '/api/health(.*)' and '/api/cron/cleanup'.
 2. Nothing else changes. The cron route keeps its own Bearer CRON_SECRET
    check at src/app/api/cron/cleanup/route.ts:23 — that is the security
    boundary, not the middleware.
