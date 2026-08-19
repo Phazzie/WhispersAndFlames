@@ -22,6 +22,7 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 10. [Common Tasks](#common-tasks)
 11. [Important Files Reference](#important-files-reference)
 12. [Things to Avoid](#things-to-avoid)
+13. [Delegating to Subagents](#delegating-to-subagents)
 
 ---
 
@@ -1042,13 +1043,13 @@ console.log('Pool waiting:', pool.waitingCount);
 
 ### AI & Genkit
 
-| File                                                   | Purpose                          |
-| ------------------------------------------------------ | -------------------------------- |
+| File                                                   | Purpose                                                                |
+| ------------------------------------------------------ | ---------------------------------------------------------------------- |
 | `src/ai/genkit.ts`                                     | Genkit configuration — uses genkitx-openai plugin pointing to xAI Grok |
-| `src/ai/flows/generate-contextual-questions.ts`        | Question generation              |
-| `src/ai/flows/analyze-answers-and-generate-summary.ts` | Summary generation               |
-| `src/ai/flows/shared-utils.ts`                         | Prompt injection prevention      |
-| `src/app/game/actions.ts`                              | Server actions for AI operations |
+| `src/ai/flows/generate-contextual-questions.ts`        | Question generation                                                    |
+| `src/ai/flows/analyze-answers-and-generate-summary.ts` | Summary generation                                                     |
+| `src/ai/flows/shared-utils.ts`                         | Prompt injection prevention                                            |
+| `src/app/game/actions.ts`                              | Server actions for AI operations                                       |
 
 ### Security & Validation
 
@@ -1095,15 +1096,16 @@ console.log('Pool waiting:', pool.waitingCount);
 
 ### Documentation
 
-| File             | Purpose                        |
-| ---------------- | ------------------------------ |
-| `README.md`      | Project overview and setup     |
-| `CLAUDE.md`      | This file - AI assistant guide |
-| `agents.md`      | AI agent personas              |
-| `aiprompting.md` | Detailed AI prompt patterns    |
-| `DEPLOY.md`      | Deployment instructions        |
-| `DOCKER.md`      | Docker setup guide             |
-| `CHANGELOG.md`   | Version history                |
+| File                       | Purpose                                          |
+| -------------------------- | ------------------------------------------------ |
+| `README.md`                | Project overview and setup                       |
+| `CLAUDE.md`                | This file - AI assistant guide                   |
+| `agents.md`                | AI agent personas                                |
+| `aiprompting.md`           | Detailed AI prompt patterns                      |
+| `docs/SUBAGENT_TICKETS.md` | Ticket standard for delegating work to subagents |
+| `DEPLOY.md`                | Deployment instructions                          |
+| `DOCKER.md`                | Docker setup guide                               |
+| `CHANGELOG.md`             | Version history                                  |
 
 ---
 
@@ -1271,6 +1273,28 @@ try {
 
 - Always test locally with `npm run build && npm start`
 - Test in preview deployment before production
+
+---
+
+## Delegating to Subagents
+
+When farming work out to subagents, cut tickets to the standard in
+**`docs/SUBAGENT_TICKETS.md`**. That file is canonical — do not restate its
+rules here or elsewhere; duplicated guidance drifts.
+
+The three rules most often violated, as a tripwire:
+
+1. **Tickets are smaller than feels natural.** More than 2 owned files, more
+   than 5 steps, or more than one acceptance criterion → split it.
+2. **No decisions inside tickets.** The orchestrator resolves every judgment
+   call (greps, chosen values, approach) _before_ writing the ticket. A ticket
+   containing "decide", "choose", or "when unsure" is not ready.
+3. **Investigation and change never share a ticket.** Research tickets report
+   to the orchestrator; change tickets execute what was already decided.
+
+Every ticket uses the seven-field template from the standard (Why / Files
+owned / Task / Verify / Out of scope / Report back, plus the standing-rules
+block). The orchestrator merges, verifies once, and pushes — agents never push.
 
 ---
 
