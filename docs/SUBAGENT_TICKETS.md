@@ -92,6 +92,14 @@ The dummy env trio above is throwaway by design, but it must stay in sync with
 the `env:` block in `.github/workflows/ci.yml` — when one changes, change both
 in the same commit.
 
+The trio covers builds, unit tests, and curl-level checks **only**. Browser
+e2e (`npm run test:e2e`) cannot run against dummy Clerk keys: clerkMiddleware
+307-redirects every browser page request to the key's `*.clerk.accounts.dev`
+handshake URL, which does not exist for a placeholder key. A ticket may put
+`npm run test:e2e` in its Verify section only when real Clerk
+development-instance credentials are available (in CI, the `e2e` environment
+secrets).
+
 ## Orchestrator checklist — before launching a wave
 
 - [ ] Every decision is resolved. Grep results, chosen values, and approach
@@ -131,7 +139,7 @@ Vercel nightly cleanup cron has never run.
 1. In the isPublicRoute matcher (line 5), add two entries:
    '/api/health(.*)' and '/api/cron/cleanup'.
 2. Nothing else changes. The cron route keeps its own Bearer CRON_SECRET
-   check at src/app/api/cron/cleanup/route.ts:23 — that is the security
+   check at src/app/api/cron/cleanup/route.ts:25-34 — that is the security
    boundary, not the middleware.
 
 **Verify:** Start dev (npx next dev -p 9002, dummy env trio exported), then:
