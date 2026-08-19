@@ -472,7 +472,9 @@ npm run format
 4. **Merging pull requests**: Once every review comment on a PR has been
    handled (fixed, or answered with the thread resolved) and CI is green,
    **merge it** — do not sit waiting for a separate merge instruction.
-   Use squash merge, matching this repo's history.
+   Use squash merge, matching this repo's history. Exception: hold for the
+   owner's explicit go-ahead when they asked for sign-off on that PR, or
+   when the change alters auth, payment, or data-deletion behavior.
 
 ### Building for Production
 
