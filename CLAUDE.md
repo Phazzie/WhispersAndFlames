@@ -469,6 +469,11 @@ npm run format
    - Feature branches: `feature/description`
    - Bug fixes: `fix/description`
 
+4. **Merging pull requests**: Once every review comment on a PR has been
+   handled (fixed, or answered with the thread resolved) and CI is green,
+   **merge it** — do not sit waiting for a separate merge instruction.
+   Use squash merge, matching this repo's history.
+
 ### Building for Production
 
 ```bash
