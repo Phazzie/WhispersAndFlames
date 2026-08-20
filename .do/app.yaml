@@ -52,8 +52,10 @@ services:
         type: SECRET
         value: EV[1:ZTIQ6qCDYRD+O7DGCY3zSCBe5tPLN0JR:UojT5daWzVjLXRLBg02q1A==]
       # Required: src/lib/env.ts validates both Clerk keys at module load, so
-      # the app exits on boot without them. Replace the placeholders with
-      # encrypted values (doctl apps update ... --env) before deploying.
+      # the app exits on boot without them. Replace the placeholders in a
+      # copy of this spec and apply it with `doctl apps update APP_ID --spec`
+      # (there is no --env flag); DigitalOcean encrypts SECRET values on
+      # first apply.
       # The publishable key is needed at BUILD time too, since the client
       # bundle inlines it.
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY

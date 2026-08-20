@@ -125,21 +125,39 @@ doctl auth init
 
 ### Deploy the App
 
+`doctl apps update` takes a whole app spec via `--spec`; it has **no `--env`
+flag** for setting individual variables. Secrets are therefore set by editing a
+spec file and applying it, not by a series of per-variable commands.
+
 ```bash
-# Create the app from spec file
-doctl apps create --spec .do/app.yaml
+# Work from a copy so real secrets never land in the repo.
+# .gitignore already covers .env* but NOT this file — do not commit it.
+cp .do/app.yaml /tmp/app-live.yaml
+```
+
+Edit `/tmp/app-live.yaml` and replace every placeholder with a real value:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` → your `pk_...` key (it is inlined into
+  the client bundle at build time, so the real value must be present here)
+- `CLERK_SECRET_KEY` → your `sk_...` key
+- `XAI_API_KEY` → your xAI key
+- `CRON_SECRET` → output of `openssl rand -base64 32`
+- `NEXT_PUBLIC_APP_URL` → your app's URL
+
+Entries marked `type: SECRET` may be given in plaintext on first apply;
+DigitalOcean encrypts them and rewrites the stored spec to `EV[1:...]`.
+
+```bash
+# Create the app
+doctl apps create --spec /tmp/app-live.yaml
 
 # Get your app ID
 doctl apps list
 
-# Set environment secrets (replace APP_ID)
-doctl apps update APP_ID --env XAI_API_KEY=your_xai_api_key
-doctl apps update APP_ID --env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_your_publishable_key
-doctl apps update APP_ID --env CLERK_SECRET_KEY=sk_your_clerk_secret_key
-doctl apps update APP_ID --env CRON_SECRET=$(openssl rand -base64 32)
-doctl apps update APP_ID --env NEXT_PUBLIC_APP_URL=https://your-app.ondigitalocean.app
+# Apply later changes by editing the spec and re-applying it
+doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
 
-# Trigger deployment
+# Trigger a deployment
 doctl apps create-deployment APP_ID
 ```
 
@@ -215,8 +233,12 @@ docker-compose down
 To scale your app:
 
 ```bash
-# Via CLI
-doctl apps update APP_ID --instance-count 2
+# Via CLI: edit instance_count in the spec, then re-apply it.
+# `doctl apps update` accepts only --spec (plus --format/--no-header/
+# --update-sources/--wait) — there is no --instance-count flag.
+doctl apps spec get APP_ID > /tmp/app-live.yaml
+# edit instance_count under services[0], then:
+doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
 
 # Or in dashboard: Settings → Scaling
 ```
@@ -341,8 +363,12 @@ doctl databases backups create DB_ID
 
 ### Update Environment Variables
 
+There is no per-variable flag. Fetch the live spec, edit it, and re-apply:
+
 ```bash
-doctl apps update APP_ID --env NEW_VAR=value
+doctl apps spec get APP_ID > /tmp/app-live.yaml
+# add or edit the entry under services[0].envs, then:
+doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
 ```
 
 ---
