@@ -13,7 +13,7 @@ test.describe('Game Flow', () => {
     await expect(page).toHaveTitle(/Whispers|Flames/i);
   });
 
-  test('should navigate to game creation', async ({ page }) => {
+  test('should present an entry control to signed-out visitors', async ({ page }) => {
     await page.goto('/');
 
     // A signed-out visitor must be offered an actionable entry control.

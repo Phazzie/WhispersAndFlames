@@ -8,7 +8,7 @@ const envSchema = z.object({
   // Clerk Authentication (Required)
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'Clerk publishable key is required'),
   CLERK_SECRET_KEY: z.string().min(1, 'Clerk secret key is required'),
-  // AI API Keys (At least one required)
+  // AI API Key (required — the app has no non-AI fallback path)
   XAI_API_KEY: z.string().min(1, 'xAI API key is required'),
   DATABASE_URL: z.string().optional(), // Optional - falls back to in-memory storage
   CRON_SECRET: z.string().min(1).optional(),

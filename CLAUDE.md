@@ -368,6 +368,9 @@ try {
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` - Clerk authentication (required)
 - `CLERK_SECRET_KEY` - Clerk authentication (required)
 - `XAI_API_KEY` - xAI API key for Grok models — get from https://console.x.ai/
+- `CRON_SECRET` - Bearer token the cleanup cron must present. Required in any
+  environment with `DATABASE_URL` set: the route returns 403 when it is unset,
+  so the nightly cleanup silently does nothing until it is configured.
 - `DATABASE_URL` - PostgreSQL connection (optional, falls back to in-memory)
 - `NEXT_PUBLIC_APP_URL` - Application URL (defaults to localhost:9002)
 
@@ -772,6 +775,10 @@ vercel --prod
 - `/sign-in*`
 - `/sign-up*`
 - `/api/webhooks*`
+- `/api/health*` (uptime monitoring — `auth.protect()` answers 404, not 401, so
+  a protected health endpoint reads as a dead app to any monitor)
+- `/api/cron/cleanup` (Vercel Cron sends a Bearer token, not a Clerk session;
+  the route enforces `CRON_SECRET` itself)
 
 **All other routes require authentication.**
 
@@ -1087,7 +1094,7 @@ console.log('Pool waiting:', pool.waitingCount);
 | GET `/api/game/[roomCode]` | `src/app/api/game/[roomCode]/route.ts` |
 | GET `/api/health`          | `src/app/api/health/route.ts`          |
 | GET `/api/health/db`       | `src/app/api/health/db/route.ts`       |
-| DELETE `/api/cron/cleanup` | `src/app/api/cron/cleanup/route.ts`    |
+| GET `/api/cron/cleanup`    | `src/app/api/cron/cleanup/route.ts`    |
 
 ### Configuration
 
