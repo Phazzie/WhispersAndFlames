@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 import { RATE_LIMIT_GAME_GET, RATE_LIMIT_WINDOW_MS } from '@/lib/api-constants';
+import { normalizeRoomCode } from '@/lib/game-utils';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
 import { RateLimiter } from '@/lib/utils/rate-limiter';
@@ -48,7 +49,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
       );
     }
 
-    const { roomCode } = await params;
+    // Normalize exactly as create/join/update do (src/lib/game-utils.ts).
+    // Without this the GET is the only route that cannot find a room whose
+    // code arrives lowercased or whitespace-padded — e.g. a hand-typed share
+    // link — leaving a legitimate player polling a 404 forever.
+    const { roomCode: rawRoomCode } = await params;
+    const roomCode = normalizeRoomCode(rawRoomCode);
     const game = await storage.games.get(roomCode);
 
     if (!game) {

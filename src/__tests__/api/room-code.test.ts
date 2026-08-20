@@ -137,6 +137,20 @@ describe('GET /api/game/[roomCode]', () => {
     expect(response.headers.get('Retry-After')).toBeNull();
   });
 
+  it('finds the game when the room code arrives lowercased or padded', async () => {
+    // Regression: create/join/update all normalize the room code, but GET used
+    // to pass the raw path segment straight to storage. A hand-typed or
+    // lowercased share link therefore 404'd for a legitimate player, who then
+    // polled that 404 forever (backing off to 10s, silently).
+    asParticipant('user-normalizing');
+    mockGamesGet.mockClear();
+
+    const response = await callRoute('  room01  ', 'user-normalizing');
+
+    expect(response.status).toBe(200);
+    expect(mockGamesGet).toHaveBeenCalledWith('ROOM01');
+  });
+
   it('returns 429 once RATE_LIMIT_GAME_GET requests in the window are exceeded', async () => {
     const rateLimitUser = 'user-over-limit';
     asParticipant(rateLimitUser);
