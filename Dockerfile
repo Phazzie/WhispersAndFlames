@@ -33,10 +33,28 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build-time environment variables (non-sensitive)
-# Sensitive vars should be provided at runtime
+# Build-time environment variables.
+#
+# `next build` collects page data, which loads modules that import
+# src/lib/env.ts — and that validates the required keys at module load. So the
+# build FAILS without them present, even though the build itself never calls
+# Clerk or xAI.
+#
+# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY must be the REAL value: Next inlines
+# NEXT_PUBLIC_* into the client bundle at build time, so a placeholder here
+# ships a broken Clerk client to the browser. It is publishable by design.
+#
+# CLERK_SECRET_KEY and XAI_API_KEY only need to satisfy validation during the
+# build, so they default to placeholders and are overridden with real values at
+# runtime. Do not pass real secrets as build args — they persist in image
+# layer history.
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+ENV CLERK_SECRET_KEY=sk_build_time_placeholder
+ENV XAI_API_KEY=xai_build_time_placeholder
 
 # Build Next.js app
 # This needs devDependencies (TypeScript, Tailwind, etc.)

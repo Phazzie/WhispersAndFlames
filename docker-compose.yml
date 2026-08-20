@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_APP_URL: http://localhost:3000
+        # Inlined into the client bundle at build time, so it must be the real
+        # publishable key — a runtime-only value arrives too late.
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required}
     ports:
       - "3000:3000"
     environment:
