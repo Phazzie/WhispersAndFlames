@@ -44,29 +44,36 @@ import type { GameState } from '@/lib/game-types';
 const mockAuth = vi.mocked(auth);
 const mockGamesGet = vi.mocked(storage.games.get);
 
-function makeRequest(roomCode: string, clientIp: string): Request {
-  return new Request(`http://localhost/api/game/${roomCode}`, {
-    method: 'GET',
-    headers: {
-      'x-forwarded-for': clientIp,
-    },
-  });
+function makeRequest(roomCode: string): Request {
+  return new Request(`http://localhost/api/game/${roomCode}`, { method: 'GET' });
 }
 
-function callRoute(roomCode: string, clientIp: string) {
-  return GET(makeRequest(roomCode, clientIp), {
+// The route's limiter is constructed at module scope, so its bucket Map
+// survives vi.clearAllMocks() and leaks between tests. The key is
+// `game-get:${userId}`, so each test authenticates as a different user to get
+// an isolated counter. Deliberately NOT mocking the rate limiter itself —
+// stubbing it would make the 429 assertions a test of a hand-fed return value.
+function callRoute(roomCode: string, userId = 'test-user-id') {
+  mockAuth.mockResolvedValue({ userId } as Awaited<ReturnType<typeof auth>>);
+  return GET(makeRequest(roomCode), {
     params: Promise.resolve({ roomCode }),
   });
 }
 
-const participantGame: GameState = {
+function asParticipant(userId: string) {
+  mockGamesGet.mockResolvedValue(makeParticipantGame(userId));
+}
+
+// The route rejects a caller who is not in playerIds with 403, so the fixture
+// is built around whichever user the test authenticates as.
+const makeParticipantGame = (userId: string): GameState => ({
   step: 'lobby',
   players: [
-    { id: 'test-user-id', name: 'Alice', email: '', isReady: false, selectedCategories: [] },
+    { id: userId, name: 'Alice', email: '', isReady: false, selectedCategories: [] },
     { id: 'other-user-id', name: 'Bob', email: '', isReady: false, selectedCategories: [] },
   ],
-  playerIds: ['test-user-id', 'other-user-id'],
-  hostId: 'test-user-id',
+  playerIds: [userId, 'other-user-id'],
+  hostId: userId,
   gameMode: 'online',
   commonCategories: [],
   finalSpicyLevel: 'Mild',
@@ -79,18 +86,19 @@ const participantGame: GameState = {
   visualMemories: [],
   imageGenerationCount: 0,
   roomCode: 'ROOM01',
-};
+});
 
 describe('GET /api/game/[roomCode]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Restore defaults
     mockAuth.mockResolvedValue({ userId: 'test-user-id' } as Awaited<ReturnType<typeof auth>>);
-    mockGamesGet.mockResolvedValue(participantGame);
+    mockGamesGet.mockResolvedValue(makeParticipantGame('test-user-id'));
   });
 
   it('returns 200 with the game when the room code exists', async () => {
-    const response = await callRoute('ROOM01', '10.0.0.1');
+    asParticipant('user-exists');
+    const response = await callRoute('ROOM01', 'user-exists');
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -102,7 +110,7 @@ describe('GET /api/game/[roomCode]', () => {
   it('returns 404 when the room code does not exist', async () => {
     mockGamesGet.mockResolvedValue(undefined);
 
-    const response = await callRoute('NOPE01', '10.0.0.2');
+    const response = await callRoute('NOPE01', 'user-missing');
     const body = await response.json();
 
     expect(response.status).toBe(404);
@@ -111,16 +119,17 @@ describe('GET /api/game/[roomCode]', () => {
   });
 
   it('serves an authenticated request that is still under the rate limit', async () => {
-    const clientIp = '10.0.0.3';
+    const rateLimitUser = 'user-under-limit';
+    asParticipant(rateLimitUser);
 
     // Burn every request in the window except the last one.
     for (let i = 0; i < RATE_LIMIT_GAME_GET - 1; i++) {
-      const warmup = await callRoute('ROOM01', clientIp);
+      const warmup = await callRoute('ROOM01', rateLimitUser);
       expect(warmup.status).toBe(200);
     }
 
     // The final request inside the window must still be served normally.
-    const response = await callRoute('ROOM01', clientIp);
+    const response = await callRoute('ROOM01', rateLimitUser);
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -129,15 +138,16 @@ describe('GET /api/game/[roomCode]', () => {
   });
 
   it('returns 429 once RATE_LIMIT_GAME_GET requests in the window are exceeded', async () => {
-    const clientIp = '10.0.0.4';
+    const rateLimitUser = 'user-over-limit';
+    asParticipant(rateLimitUser);
 
     // Exhaust the window: exactly RATE_LIMIT_GAME_GET requests are allowed.
     for (let i = 0; i < RATE_LIMIT_GAME_GET; i++) {
-      const allowed = await callRoute('ROOM01', clientIp);
+      const allowed = await callRoute('ROOM01', rateLimitUser);
       expect(allowed.status).toBe(200);
     }
 
-    const response = await callRoute('ROOM01', clientIp);
+    const response = await callRoute('ROOM01', rateLimitUser);
     const body = await response.json();
 
     expect(response.status).toBe(429);
