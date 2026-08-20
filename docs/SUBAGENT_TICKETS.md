@@ -117,6 +117,15 @@ secrets).
       ownership, and concurrent `npm install` / builds corrupt the tree
       itself. Same-tree execution is safe only for tickets run
       sequentially.
+- [ ] Every parallel agent gets a **distinct branch name**. Worktrees isolate
+      the working directory but share the repository's refs, so telling each
+      agent `git checkout -B work <base>` points one ref at N different
+      commits: each agent's `-B` resets it, orphaning whatever a sibling just
+      committed, and an agent's stale index can then stage a _reversion_ of a
+      sibling's file. Nothing is unrecoverable — the objects survive — but the
+      orchestrator ends up hunting commits through `git reflog`. Give each
+      ticket its own name (`agent/<ticket-id>`), and **collect results by the
+      SHA the agent reports, never by reading a shared branch.**
 - [ ] The orchestrator — not the agents — merges, runs the full gauntlet once
       on the merged result, pushes, and opens the PR.
 
