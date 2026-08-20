@@ -56,15 +56,26 @@ This prevents the buildpack from removing devDependencies before the build.
 **Required:**
 
 ```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = <pk_...>   (scope: RUN_AND_BUILD_TIME)
+CLERK_SECRET_KEY = <sk_...>
 XAI_API_KEY = <your_xai_api_key>
-SESSION_SECRET = <generate_random_32char_string>
+CRON_SECRET = <generate_random_32char_string>
 NEXT_PUBLIC_APP_URL = https://your-app.ondigitalocean.app
-STORAGE_MODE = postgres
 NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
 ```
 
-`XAI_API_KEY` is required, not optional: the app validates it at startup and will
-not boot without it. Create a key at https://console.x.ai/.
+The first three are validated at startup by `src/lib/env.ts`; the app exits
+immediately if any is missing. Get the Clerk keys from
+https://dashboard.clerk.com/ and the xAI key from https://console.x.ai/.
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` needs BUILD scope as well, because Next
+inlines `NEXT_PUBLIC_*` into the client bundle at build time.
+
+`CRON_SECRET` is required whenever a database is attached: `/api/cron/cleanup`
+returns 403 without it, so expired games are never purged.
+
+`SESSION_SECRET` and `STORAGE_MODE` were previously listed here as required.
+Neither is read anywhere in `src/` — the storage backend is selected purely by
+whether `DATABASE_URL` is set (see `src/lib/storage-adapter.ts`).
 
 ### Step 5: Choose Resources
 
@@ -109,7 +120,8 @@ doctl apps list
 
 # Set environment secrets (replace APP_ID)
 doctl apps update APP_ID --env XAI_API_KEY=your_xai_api_key
-doctl apps update APP_ID --env SESSION_SECRET=$(openssl rand -base64 32)
+doctl apps update APP_ID --env CLERK_SECRET_KEY=sk_your_clerk_secret_key
+doctl apps update APP_ID --env CRON_SECRET=$(openssl rand -base64 32)
 doctl apps update APP_ID --env NEXT_PUBLIC_APP_URL=https://your-app.ondigitalocean.app
 
 # Trigger deployment
