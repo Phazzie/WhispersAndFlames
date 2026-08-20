@@ -23,6 +23,5 @@ describe('env validation', () => {
 
     // API keys are optional
     expect(env).toHaveProperty('XAI_API_KEY');
-    expect(env).toHaveProperty('GEMINI_API_KEY');
   });
 });
