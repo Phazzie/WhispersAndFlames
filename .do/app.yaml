@@ -48,10 +48,8 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         value: ${whispers-flames-db.DATABASE_URL}
-      - key: GEMINI_API_KEY
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
-        value: EV[1:BsodkXig5aY/QNhzPJ/CcGLVM1/AehIe:K2asQ1kisC8HkhVaVEuD9A==]
+      # Required: the app validates XAI_API_KEY at startup and will not boot
+      # without it. Create a key at https://console.x.ai/
       - key: XAI_API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
