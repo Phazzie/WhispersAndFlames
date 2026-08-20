@@ -17,12 +17,29 @@ describe('env validation', () => {
     expect(env).toHaveProperty('CLERK_SECRET_KEY');
   });
 
-  it('should have optional API keys', async () => {
+  it('should expose the required xAI API key', async () => {
     const { validateEnv } = await import('@/lib/env');
     const env = validateEnv();
 
-    // API keys are optional
     expect(env).toHaveProperty('XAI_API_KEY');
-    expect(env).toHaveProperty('GEMINI_API_KEY');
+  });
+
+  it('should reject an environment with no XAI_API_KEY', async () => {
+    // Guards the required-key contract: src/ai/genkit.ts reads env.XAI_API_KEY
+    // with no fallback, so a regression back to .optional() would let a
+    // key-less deploy boot and then fail at question-generation time instead.
+    vi.stubEnv('XAI_API_KEY', '');
+
+    const { validateEnv } = await import('@/lib/env');
+
+    expect(() => validateEnv()).toThrow('Invalid environment configuration');
+  });
+
+  it('should reject an environment with no Clerk secret key', async () => {
+    vi.stubEnv('CLERK_SECRET_KEY', '');
+
+    const { validateEnv } = await import('@/lib/env');
+
+    expect(() => validateEnv()).toThrow('Invalid environment configuration');
   });
 });

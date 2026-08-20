@@ -29,7 +29,7 @@ nano .env.docker
 
 Required values:
 
-- `GEMINI_API_KEY` - Your Gemini API key
+- `XAI_API_KEY` - **Required.** Your xAI API key for Grok - get one at https://console.x.ai/ (the app will not start without it)
 - `POSTGRES_PASSWORD` - Choose a secure password
 - `SESSION_SECRET` - Generate: `openssl rand -base64 32`
 
@@ -78,7 +78,7 @@ docker-compose down -v
 5. **Add Database**: PostgreSQL 16 (auto-connects as `DATABASE_URL`)
 6. **Set Secrets** (in Environment Variables):
    ```
-   GEMINI_API_KEY = your_api_key
+   XAI_API_KEY = your_api_key
    SESSION_SECRET = generate_with_openssl_rand_-base64_32
    ```
 7. **Choose Plan**: Basic ($5/month) or Professional ($12/month)
@@ -189,7 +189,7 @@ npm run lint
 docker-compose logs web
 
 # Common issues:
-# - Missing GEMINI_API_KEY
+# - Missing XAI_API_KEY (required - the app will not boot without it)
 # - Invalid environment variables
 # - Port 3000 already in use
 ```

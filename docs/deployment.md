@@ -12,7 +12,7 @@ Add these secrets to your GitHub repository (Settings → Secrets and variables 
 
 ### Required Secrets:
 
-- `XAI_API_KEY` or `GEMINI_API_KEY` - Your AI provider API key
+- `XAI_API_KEY` - **Required.** Your xAI API key for Grok — get one at https://console.x.ai/ (the app fails to start without it)
 - `NEXT_PUBLIC_APP_URL` - Your production URL (e.g., `https://your-app.web.app`)
 - `FIREBASE_SERVICE_ACCOUNT` - Firebase service account JSON (from Firebase console)
 - `FIREBASE_PROJECT_ID` - Your Firebase project ID

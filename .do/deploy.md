@@ -56,18 +56,15 @@ This prevents the buildpack from removing devDependencies before the build.
 **Required:**
 
 ```
-GEMINI_API_KEY = <your_gemini_api_key>
+XAI_API_KEY = <your_xai_api_key>
 SESSION_SECRET = <generate_random_32char_string>
 NEXT_PUBLIC_APP_URL = https://your-app.ondigitalocean.app
 STORAGE_MODE = postgres
 NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
 ```
 
-**Optional:**
-
-```
-XAI_API_KEY = <if_using_xai>
-```
+`XAI_API_KEY` is required, not optional: the app validates it at startup and will
+not boot without it. Create a key at https://console.x.ai/.
 
 ### Step 5: Choose Resources
 
@@ -111,7 +108,7 @@ doctl apps create --spec .do/app.yaml
 doctl apps list
 
 # Set environment secrets (replace APP_ID)
-doctl apps update APP_ID --env GEMINI_API_KEY=your_api_key
+doctl apps update APP_ID --env XAI_API_KEY=your_xai_api_key
 doctl apps update APP_ID --env SESSION_SECRET=$(openssl rand -base64 32)
 doctl apps update APP_ID --env NEXT_PUBLIC_APP_URL=https://your-app.ondigitalocean.app
 
@@ -266,7 +263,7 @@ doctl apps logs APP_ID --type BUILD --follow
 doctl apps logs APP_ID --type RUN --follow
 
 # Common issues:
-# - Missing GEMINI_API_KEY
+# - Missing XAI_API_KEY (required - create one at https://console.x.ai/)
 # - Invalid DATABASE_URL
 # - Port conflicts
 ```

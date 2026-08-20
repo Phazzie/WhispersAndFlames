@@ -48,14 +48,30 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         value: ${whispers-flames-db.DATABASE_URL}
-      - key: GEMINI_API_KEY
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
-        value: EV[1:BsodkXig5aY/QNhzPJ/CcGLVM1/AehIe:K2asQ1kisC8HkhVaVEuD9A==]
+      # Required: the app validates XAI_API_KEY at startup and will not boot
+      # without it. Create a key at https://console.x.ai/
       - key: XAI_API_KEY
         scope: RUN_AND_BUILD_TIME
         type: SECRET
         value: EV[1:ZTIQ6qCDYRD+O7DGCY3zSCBe5tPLN0JR:UojT5daWzVjLXRLBg02q1A==]
+      # Required: src/lib/env.ts validates both Clerk keys at module load, so
+      # the app exits on boot without them. Replace the placeholders with
+      # encrypted values (doctl apps update ... --env) before deploying.
+      # The publishable key is needed at BUILD time too, since the client
+      # bundle inlines it.
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        scope: RUN_AND_BUILD_TIME
+        value: pk_replace_me_before_deploying
+      - key: CLERK_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: sk_replace_me_before_deploying
+      # Required whenever DATABASE_URL is set: /api/cron/cleanup returns 403
+      # until this is present, so expired games are never purged without it.
+      - key: CRON_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: replace_me_with_a_long_random_string
       - key: SESSION_SECRET
         scope: RUN_TIME
         type: SECRET

@@ -8,9 +8,8 @@ const envSchema = z.object({
   // Clerk Authentication (Required)
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'Clerk publishable key is required'),
   CLERK_SECRET_KEY: z.string().min(1, 'Clerk secret key is required'),
-  // AI API Keys (At least one required)
-  XAI_API_KEY: z.string().optional(),
-  GEMINI_API_KEY: z.string().optional(),
+  // AI API Key (required — the app has no non-AI fallback path)
+  XAI_API_KEY: z.string().min(1, 'xAI API key is required'),
   DATABASE_URL: z.string().optional(), // Optional - falls back to in-memory storage
   CRON_SECRET: z.string().min(1).optional(),
   SENTRY_DSN: z.string().optional(),
@@ -26,7 +25,6 @@ export function validateEnv(): Env {
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
       CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
       XAI_API_KEY: process.env.XAI_API_KEY,
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY,
       DATABASE_URL: process.env.DATABASE_URL,
       CRON_SECRET: process.env.CRON_SECRET,
       SENTRY_DSN: process.env.SENTRY_DSN,

@@ -2,7 +2,7 @@
  * Client-side game management utilities
  */
 
-import { GAME_STATE_POLL_INTERVAL_MS } from '@/lib/api-constants';
+import { GAME_STATE_POLL_INTERVAL_MS, GAME_STATE_POLL_MAX_INTERVAL_MS } from '@/lib/api-constants';
 import type { GameState } from './game-types';
 import { createLogger } from './utils/logger';
 
@@ -86,6 +86,12 @@ export const clientGame = {
     // Track request state to prevent overlapping requests
     let lastRequestPromise: Promise<void> | null = null;
 
+    // Exponential backoff: the delay doubles on every consecutive failed poll,
+    // capped at GAME_STATE_POLL_MAX_INTERVAL_MS, and resets to the base
+    // interval on the first successful poll (both from api-constants.ts).
+    let currentDelay = GAME_STATE_POLL_INTERVAL_MS;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     const poll = async () => {
       if (!isActive) return;
 
@@ -94,7 +100,7 @@ export const clientGame = {
         return;
       }
 
-      lastRequestPromise = (async () => {
+      const request = (async () => {
         try {
           const response = await fetch(`/api/game/${roomCode}`, {
             method: 'GET',
@@ -110,27 +116,55 @@ export const clientGame = {
           if (isActive) {
             callback(data.game);
           }
+
+          // Successful poll: return to the normal cadence
+          currentDelay = GAME_STATE_POLL_INTERVAL_MS;
         } catch (error) {
           // Ignore abort errors, they're expected on cleanup
-          if (error instanceof Error && error.name !== 'AbortError' && isActive) {
-            logger.error('Failed to fetch game state', error);
+          const isAbortError = error instanceof Error && error.name === 'AbortError';
+
+          if (!isAbortError) {
+            if (error instanceof Error && isActive) {
+              logger.error('Failed to fetch game state', error);
+            }
+
+            // Failed poll: back off so a failing backend isn't hammered
+            currentDelay = Math.min(currentDelay * 2, GAME_STATE_POLL_MAX_INTERVAL_MS);
           }
         } finally {
           lastRequestPromise = null;
         }
       })();
+
+      lastRequestPromise = request;
+      await request;
     };
 
-    // Poll for updates every GAME_STATE_POLL_INTERVAL_MS (centralized in api-constants.ts)
-    const intervalId = setInterval(poll, GAME_STATE_POLL_INTERVAL_MS);
+    // Self-rescheduling chain (replaces setInterval): the next poll is queued
+    // only once the current one settles, using the delay its outcome produced.
+    const scheduleNextPoll = () => {
+      if (!isActive) return;
 
-    // Initial fetch
-    poll();
+      timeoutId = setTimeout(() => {
+        void runPollCycle();
+      }, currentDelay);
+    };
+
+    const runPollCycle = async () => {
+      await poll();
+      scheduleNextPoll();
+    };
+
+    // Initial fetch, then keep polling
+    void runPollCycle();
 
     return {
       unsubscribe: () => {
         isActive = false;
-        clearInterval(intervalId);
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
         abortController.abort();
       },
     };

@@ -65,6 +65,14 @@ export const CATEGORIES: Category[] = [
   { name: 'The Unspeakable', icon: Flame, description: 'Taboos, fantasies, and bold questions.' },
 ];
 
+/**
+ * Canonical category names, derived from CATEGORIES so the two cannot drift.
+ * Server-side validation (src/ai/flows/shared-utils.ts) imports this rather
+ * than maintaining its own copy — a hand-maintained duplicate previously
+ * diverged so far that 9 of these 10 names failed validation.
+ */
+export const CATEGORY_NAMES: readonly string[] = CATEGORIES.map((c) => c.name);
+
 export type SpicyLevel = {
   name: 'Mild' | 'Medium' | 'Hot' | 'Extra-Hot';
   description: string;

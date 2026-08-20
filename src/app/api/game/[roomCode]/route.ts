@@ -1,8 +1,13 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
+import { RATE_LIMIT_GAME_GET, RATE_LIMIT_WINDOW_MS } from '@/lib/api-constants';
+import { normalizeRoomCode } from '@/lib/game-utils';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
+import { RateLimiter } from '@/lib/utils/rate-limiter';
+
+const getGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_GET, RATE_LIMIT_WINDOW_MS / 60000);
 
 export async function GET(request: Request, { params }: { params: Promise<{ roomCode: string }> }) {
   try {
@@ -16,7 +21,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ room
       );
     }
 
-    const { roomCode } = await params;
+    // Rate limiting: 90 fetches per minute per authenticated user (clients poll
+    // this route every 2s, so ~30/min each). Keyed by userId rather than IP:
+    // this route is not in the public-route matcher, so clerkMiddleware has
+    // already rejected unauthenticated traffic before the handler runs, and an
+    // IP key would make players behind one NAT — or one CGNAT egress — share a
+    // single bucket.
+    const rateLimit = getGameRateLimiter.check(`game-get:${userId}`);
+    if (!rateLimit.allowed) {
+      const rateLimitHeaders: Record<string, string> = {};
+      if (rateLimit.retryAfter !== undefined) {
+        rateLimitHeaders['Retry-After'] = String(rateLimit.retryAfter);
+      }
+      if (rateLimit.limit !== undefined) {
+        rateLimitHeaders['X-RateLimit-Limit'] = String(rateLimit.limit);
+      }
+      if (rateLimit.remaining !== undefined) {
+        rateLimitHeaders['X-RateLimit-Remaining'] = String(rateLimit.remaining);
+      }
+      if (rateLimit.resetAt !== undefined) {
+        rateLimitHeaders['X-RateLimit-Reset'] = String(Math.floor(rateLimit.resetAt / 1000));
+      }
+
+      return NextResponse.json(
+        { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
+        { status: 429, headers: rateLimitHeaders }
+      );
+    }
+
+    // Normalize exactly as create/join/update do (src/lib/game-utils.ts).
+    // Without this the GET is the only route that cannot find a room whose
+    // code arrives lowercased or whitespace-padded — e.g. a hand-typed share
+    // link — leaving a legitimate player polling a 404 forever.
+    const { roomCode: rawRoomCode } = await params;
+    const roomCode = normalizeRoomCode(rawRoomCode);
     const game = await storage.games.get(roomCode);
 
     if (!game) {

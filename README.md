@@ -138,7 +138,7 @@ The easiest way to deploy this Next.js app. **Zero configuration required!**
 
 **Documentation:**
 
-- **[VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)** - Complete Vercel deployment guide
+- **[VERCEL_DEPLOYMENT.md](./docs/archive/VERCEL_DEPLOYMENT.md)** - Complete Vercel deployment guide
 - **[.env.vercel](./.env.vercel)** - Environment variables template
 
 **Cost:** Free tier available, Pro starts at $20/month
