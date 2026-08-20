@@ -775,8 +775,10 @@ vercel --prod
 - `/sign-in*`
 - `/sign-up*`
 - `/api/webhooks*`
-- `/api/health*` (uptime monitoring — `auth.protect()` answers 404, not 401, so
-  a protected health endpoint reads as a dead app to any monitor)
+- `/api/health` (uptime monitoring — `auth.protect()` answers 404, not 401, so
+  a protected health endpoint reads as a dead app to any monitor). Exact path
+  only: `/api/health/db` stays protected because it runs a live database query
+  and returns pool internals and raw driver error text.
 - `/api/cron/cleanup` (Vercel Cron sends a Bearer token, not a Clerk session;
   the route enforces `CRON_SECRET` itself)
 
