@@ -12,9 +12,8 @@ services:
     environment:
       # Database connection (if using PostgreSQL)
       - DATABASE_URL=${DATABASE_URL:-}
-      # AI API Keys
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - XAI_API_KEY=${XAI_API_KEY:-}
+      # AI API Key (xAI Grok - required)
+      - XAI_API_KEY=${XAI_API_KEY:?XAI_API_KEY is required}
       # Session secrets
       - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-production}
       # App URL
