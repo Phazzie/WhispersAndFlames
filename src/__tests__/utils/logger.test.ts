@@ -107,18 +107,20 @@ describe('structured payload', () => {
     expect(entry.context).toMatchObject({ roomCode: 'ABC123' });
   });
 
-  it('omits the level from the JSON payload, conveying it only via the console method', () => {
-    // Documented quirk: output() destructures `level` off the entry before
-    // JSON.stringify, so the serialized log has no level field. A consumer
-    // parsing these lines must infer severity from the stream/console method.
+  it('includes the level in the JSON payload', () => {
+    // Regression guard: output() used to destructure `level` off the entry
+    // before JSON.stringify, leaving production logs with no severity field.
+    // console.debug/info/warn all write to stdout in Node, so an aggregator
+    // could not distinguish a warning from an info line, and nothing could
+    // alert on severity.
     vi.stubEnv('NODE_ENV', 'production');
 
     logger.warn('level check');
 
     const entry = parsedEntry(warnSpy);
 
-    expect(entry).not.toHaveProperty('level');
-    expect(Object.keys(entry).sort()).toEqual(['context', 'message', 'timestamp']);
+    expect(entry).toHaveProperty('level', 'warn');
+    expect(Object.keys(entry).sort()).toEqual(['context', 'level', 'message', 'timestamp']);
   });
 
   it('renders a pretty [LEVEL] prefixed line outside production', () => {

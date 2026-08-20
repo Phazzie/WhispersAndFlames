@@ -57,8 +57,10 @@ class Logger {
     // In production, you would send this to a logging service
     // e.g., DataDog, CloudWatch, LogRocket, etc.
     if (process.env.NODE_ENV === 'production') {
-      // For now, just use JSON.stringify for structured logs
-      const logString = JSON.stringify(rest);
+      // `level` stays in the payload: console.debug/info/warn all write to
+      // stdout in Node, so without it an aggregator cannot tell a warning
+      // from an info line, and nothing can alert on severity.
+      const logString = JSON.stringify({ level, ...rest });
 
       switch (level) {
         case 'debug':
