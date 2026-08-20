@@ -12,8 +12,14 @@ services:
     environment:
       # Database connection (if using PostgreSQL)
       - DATABASE_URL=${DATABASE_URL:-}
+      # Clerk authentication (required - src/lib/env.ts validates these at
+      # module load, so the container exits immediately if they are missing)
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:?NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is required}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:?CLERK_SECRET_KEY is required}
       # AI API Key (xAI Grok - required)
       - XAI_API_KEY=${XAI_API_KEY:?XAI_API_KEY is required}
+      # Bearer token for the nightly cleanup cron; without it the route 403s
+      - CRON_SECRET=${CRON_SECRET:-}
       # Session secrets
       - SESSION_SECRET=${SESSION_SECRET:-dev-secret-change-in-production}
       # App URL
