@@ -479,6 +479,10 @@ npm run format
    owner's explicit go-ahead when they asked for sign-off on that PR, or
    when the change alters auth, payment, or data-deletion behavior.
 
+   Re-check the review threads **immediately before merging**, not just CI.
+   Reviewers post while CI is still running, so a thread list fetched before
+   a several-minute CI wait is already stale by the time the merge fires.
+
 ### Building for Production
 
 ```bash
