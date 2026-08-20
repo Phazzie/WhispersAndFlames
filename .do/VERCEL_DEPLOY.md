@@ -51,7 +51,7 @@ Follow prompts:
 ```bash
 # Required secrets (create the xAI key at https://console.x.ai/)
 vercel env add XAI_API_KEY production
-vercel env add SESSION_SECRET production
+vercel env add CRON_SECRET production
 vercel env add DATABASE_URL production
 
 # Public variables

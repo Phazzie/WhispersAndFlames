@@ -57,8 +57,8 @@ This prevents the buildpack from removing devDependencies before the build.
 
 ```
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = <pk_...>   (scope: RUN_AND_BUILD_TIME)
-CLERK_SECRET_KEY = <sk_...>
-XAI_API_KEY = <your_xai_api_key>
+CLERK_SECRET_KEY = <sk_...>                    (scope: RUN_AND_BUILD_TIME)
+XAI_API_KEY = <your_xai_api_key>               (scope: RUN_AND_BUILD_TIME)
 CRON_SECRET = <generate_random_32char_string>
 NEXT_PUBLIC_APP_URL = https://your-app.ondigitalocean.app
 NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
@@ -67,15 +67,29 @@ NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
 The first three are validated at startup by `src/lib/env.ts`; the app exits
 immediately if any is missing. Get the Clerk keys from
 https://dashboard.clerk.com/ and the xAI key from https://console.x.ai/.
-`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` needs BUILD scope as well, because Next
-inlines `NEXT_PUBLIC_*` into the client bundle at build time.
+
+**All three need `RUN_AND_BUILD_TIME`, not just run scope.** `next build`
+collects page data, which loads `src/lib/env.ts` and validates them — a
+run-only secret fails the build before the app ever starts. The publishable
+key additionally must be the real value at build time, because Next inlines
+`NEXT_PUBLIC_*` into the client bundle.
 
 `CRON_SECRET` is required whenever a database is attached: `/api/cron/cleanup`
 returns 403 without it, so expired games are never purged.
 
 `SESSION_SECRET` and `STORAGE_MODE` were previously listed here as required.
-Neither is read anywhere in `src/` — the storage backend is selected purely by
-whether `DATABASE_URL` is set (see `src/lib/storage-adapter.ts`).
+Neither is read anywhere in `src/`, and both have been removed from
+`.do/app.yaml`. The storage backend is chosen by `src/lib/storage-adapter.ts`
+from two conditions: PostgreSQL is used when `DATABASE_URL` is set **and**
+`DISABLE_DATABASE` is not `'true'`. Setting `DISABLE_DATABASE=true` forces
+in-memory storage even with a database attached.
+
+Note that `CRON_SECRET` only _authorizes_ the cleanup endpoint — it does not
+schedule anything. `vercel.json` carries a schedule for Vercel deployments;
+DigitalOcean has no equivalent in this repository, so a DO deployment must
+provision its own recurring authenticated `GET /api/cron/cleanup` (a DO
+Function on a schedule, or any external cron) or expired games are never
+purged.
 
 ### Step 5: Choose Resources
 
@@ -120,6 +134,7 @@ doctl apps list
 
 # Set environment secrets (replace APP_ID)
 doctl apps update APP_ID --env XAI_API_KEY=your_xai_api_key
+doctl apps update APP_ID --env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_your_publishable_key
 doctl apps update APP_ID --env CLERK_SECRET_KEY=sk_your_clerk_secret_key
 doctl apps update APP_ID --env CRON_SECRET=$(openssl rand -base64 32)
 doctl apps update APP_ID --env NEXT_PUBLIC_APP_URL=https://your-app.ondigitalocean.app
@@ -334,7 +349,7 @@ doctl apps update APP_ID --env NEW_VAR=value
 
 ## Security Checklist
 
-- ✅ Generate strong `SESSION_SECRET` (32+ characters)
+- ✅ Generate strong `CRON_SECRET` (32+ characters) — authorizes the cleanup endpoint
 - ✅ Use encrypted environment variables for secrets
 - ✅ Enable production database tier for automatic backups
 - ✅ Set up firewall rules (DO automatically secures database)

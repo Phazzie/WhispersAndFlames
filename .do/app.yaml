@@ -42,9 +42,6 @@ services:
       - key: NEXT_TELEMETRY_DISABLED
         scope: RUN_AND_BUILD_TIME
         value: "1"
-      - key: STORAGE_MODE
-        scope: RUN_TIME
-        value: "postgres"
       - key: DATABASE_URL
         scope: RUN_TIME
         value: ${whispers-flames-db.DATABASE_URL}
@@ -62,8 +59,11 @@ services:
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
         scope: RUN_AND_BUILD_TIME
         value: pk_replace_me_before_deploying
+      # BUILD scope too: `next build` collects page data, which loads
+      # src/lib/env.ts and validates this key, so a run-only secret fails
+      # the build before the app ever starts.
       - key: CLERK_SECRET_KEY
-        scope: RUN_TIME
+        scope: RUN_AND_BUILD_TIME
         type: SECRET
         value: sk_replace_me_before_deploying
       # Required whenever DATABASE_URL is set: /api/cron/cleanup returns 403
@@ -72,10 +72,6 @@ services:
         scope: RUN_TIME
         type: SECRET
         value: replace_me_with_a_long_random_string
-      - key: SESSION_SECRET
-        scope: RUN_TIME
-        type: SECRET
-        value: EV[1:aRLpk70PX1BEDmKhxECGYuVrf1zWDDPv:OlJt+SLhlNd4rlaRX9TD0g==]
       - key: NEXT_PUBLIC_APP_URL
         scope: RUN_AND_BUILD_TIME
         value: ${APP_URL}
