@@ -35,6 +35,8 @@ export const RATE_LIMIT_MAX_REQUESTS = 30;
 export const RATE_LIMIT_GAME_CREATE = 10;
 export const RATE_LIMIT_GAME_JOIN = 20;
 export const RATE_LIMIT_GAME_UPDATE = 60;
+// Polled by every connected client every GAME_STATE_POLL_INTERVAL_MS (~30/min/player)
+export const RATE_LIMIT_GAME_GET = 90;
 
 // Database
 export const PG_MAX_CONNECTIONS = 20;
