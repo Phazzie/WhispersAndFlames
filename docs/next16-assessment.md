@@ -6,7 +6,7 @@
 
 ## Why this was investigated
 
-`next@15.5.6` is inside the vulnerable range of a critical RCE advisory whose fixed
+`next@15.5.6` is inside the vulnerable range of a critical RCE advisory ([GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp)) whose fixed
 version is `16.3.0-preview.10`. The newest Next 15 release (`15.5.23`) is still inside
 that range, so **there is no patched 15.x**. Closing the advisory requires moving to
 Next 16. This document records what that actually costs, measured rather than guessed.
@@ -26,6 +26,17 @@ Next 16. This document records what that actually costs, measured rather than gu
 `next@16.3.1` still declares `react: "^18.2.0 || ^19.0.0"` as a peer, and `@clerk/nextjs@6.39.6`
 still accepts React 18. **A React 19 migration is not part of this upgrade.** That was the
 largest suspected cost going in, and it is not real.
+
+### Advisories in scope
+
+| Package         | Severity | Advisory                                                                                                      |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `next`          | critical | [GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp) — RCE in the React flight protocol   |
+| `@clerk/nextjs` | critical | [GHSA-vqx2-fgx2-5wq9](https://github.com/advisories/GHSA-vqx2-fgx2-5wq9) — middleware route-protection bypass |
+| `@clerk/nextjs` | high     | [GHSA-w24r-5266-9c3c](https://github.com/advisories/GHSA-w24r-5266-9c3c) — authorization bypass               |
+
+`next` additionally carries several high/moderate DoS and information-disclosure
+advisories in the same range; `npm audit --omit=dev` lists them in full.
 
 ## Results
 
@@ -213,7 +224,7 @@ Invalid project directory provided, no such directory: <repo>/lint
 The subcommand is gone, so `next` parses `lint` as a directory argument. This breaks:
 
 - `package.json` → `"lint": "next lint"` and `"lint:fix": "next lint --fix"`
-- `.github/workflows/ci.yml:39` → `run: npm run lint` (**CI goes red**)
+- the lint step in `.github/workflows/ci.yml` → `run: npm run lint` (**CI goes red**)
 
 Falling back to invoking ESLint directly against the existing `.eslintrc.cjs` also fails, because
 `eslint-config-next@16` ships **only** a flat-config array (`module.exports = [...]`) and can no
@@ -356,9 +367,15 @@ either commit the block, or set `agentRules: false` in `next.config.mjs`.
 `createRouteMatcher` public-route list, the CSP/HSTS header block, and the `config.matcher` array
 all survive unchanged — the build output simply relabels it `ƒ Proxy (Middleware)`, and the dev
 server logs confirm it executing: `GET /api/health 200 in 668ms (next.js: 489ms, proxy.ts: 151ms)`.
-A live smoke test on Next 16 confirmed behavior is preserved: `/api/health` → 200 (public),
-`/` → 200 (public), `/profile` → 404 (Clerk `auth.protect()` on an unauthenticated request, which
-is the documented and expected response for this app). Renaming to `proxy.ts` is optional cleanup,
+A live smoke test on Next 16 confirmed behavior is preserved for **non-document** requests:
+`/api/health` → 200 (public), `/` → 200 (public), `/profile` → 404.
+
+**This is weaker evidence than it looks for the browser path.** Clerk's `auth.protect()`
+distinguishes document requests (`Accept: text/html`, `Sec-Fetch-Dest: document`) from API
+requests: the former are redirected to sign-in, the latter get 404. These curl-style checks
+exercised only the second path, so they do not demonstrate that the _browser_ experience of a
+protected page survives — which matters here precisely because the upgrade also moves
+`@clerk/nextjs`. Re-test `/profile` with browser headers before relying on parity. Renaming to `proxy.ts` is optional cleanup,
 not part of this upgrade.
 
 **Note D — the `--turbopack` flag in `"dev": "next dev --turbopack -p 9002"` is still valid.**
@@ -391,8 +408,14 @@ The work is dependency and configuration plumbing:
 1. **`npm install next@^16.3.1 eslint-config-next@^16.3.1`.**
 2. **`npm install @clerk/nextjs@^6.39.6`** — required; 6.35.1 hard-fails the build under both
    Turbopack and webpack (Failure 2). Minor bump within the existing range, no API change.
-3. **`npm install @genkit-ai/next@^1.25.0 genkit@^1.25.0`** — required; 1.19.3 peer-blocks Next 16
-   and 1.25.0 is the first release supporting it. The two must move together (exact pin).
+3. **`npm uninstall @genkit-ai/next`** — _preferred over bumping Genkit._ The peer conflict comes
+   from `@genkit-ai/next`, which is declared in `package.json` and imported **nowhere**: no file
+   under `src/` references the package, and its `appRoute` adapter is never used. Removing it
+   clears the conflict and lets the actually-used `genkit` runtime stay at the already-tested
+   1.19.3. Bumping to 1.25.0 instead would change the runtime behind every AI flow, and the suite
+   has no Genkit integration test to catch a regression — the flows are mocked throughout.
+   (If the package is wanted later, `@genkit-ai/next` and `genkit` must then move to `^1.25.0`
+   in lockstep.)
 4. **`npm install @sentry/nextjs@^10`** — required; no 9.x supports Next 16. This is the only
    **major** bump in the set. Low risk here (one `captureException` call, no Sentry config files,
    no `withSentryConfig`), but give it its own review.
@@ -401,11 +424,15 @@ The work is dependency and configuration plumbing:
 6. **Migrate `.eslintrc.cjs` → `eslint.config.mjs` (flat config)** and repoint
    `"lint": "eslint ."` / `"lint:fix": "eslint . --fix"` in `package.json`. `next lint` is gone and
    `eslint-config-next@16` no longer supports eslintrc. Without this, CI fails at
-   `.github/workflows/ci.yml:39`.
+   the lint step in `.github/workflows/ci.yml`.
 7. **Handle the 6 new `react-hooks` v6 errors** (5 × `set-state-in-effect`, 1 × `purity`) — fix the
    sites or downgrade those two rules to `warn` in the new flat config. They do not block the build,
    only the lint step.
-8. **Commit the `tsconfig.json` changes Next 16 makes automatically** (`jsx: react-jsx`, added
+8. **Raise `engines.node`.** Next 16 requires Node **>= 20.9.0**, but `package.json`
+   declares `">=20 <21"`, so an install on Node 20.0–20.8 is permitted by this repo
+   while the framework cannot run there. The trial ran on a newer 20.x, so its
+   results do not cover that window. Set `">=20.9 <21"` as part of the upgrade.
+9. **Commit the `tsconfig.json` changes Next 16 makes automatically** (`jsx: react-jsx`, added
    `.next/dev/types/**/*.ts`), re-formatted with Prettier, and decide on `agentRules` (Note B).
 
 ### Biggest obstacle
