@@ -131,8 +131,10 @@ spec file and applying it, not by a series of per-variable commands.
 
 ```bash
 # Work from a copy so real secrets never land in the repo.
-# .gitignore already covers .env* but NOT this file — do not commit it.
-cp .do/app.yaml /tmp/app-live.yaml
+# .gitignore covers .env* but NOT this file — do not commit it.
+# install -m 600 rather than cp: the default umask would leave a
+# world-readable file containing production credentials in /tmp.
+install -m 600 .do/app.yaml /tmp/app-live.yaml
 ```
 
 Edit `/tmp/app-live.yaml` and replace every placeholder with a real value:
@@ -142,7 +144,13 @@ Edit `/tmp/app-live.yaml` and replace every placeholder with a real value:
 - `CLERK_SECRET_KEY` → your `sk_...` key
 - `XAI_API_KEY` → your xAI key
 - `CRON_SECRET` → output of `openssl rand -base64 32`
-- `NEXT_PUBLIC_APP_URL` → your app's URL
+- `NEXT_PUBLIC_APP_URL` → **leave as `${APP_URL}`**. That is a DigitalOcean
+  platform binding which resolves to the app's real URL, and the generated
+  URL is not known until after `doctl apps create`. Substituting a guess
+  breaks the CSRF origin check in `src/middleware.ts:16-30`, which compares
+  POST origins against this value and returns 403 — every create, join and
+  update call would fail. Only set a literal here once you have a custom
+  domain, and then set it to that domain.
 
 Entries marked `type: SECRET` may be given in plaintext on first apply;
 DigitalOcean encrypts them and rewrites the stored spec to `EV[1:...]`.
@@ -159,6 +167,9 @@ doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
 
 # Trigger a deployment
 doctl apps create-deployment APP_ID
+
+# Shred the local copy once DigitalOcean holds the encrypted values
+shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
 ```
 
 ### Monitor Deployment
