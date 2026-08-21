@@ -41,19 +41,77 @@ The cost is dependency and configuration plumbing:
 > (`9.3.4-canary.0 - 16.3.0-preview.10`), which **merges every advisory affecting the
 > package into one contiguous span**, and mistaking it for a single advisory's range.
 >
-> Verified empirically by installing `next@15.5.23` and re-auditing:
->
-> - the critical RCE is **gone**; criticals across the tree drop 6 → 5
-> - `next` falls from **critical** to **high**, and its remaining `via` entries are
->   `postcss` and `sharp` — i.e. **no advisory against Next.js itself remains**
->
-> **`next@15.5.23` closes the RCE inside the current major, with no breaking changes.**
-> Next 16 is therefore optional modernization, not a security necessity, and this
-> document should be read as a cost estimate for that optional move — not as a mandate.
+> **`next@15.5.23` closes the RCE inside the current major.** Next 16 is therefore optional
+> modernization, not a security necessity, and this document should be read as a cost estimate
+> for that optional move — not as a mandate. The in-major path is measured in full below.
+
+### The in-major path, measured
+
+An initial version of this correction asserted 15.5.23 had "no breaking changes" on the
+strength of an `npm audit` run alone. That was not evidence, and review was right to reject
+it. The recommended set was then installed and put through **the same gauntlet as the Next 16
+trial**, and the audit delta measured against a clean baseline rather than recalled:
+
+**Set tested:** `next@15.5.23` + `@clerk/nextjs@6.39.6` + `postcss@8.5.26`
+
+| Check                    | Result                                                         |
+| ------------------------ | -------------------------------------------------------------- |
+| `tsc --noEmit`           | **0 errors**                                                   |
+| `vitest run`             | **24 files / 241 tests passed** — identical to 15.5.6          |
+| `next build`             | **passes**                                                     |
+| Source or config changes | **none** — no `src/` edit, no ESLint migration, no config edit |
+
+This is the sharpest contrast with Next 16, which needs five dependency changes, a
+`next.config.mjs` edit, a flat-config ESLint rewrite, and 6 `react-hooks` fixes before it
+builds. The in-major set needs **nothing**.
+
+**Audit delta** (`npm audit` before vs. after, same tree):
+
+| Severity | Before | After  |
+| -------- | ------ | ------ |
+| critical | 9      | **6**  |
+| high     | 37     | **34** |
+
+Packages that changed severity — no package got worse:
+
+| Package              | Before   | After    |
+| -------------------- | -------- | -------- |
+| `@clerk/nextjs`      | critical | _gone_   |
+| `@clerk/shared`      | critical | _gone_   |
+| `next`               | critical | **high** |
+| `@clerk/backend`     | high     | _gone_   |
+| `@clerk/clerk-react` | high     | _gone_   |
+| `js-cookie`          | high     | _gone_   |
+| `nanoid`             | high     | _gone_   |
+
+Two corrections to earlier numbers in this document, both found by measuring instead of
+recalling: the critical baseline is **9, not 6**, and the drop is **9 → 6, not 6 → 5**.
+
+### Two caveats on the remaining risk
+
+**1. `next` stays _high_, and bumping `postcss` does not fix it.** Next ships its own pinned
+copy — the tree holds `node_modules/postcss` _and_ `node_modules/next/node_modules/postcss`,
+and the nested one resolves to **8.4.31** both before and after the bump. Since the postcss
+advisory range is `<=8.5.22`, the top-level bump (8.5.6 → 8.5.26) clears only the copy nobody
+was worried about. Closing the nested one needs an `overrides` entry forcing a postcss version
+Next did not test against — a distinct, riskier decision that should not ride along
+with these bumps. `next`'s remaining `via` entries are `postcss` and `sharp`;
+**no advisory against Next.js itself remains.**
+
+**2. The 6 remaining criticals are all dev-time**, not production runtime: `vitest`,
+`@vitest/ui`, `@vitest/coverage-v8`, plus `handlebars`, `protobufjs`, and `websocket-driver`
+pulled in transitively by `genkit-cli`. None ship in the deployed bundle.
 
 `next@15.5.6` is one patch release behind the fix for a critical RCE advisory
 ([GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp), CVSS 10.0),
-patched at `15.5.7`. The cheap, correct security action is `next@15.5.23`.
+patched at `15.5.7`.
+
+**The cheap, correct security action is `next@15.5.23` _and_ `@clerk/nextjs@6.39.6` together
+— not `next` alone.** Updating only `next` leaves the lockfile on `@clerk/nextjs@6.35.1`,
+whose own critical advisory this document elsewhere identifies as a middleware
+route-protection bypass. This app guards every private route with `clerkMiddleware` and
+`auth.protect()`, so shipping the Next patch while leaving that in place would close one
+critical and keep an auth bypass. Both are in-major bumps; take them as one set.
 
 This document records what moving to Next 16 _additionally_ costs, measured rather than
 guessed, so the choice can be made on real numbers.
