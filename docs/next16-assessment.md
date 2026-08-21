@@ -6,7 +6,9 @@
 
 ## Summary
 
-**Verdict: small fixes needed.** Next 16.3.1 runs this app with **no changes under `src/`** —
+**Next 16 is optional, not a security requirement** — see the correction below: `next@15.5.23`
+closes the critical RCE inside the current major. If you _do_ want Next 16, the verdict is
+**small fixes needed**: 16.3.1 runs this app with **no changes under `src/`** —
 it compiles, builds, boots, serves, and passes all 241 tests untouched. No React 19 migration,
 no App Router restructuring, no middleware rewrite.
 
@@ -28,10 +30,33 @@ The cost is dependency and configuration plumbing:
 
 ## Why this was investigated
 
-`next@15.5.6` is inside the vulnerable range of a critical RCE advisory ([GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp)) whose fixed
-version is `16.3.0-preview.10`. The newest Next 15 release (`15.5.23`) is still inside
-that range, so **there is no patched 15.x**. Closing the advisory requires moving to
-Next 16. This document records what that actually costs, measured rather than guessed.
+> ### ⚠️ Correction — the original security premise for this trial was wrong
+>
+> This trial was commissioned on the belief that **no patched Next 15 existed**, so that
+> closing the critical RCE ([GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp))
+> required a framework-major upgrade. **That is false.**
+>
+> The advisory patches the 15.5.x line at **15.5.7**. This repo is on 15.5.6 — one patch
+> release behind. The error came from reading npm audit's `range` field
+> (`9.3.4-canary.0 - 16.3.0-preview.10`), which **merges every advisory affecting the
+> package into one contiguous span**, and mistaking it for a single advisory's range.
+>
+> Verified empirically by installing `next@15.5.23` and re-auditing:
+>
+> - the critical RCE is **gone**; criticals across the tree drop 6 → 5
+> - `next` falls from **critical** to **high**, and its remaining `via` entries are
+>   `postcss` and `sharp` — i.e. **no advisory against Next.js itself remains**
+>
+> **`next@15.5.23` closes the RCE inside the current major, with no breaking changes.**
+> Next 16 is therefore optional modernization, not a security necessity, and this
+> document should be read as a cost estimate for that optional move — not as a mandate.
+
+`next@15.5.6` is one patch release behind the fix for a critical RCE advisory
+([GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp), CVSS 10.0),
+patched at `15.5.7`. The cheap, correct security action is `next@15.5.23`.
+
+This document records what moving to Next 16 _additionally_ costs, measured rather than
+guessed, so the choice can be made on real numbers.
 
 ## Versions tried
 
@@ -442,6 +467,12 @@ The work is dependency and configuration plumbing:
    has no Genkit integration test to catch a regression — the flows are mocked throughout.
    (If the package is wanted later, `@genkit-ai/next` and `genkit` must then move to `^1.25.0`
    in lockstep.)
+
+   **Untested combination.** The trial ran `genkit` _and_ `@genkit-ai/next` at 1.25.0. The
+   recommendation here — remove the adapter, keep `genkit@1.19.3` — was **not** the package
+   graph that produced the passing build and 241 tests. Re-run the full gauntlet against the
+   set actually being adopted before relying on it.
+
 4. **`npm install @sentry/nextjs@^10`** — required; no 9.x supports Next 16. This is the only
    **major** bump in the set. Low risk here (one `captureException` call, no Sentry config files,
    no `withSentryConfig`), but give it its own review.
