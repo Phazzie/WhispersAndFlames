@@ -247,9 +247,11 @@ To scale your app:
 # Via CLI: edit instance_count in the spec, then re-apply it.
 # `doctl apps update` accepts only --spec (plus --format/--no-header/
 # --update-sources/--wait) — there is no --instance-count flag.
-doctl apps spec get APP_ID > /tmp/app-live.yaml
+# umask 077 so the spec is written 0600 — it carries your secrets.
+(umask 077; doctl apps spec get APP_ID > /tmp/app-live.yaml)
 # edit instance_count under services[0], then:
 doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
+shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
 
 # Or in dashboard: Settings → Scaling
 ```
@@ -377,9 +379,12 @@ doctl databases backups create DB_ID
 There is no per-variable flag. Fetch the live spec, edit it, and re-apply:
 
 ```bash
-doctl apps spec get APP_ID > /tmp/app-live.yaml
+# umask 077 so the spec is written 0600 — shell redirection would
+# otherwise use the default umask and leave credentials world-readable.
+(umask 077; doctl apps spec get APP_ID > /tmp/app-live.yaml)
 # add or edit the entry under services[0].envs, then:
 doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
+shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
 ```
 
 ---
