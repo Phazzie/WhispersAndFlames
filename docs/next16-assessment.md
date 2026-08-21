@@ -4,6 +4,28 @@
 > **Branch of record:** trial performed on a throwaway worktree branched from `main` @ `c191bd6`
 > **Status:** investigation only — no dependency change was committed with this report.
 
+## Summary
+
+**Verdict: small fixes needed.** Next 16.3.1 runs this app with **no changes under `src/`** —
+it compiles, builds, boots, serves, and passes all 241 tests untouched. No React 19 migration,
+no App Router restructuring, no middleware rewrite.
+
+The cost is dependency and configuration plumbing:
+
+| #   | Change                                       | Why                                                                                                                                                                      |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `next` + `eslint-config-next` → `^16.3.1`    | the upgrade itself                                                                                                                                                       |
+| 2   | `@clerk/nextjs` → `^6.39.6`                  | 6.35.1 hard-fails the build ([Failure 2](#failure-2--build-blocker-clerknextjs6351-ships-a-non-async-function-in-a-use-server-module)); also closes two Clerk advisories |
+| 3   | `npm uninstall @genkit-ai/next`              | unused; removing it beats bumping the Genkit runtime ([Failure 3](#failure-3--hard-eresolve-genkit-ainext-and-sentrynextjs-peer-block-next-16))                          |
+| 4   | `@sentry/nextjs` → `^10`                     | no 9.x supports Next 16 — the only **major** bump                                                                                                                        |
+| 5   | drop the `eslint` key from `next.config.mjs` | key removed in 16 ([Failure 1](#failure-1--nextconfigmjs-the-eslint-key-is-gone))                                                                                        |
+| 6   | `.eslintrc.cjs` → `eslint.config.mjs`        | `next lint` is gone ([Failure 4](#failure-4--next-lint-no-longer-exists-eslint-config-next16-is-flat-config-only))                                                       |
+| 7   | fix or downgrade 6 `react-hooks` errors      | surfaced by flat config ([Failure 5](#failure-5--6-new-eslint-errors-from-eslint-plugin-react-hooks-v6))                                                                 |
+| 8   | `engines.node` → `>=20.9 <21`                | Next 16 needs ≥ 20.9.0                                                                                                                                                   |
+
+**Biggest obstacle:** the ESLint migration, not Next. Full reasoning in
+[Verdict](#verdict); the numbered Failure sections below carry the verbatim evidence.
+
 ## Why this was investigated
 
 `next@15.5.6` is inside the vulnerable range of a critical RCE advisory ([GHSA-9qr9-h5gf-34mp](https://github.com/advisories/GHSA-9qr9-h5gf-34mp)) whose fixed
@@ -90,6 +112,8 @@ The other three options in this repo's config all survive intact and were verifi
 
 **Verbatim (Turbopack, the Next 16 default):**
 
+<details><summary>show full output</summary>
+
 ```
 > Build error occurred
 Error: Turbopack build failed with 1 error:
@@ -113,6 +137,8 @@ Import trace:
     ./node_modules/@clerk/nextjs/dist/esm/index.js
     ./src/app/layout.tsx
 ```
+
+</details>
 
 **This is not a Turbopack-only problem.** Forcing the old bundler with `next build --webpack`
 fails identically, because the check lives in SWC, not the bundler:
