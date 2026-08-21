@@ -179,8 +179,8 @@ shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
 doctl apps list-deployments APP_ID
 
 # View logs
-doctl apps logs APP_ID --type BUILD
-doctl apps logs APP_ID --type RUN
+doctl apps logs APP_ID --type build
+doctl apps logs APP_ID --type run
 ```
 
 ---
@@ -301,7 +301,7 @@ This tells npm/yarn to keep devDependencies during the build phase, allowing Nex
 
 ```bash
 # Check build logs
-doctl apps logs APP_ID --type BUILD --follow
+doctl apps logs APP_ID --type build --follow
 
 # You should see devDependencies being installed
 # Look for: "added XXX packages" including typescript, tailwindcss, etc.
@@ -311,7 +311,7 @@ doctl apps logs APP_ID --type BUILD --follow
 
 ```bash
 # Check build logs
-doctl apps logs APP_ID --type BUILD --follow
+doctl apps logs APP_ID --type build --follow
 
 # Common issues:
 # - Missing environment variables during build
@@ -322,7 +322,7 @@ doctl apps logs APP_ID --type BUILD --follow
 
 ```bash
 # Check runtime logs
-doctl apps logs APP_ID --type RUN --follow
+doctl apps logs APP_ID --type run --follow
 
 # Common issues:
 # - Missing XAI_API_KEY (required - create one at https://console.x.ai/)
@@ -354,7 +354,7 @@ doctl databases connection APP_DB_ID
 ### View Logs
 
 ```bash
-doctl apps logs APP_ID --type RUN --follow
+doctl apps logs APP_ID --type run --follow
 ```
 
 ### Redeploy
@@ -367,12 +367,13 @@ doctl apps create-deployment APP_ID
 ### Database Backup
 
 ```bash
-# List backups
-doctl databases backups list DB_ID
-
-# Create manual backup
-doctl databases backups create DB_ID
+# List backups (this is the whole command — there is no `list` subcommand)
+doctl databases backups DB_ID
 ```
+
+DigitalOcean managed databases back up automatically; `doctl` exposes no
+on-demand backup command. Take a manual snapshot with `pg_dump` against the
+connection details from `doctl databases connection DB_ID`.
 
 ### Update Environment Variables
 
