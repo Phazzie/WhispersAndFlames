@@ -131,13 +131,13 @@ spec file and applying it, not by a series of per-variable commands.
 
 ```bash
 # Work from a copy so real secrets never land in the repo.
-# .gitignore covers .env* but NOT this file — do not commit it.
-# install -m 600 rather than cp: the default umask would leave a
-# world-readable file containing production credentials in /tmp.
-install -m 600 .do/app.yaml /tmp/app-live.yaml
+# mktemp creates a fresh file at mode 0600 under a unique name — safer than a
+# fixed path, which could already exist world-readable from an earlier run
+# (redirecting into an existing file keeps its old permissions).
+SPEC=$(mktemp) && cat .do/app.yaml > "$SPEC" && echo "editing $SPEC"
 ```
 
-Edit `/tmp/app-live.yaml` and replace every placeholder with a real value:
+Edit `$SPEC` and replace every placeholder with a real value:
 
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` → your `pk_...` key (it is inlined into
   the client bundle at build time, so the real value must be present here)
@@ -157,19 +157,19 @@ DigitalOcean encrypts them and rewrites the stored spec to `EV[1:...]`.
 
 ```bash
 # Create the app
-doctl apps create --spec /tmp/app-live.yaml
+doctl apps create --spec "$SPEC"
 
 # Get your app ID
 doctl apps list
 
 # Apply later changes by editing the spec and re-applying it
-doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
+doctl apps update APP_ID --spec "$SPEC" --wait
 
 # Trigger a deployment
 doctl apps create-deployment APP_ID
 
 # Shred the local copy once DigitalOcean holds the encrypted values
-shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 ```
 
 ### Monitor Deployment
@@ -247,11 +247,12 @@ To scale your app:
 # Via CLI: edit instance_count in the spec, then re-apply it.
 # `doctl apps update` accepts only --spec (plus --format/--no-header/
 # --update-sources/--wait) — there is no --instance-count flag.
-# umask 077 so the spec is written 0600 — it carries your secrets.
-(umask 077; doctl apps spec get APP_ID > /tmp/app-live.yaml)
+# mktemp: fresh 0600 file, unique name. Do not redirect into a fixed path —
+# if it already exists, > truncates it but keeps its old permissions.
+SPEC=$(mktemp) && doctl apps spec get APP_ID > "$SPEC"
 # edit instance_count under services[0], then:
-doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
-shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
+doctl apps update APP_ID --spec "$SPEC" --wait
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 
 # Or in dashboard: Settings → Scaling
 ```
@@ -380,12 +381,12 @@ connection details from `doctl databases connection DB_ID`.
 There is no per-variable flag. Fetch the live spec, edit it, and re-apply:
 
 ```bash
-# umask 077 so the spec is written 0600 — shell redirection would
-# otherwise use the default umask and leave credentials world-readable.
-(umask 077; doctl apps spec get APP_ID > /tmp/app-live.yaml)
+# mktemp: fresh 0600 file, unique name. Do not redirect into a fixed path —
+# if it already exists, > truncates it but keeps its old permissions.
+SPEC=$(mktemp) && doctl apps spec get APP_ID > "$SPEC"
 # add or edit the entry under services[0].envs, then:
-doctl apps update APP_ID --spec /tmp/app-live.yaml --wait
-shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
+doctl apps update APP_ID --spec "$SPEC" --wait
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 ```
 
 ---

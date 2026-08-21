@@ -155,9 +155,9 @@ doctl apps create-deployment YOUR_APP_ID
 
 # Update an environment variable: there is no --env flag on `apps update`.
 # Fetch the spec (umask 077 — it carries secrets), edit it, re-apply, shred.
-(umask 077; doctl apps spec get YOUR_APP_ID > /tmp/app-live.yaml)
-doctl apps update YOUR_APP_ID --spec /tmp/app-live.yaml --wait
-shred -u /tmp/app-live.yaml 2>/dev/null || rm -f /tmp/app-live.yaml
+SPEC=$(mktemp) && doctl apps spec get YOUR_APP_ID > "$SPEC"
+doctl apps update YOUR_APP_ID --spec "$SPEC" --wait
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 ```
 
 ---
