@@ -57,8 +57,8 @@ This prevents the buildpack from removing devDependencies before the build.
 
 ```
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = <pk_...>   (scope: RUN_AND_BUILD_TIME)
-CLERK_SECRET_KEY = <sk_...>
-XAI_API_KEY = <your_xai_api_key>
+CLERK_SECRET_KEY = <sk_...>                    (scope: RUN_AND_BUILD_TIME)
+XAI_API_KEY = <your_xai_api_key>               (scope: RUN_AND_BUILD_TIME)
 CRON_SECRET = <generate_random_32char_string>
 NEXT_PUBLIC_APP_URL = https://your-app.ondigitalocean.app
 NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
@@ -67,15 +67,29 @@ NODE_ENV = production (scope: RUN_AND_BUILD_TIME)
 The first three are validated at startup by `src/lib/env.ts`; the app exits
 immediately if any is missing. Get the Clerk keys from
 https://dashboard.clerk.com/ and the xAI key from https://console.x.ai/.
-`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` needs BUILD scope as well, because Next
-inlines `NEXT_PUBLIC_*` into the client bundle at build time.
+
+**All three need `RUN_AND_BUILD_TIME`, not just run scope.** `next build`
+collects page data, which loads `src/lib/env.ts` and validates them — a
+run-only secret fails the build before the app ever starts. The publishable
+key additionally must be the real value at build time, because Next inlines
+`NEXT_PUBLIC_*` into the client bundle.
 
 `CRON_SECRET` is required whenever a database is attached: `/api/cron/cleanup`
 returns 403 without it, so expired games are never purged.
 
 `SESSION_SECRET` and `STORAGE_MODE` were previously listed here as required.
-Neither is read anywhere in `src/` — the storage backend is selected purely by
-whether `DATABASE_URL` is set (see `src/lib/storage-adapter.ts`).
+Neither is read anywhere in `src/`, and both have been removed from
+`.do/app.yaml`. The storage backend is chosen by `src/lib/storage-adapter.ts`
+from two conditions: PostgreSQL is used when `DATABASE_URL` is set **and**
+`DISABLE_DATABASE` is not `'true'`. Setting `DISABLE_DATABASE=true` forces
+in-memory storage even with a database attached.
+
+Note that `CRON_SECRET` only _authorizes_ the cleanup endpoint — it does not
+schedule anything. `vercel.json` carries a schedule for Vercel deployments;
+DigitalOcean has no equivalent in this repository, so a DO deployment must
+provision its own recurring authenticated `GET /api/cron/cleanup` (a DO
+Function on a schedule, or any external cron) or expired games are never
+purged.
 
 ### Step 5: Choose Resources
 
@@ -111,21 +125,51 @@ doctl auth init
 
 ### Deploy the App
 
+`doctl apps update` takes a whole app spec via `--spec`; it has **no `--env`
+flag** for setting individual variables. Secrets are therefore set by editing a
+spec file and applying it, not by a series of per-variable commands.
+
 ```bash
-# Create the app from spec file
-doctl apps create --spec .do/app.yaml
+# Work from a copy so real secrets never land in the repo.
+# mktemp creates a fresh file at mode 0600 under a unique name — safer than a
+# fixed path, which could already exist world-readable from an earlier run
+# (redirecting into an existing file keeps its old permissions).
+SPEC=$(mktemp) && cat .do/app.yaml > "$SPEC" && echo "editing $SPEC"
+```
+
+Edit `$SPEC` and replace every placeholder with a real value:
+
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` → your `pk_...` key (it is inlined into
+  the client bundle at build time, so the real value must be present here)
+- `CLERK_SECRET_KEY` → your `sk_...` key
+- `XAI_API_KEY` → your xAI key
+- `CRON_SECRET` → output of `openssl rand -base64 32`
+- `NEXT_PUBLIC_APP_URL` → **leave as `${APP_URL}`**. That is a DigitalOcean
+  platform binding which resolves to the app's real URL, and the generated
+  URL is not known until after `doctl apps create`. Substituting a guess
+  breaks the CSRF origin check in `src/middleware.ts:16-30`, which compares
+  POST origins against this value and returns 403 — every create, join and
+  update call would fail. Only set a literal here once you have a custom
+  domain, and then set it to that domain.
+
+Entries marked `type: SECRET` may be given in plaintext on first apply;
+DigitalOcean encrypts them and rewrites the stored spec to `EV[1:...]`.
+
+```bash
+# Create the app
+doctl apps create --spec "$SPEC"
 
 # Get your app ID
 doctl apps list
 
-# Set environment secrets (replace APP_ID)
-doctl apps update APP_ID --env XAI_API_KEY=your_xai_api_key
-doctl apps update APP_ID --env CLERK_SECRET_KEY=sk_your_clerk_secret_key
-doctl apps update APP_ID --env CRON_SECRET=$(openssl rand -base64 32)
-doctl apps update APP_ID --env NEXT_PUBLIC_APP_URL=https://your-app.ondigitalocean.app
+# Apply later changes by editing the spec and re-applying it
+doctl apps update APP_ID --spec "$SPEC" --wait
 
-# Trigger deployment
+# Trigger a deployment
 doctl apps create-deployment APP_ID
+
+# Shred the local copy once DigitalOcean holds the encrypted values
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 ```
 
 ### Monitor Deployment
@@ -135,8 +179,8 @@ doctl apps create-deployment APP_ID
 doctl apps list-deployments APP_ID
 
 # View logs
-doctl apps logs APP_ID --type BUILD
-doctl apps logs APP_ID --type RUN
+doctl apps logs APP_ID --type build
+doctl apps logs APP_ID --type run
 ```
 
 ---
@@ -200,8 +244,15 @@ docker-compose down
 To scale your app:
 
 ```bash
-# Via CLI
-doctl apps update APP_ID --instance-count 2
+# Via CLI: edit instance_count in the spec, then re-apply it.
+# `doctl apps update` accepts only --spec (plus --format/--no-header/
+# --update-sources/--wait) — there is no --instance-count flag.
+# mktemp: fresh 0600 file, unique name. Do not redirect into a fixed path —
+# if it already exists, > truncates it but keeps its old permissions.
+SPEC=$(mktemp) && doctl apps spec get APP_ID > "$SPEC"
+# edit instance_count under services[0], then:
+doctl apps update APP_ID --spec "$SPEC" --wait
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 
 # Or in dashboard: Settings → Scaling
 ```
@@ -251,7 +302,7 @@ This tells npm/yarn to keep devDependencies during the build phase, allowing Nex
 
 ```bash
 # Check build logs
-doctl apps logs APP_ID --type BUILD --follow
+doctl apps logs APP_ID --type build --follow
 
 # You should see devDependencies being installed
 # Look for: "added XXX packages" including typescript, tailwindcss, etc.
@@ -261,7 +312,7 @@ doctl apps logs APP_ID --type BUILD --follow
 
 ```bash
 # Check build logs
-doctl apps logs APP_ID --type BUILD --follow
+doctl apps logs APP_ID --type build --follow
 
 # Common issues:
 # - Missing environment variables during build
@@ -272,7 +323,7 @@ doctl apps logs APP_ID --type BUILD --follow
 
 ```bash
 # Check runtime logs
-doctl apps logs APP_ID --type RUN --follow
+doctl apps logs APP_ID --type run --follow
 
 # Common issues:
 # - Missing XAI_API_KEY (required - create one at https://console.x.ai/)
@@ -304,7 +355,7 @@ doctl databases connection APP_DB_ID
 ### View Logs
 
 ```bash
-doctl apps logs APP_ID --type RUN --follow
+doctl apps logs APP_ID --type run --follow
 ```
 
 ### Redeploy
@@ -317,24 +368,32 @@ doctl apps create-deployment APP_ID
 ### Database Backup
 
 ```bash
-# List backups
-doctl databases backups list DB_ID
-
-# Create manual backup
-doctl databases backups create DB_ID
+# List backups (this is the whole command — there is no `list` subcommand)
+doctl databases backups DB_ID
 ```
+
+DigitalOcean managed databases back up automatically; `doctl` exposes no
+on-demand backup command. Take a manual snapshot with `pg_dump` against the
+connection details from `doctl databases connection DB_ID`.
 
 ### Update Environment Variables
 
+There is no per-variable flag. Fetch the live spec, edit it, and re-apply:
+
 ```bash
-doctl apps update APP_ID --env NEW_VAR=value
+# mktemp: fresh 0600 file, unique name. Do not redirect into a fixed path —
+# if it already exists, > truncates it but keeps its old permissions.
+SPEC=$(mktemp) && doctl apps spec get APP_ID > "$SPEC"
+# add or edit the entry under services[0].envs, then:
+doctl apps update APP_ID --spec "$SPEC" --wait
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 ```
 
 ---
 
 ## Security Checklist
 
-- ✅ Generate strong `SESSION_SECRET` (32+ characters)
+- ✅ Generate strong `CRON_SECRET` (32+ characters) — authorizes the cleanup endpoint
 - ✅ Use encrypted environment variables for secrets
 - ✅ Enable production database tier for automatic backups
 - ✅ Set up firewall rules (DO automatically secures database)

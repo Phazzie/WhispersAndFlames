@@ -148,13 +148,16 @@ docker system prune -a
 doctl apps list
 
 # View logs
-doctl apps logs YOUR_APP_ID --type RUN --follow
+doctl apps logs YOUR_APP_ID --type run --follow
 
 # Trigger deployment
 doctl apps create-deployment YOUR_APP_ID
 
-# Update environment variable
-doctl apps update YOUR_APP_ID --env KEY=value
+# Update an environment variable: there is no --env flag on `apps update`.
+# Fetch the spec (umask 077 — it carries secrets), edit it, re-apply, shred.
+SPEC=$(mktemp) && doctl apps spec get YOUR_APP_ID > "$SPEC"
+doctl apps update YOUR_APP_ID --spec "$SPEC" --wait
+shred -u "$SPEC" 2>/dev/null || rm -f "$SPEC"
 ```
 
 ---
