@@ -53,6 +53,7 @@ import { storage } from '@/lib/storage-adapter';
 import { sanitizeHtml } from '@/lib/utils/security';
 import { POST } from '@/app/api/game/update/route';
 import type { GameState } from '@/lib/game-types';
+import { GameUpdateRefusedError } from '@/lib/game-authorization';
 
 const mockAuth = vi.mocked(auth);
 const mockGamesGet = vi.mocked(storage.games.get);
@@ -97,14 +98,34 @@ const updatedGame: GameState = {
   step: 'categories',
 };
 
+/** What the reconcile step actually authorized — the values that reach storage. */
+let persistedUpdates: Partial<GameState> | undefined;
+
+/** The stored row both storage mocks read, so a test can set it once. */
+let storedGame: GameState;
+
 describe('POST /api/game/update', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    persistedUpdates = undefined;
+    storedGame = participantGame;
     // Restore defaults
     mockAuth.mockResolvedValue({ userId: 'test-user-id' } as Awaited<ReturnType<typeof auth>>);
     mockRateLimitCheck.mockReturnValue({ allowed: true });
     mockGamesGet.mockResolvedValue(participantGame);
-    mockGamesUpdate.mockResolvedValue(updatedGame);
+    // Authorization now runs inside storage.games.update, under its write lock.
+    // The mock has to run the reconcile callback or these tests would exercise
+    // a route that never authorizes anything.
+    mockGamesUpdate.mockImplementation((_roomCode, updates, reconcile) => {
+      let effective = updates as Partial<GameState>;
+      if (reconcile) {
+        const decision = reconcile(storedGame);
+        if (!decision.ok) throw new GameUpdateRefusedError(decision.reason);
+        effective = decision.updates;
+      }
+      persistedUpdates = effective;
+      return { ...storedGame, ...effective };
+    });
   });
 
   it('returns 200 with updated game when participant makes a valid update', async () => {
@@ -251,15 +272,12 @@ describe('POST /api/game/update', () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
-    expect(mockGamesUpdate).toHaveBeenCalledWith(
-      'ROOM-01',
-      expect.objectContaining({
-        step: 'game',
-        chaosMode: true,
-        finalSpicyLevel: 'Hot',
-        currentQuestionIndex: 1,
-      })
-    );
+    expect(persistedUpdates).toMatchObject({
+      step: 'game',
+      chaosMode: true,
+      finalSpicyLevel: 'Hot',
+      currentQuestionIndex: 1,
+    });
   });
 
   it('accepts the end-of-game write that persists the summary', async () => {
@@ -276,10 +294,9 @@ describe('POST /api/game/update', () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
-    expect(mockGamesUpdate).toHaveBeenCalledWith(
-      'ROOM-01',
-      expect.objectContaining({ summary: 'You both lit up talking about the same thing.' })
-    );
+    expect(persistedUpdates).toMatchObject({
+      summary: 'You both lit up talking about the same thing.',
+    });
   });
 
   it('rejects a non-ISO completedAt', async () => {
@@ -306,12 +323,13 @@ describe('POST /api/game/update', () => {
     // The vulnerability this route previously had: being in the game was taken
     // as permission to write every field of it, including the other player's
     // answers — which then fed the AI summary and therapist notes.
-    mockGamesGet.mockResolvedValue({
+    storedGame = {
       ...participantGame,
       gameRounds: [
         { question: 'What is love?', answers: { 'other-user-id': 'their real answer' } },
       ],
-    });
+    };
+    mockGamesGet.mockResolvedValue(storedGame);
 
     const request = makeRequest({
       roomCode: 'ROOM-01',
@@ -324,7 +342,9 @@ describe('POST /api/game/update', () => {
     const response = await POST(request);
 
     expect(response.status).toBe(403);
-    expect(mockGamesUpdate).not.toHaveBeenCalled();
+    // update() is now where authorization happens, so it is called — the point
+    // is that it refuses under the write lock and persists nothing.
+    expect(persistedUpdates).toBeUndefined();
   });
 
   it('refuses to let a participant grant a stranger read access', async () => {
@@ -352,10 +372,11 @@ describe('POST /api/game/update', () => {
     // — the normal read-modify-write submit path. Field-level authorization
     // permits the echo and takes the partner's value from storage; writing a
     // *different* value there is covered in game-authorization.test.ts.
-    mockGamesGet.mockResolvedValue({
+    storedGame = {
       ...participantGame,
       gameRounds: [{ question: 'What is love?', answers: { 'other-user-id': 'Plain answer' } }],
-    });
+    };
+    mockGamesGet.mockResolvedValue(storedGame);
 
     const request = makeRequest({
       roomCode: 'ROOM-01',
@@ -379,20 +400,17 @@ describe('POST /api/game/update', () => {
       expect.stringContaining('Baby <script>alert(1)</script>')
     );
     expect(mockSanitizeHtml).toHaveBeenCalledWith('Plain answer');
-    // The sanitized answers should be persisted
-    expect(mockGamesUpdate).toHaveBeenCalledWith(
-      'ROOM-01',
-      expect.objectContaining({
-        gameRounds: expect.arrayContaining([
-          expect.objectContaining({
-            answers: expect.objectContaining({
-              'test-user-id': expect.stringContaining('SANITIZED:'),
-              'other-user-id': expect.stringContaining('SANITIZED:'),
-            }),
+    // The sanitized answers should be what actually reaches storage
+    expect(persistedUpdates).toMatchObject({
+      gameRounds: expect.arrayContaining([
+        expect.objectContaining({
+          answers: expect.objectContaining({
+            'test-user-id': expect.stringContaining('SANITIZED:'),
+            'other-user-id': expect.stringContaining('SANITIZED:'),
           }),
-        ]),
-      })
-    );
+        }),
+      ]),
+    });
 
     // Restore the pass-through mock for other tests
     mockSanitizeHtml.mockImplementation((s: string) => s);

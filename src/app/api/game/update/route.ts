@@ -8,7 +8,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_ANSWER_LENGTH,
 } from '@/lib/api-constants';
-import { authorizeGameUpdate } from '@/lib/game-authorization';
+import { authorizeGameUpdate, GameUpdateRefusedError } from '@/lib/game-authorization';
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
@@ -137,43 +137,45 @@ export async function POST(request: Request) {
     }
 
     // Field-level authorization: being in the game does not mean you may write
-    // every field of it. This reconciles the proposal against stored state so a
-    // caller cannot write their partner's answers, edit their partner's entry,
-    // or extend read access to a third party.
-    const authorization = authorizeGameUpdate(game, userId, updates as Partial<GameState>);
-    if (!authorization.ok) {
-      logger.warn('Rejected unauthorized field write', {
-        roomCode,
-        userId,
-        reason: authorization.reason,
-      });
-      return NextResponse.json(
-        { error: { code: 'FORBIDDEN', message: authorization.reason } },
-        { status: 403 }
-      );
-    }
-
-    // Sanitize game rounds to prevent XSS
-    const sanitizedUpdates = { ...authorization.updates };
-    if (authorization.updates.gameRounds && Array.isArray(authorization.updates.gameRounds)) {
-      sanitizedUpdates.gameRounds = authorization.updates.gameRounds.map((round) => {
-        const sanitizedAnswers: Record<string, string> = {};
-        for (const [playerId, answer] of Object.entries(round.answers || {})) {
-          sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-        }
-        return { ...round, answers: sanitizedAnswers };
-      });
-    }
-
+    // every field of it. This runs inside the storage write transaction rather
+    // than here, against the row the write actually locks — authorizing against
+    // the unlocked read above would let a partner's concurrent write slip
+    // between the check and the update and be reverted by it.
     const updatedGame = await storage.games.update(
       roomCode,
-      sanitizedUpdates as Partial<GameState>
+      updates as Partial<GameState>,
+      (current) => {
+        const authorization = authorizeGameUpdate(current, userId, updates as Partial<GameState>);
+        if (!authorization.ok) return authorization;
+
+        // Sanitize game rounds to prevent XSS, on the authorized values.
+        const sanitizedUpdates = { ...authorization.updates };
+        if (authorization.updates.gameRounds && Array.isArray(authorization.updates.gameRounds)) {
+          sanitizedUpdates.gameRounds = authorization.updates.gameRounds.map((round) => {
+            const sanitizedAnswers: Record<string, string> = {};
+            for (const [playerId, answer] of Object.entries(round.answers || {})) {
+              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
+            }
+            return { ...round, answers: sanitizedAnswers };
+          });
+        }
+
+        return { ok: true, updates: sanitizedUpdates };
+      }
     );
 
     logger.info('Game updated successfully', { roomCode, userId });
 
     return NextResponse.json({ game: updatedGame }, { status: 200 });
   } catch (error) {
+    if (error instanceof GameUpdateRefusedError) {
+      logger.warn('Rejected unauthorized field write', { reason: error.message });
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: error.message } },
+        { status: 403 }
+      );
+    }
+
     if (error instanceof z.ZodError) {
       logger.warn('Game update validation failed', { error: error.errors });
       return NextResponse.json(

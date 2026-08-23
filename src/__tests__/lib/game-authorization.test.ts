@@ -200,18 +200,29 @@ describe('authorizeGameUpdate', () => {
       expect(updates.players?.find((p) => p.id === BOB)?.name).toBe('Bobby');
     });
 
-    it('refuses renaming your partner', () => {
-      const result = authorizeGameUpdate(game(), BOB, {
-        players: [player(ALICE, { name: 'Not Alice' }), player(BOB)],
-      });
-      expect(refusal(result)).toMatch(/another player's name/i);
+    it('ignores an attempt to rename your partner', () => {
+      // Asserting the outcome rather than a refusal is the stronger property:
+      // the tamper is inert because the entry is taken from storage. Refusing
+      // instead would 403 an honest client holding a stale copy of the partner
+      // after they renamed themselves between polls.
+      const updates = allowed(
+        authorizeGameUpdate(game(), BOB, {
+          players: [player(ALICE, { name: 'Not Alice' }), player(BOB, { name: 'Bobby' })],
+        })
+      );
+      expect(updates.players?.find((p) => p.id === ALICE)?.name).toBe('Alice');
+      expect(updates.players?.find((p) => p.id === BOB)?.name).toBe('Bobby');
     });
 
-    it("refuses changing your partner's category picks", () => {
-      const result = authorizeGameUpdate(game(), BOB, {
-        players: [player(ALICE, { selectedCategories: ['Power Play'] }), player(BOB)],
-      });
-      expect(refusal(result)).toMatch(/another player's selectedCategories/i);
+    it("ignores an attempt to change your partner's category picks", () => {
+      const updates = allowed(
+        authorizeGameUpdate(game(), BOB, {
+          players: [player(ALICE, { selectedCategories: ['Power Play'] }), player(BOB)],
+        })
+      );
+      expect(updates.players?.find((p) => p.id === ALICE)?.selectedCategories).toEqual([
+        'Hidden Attractions',
+      ]);
     });
 
     it('refuses marking your partner ready', () => {
@@ -220,6 +231,23 @@ describe('authorizeGameUpdate', () => {
         players: [player(ALICE, { isReady: true }), player(BOB, { isReady: true })],
       });
       expect(refusal(result)).toMatch(/mark another player ready/i);
+    });
+
+    it('refuses a forged reset when nobody was ready', () => {
+      // Testing only the proposal would let a caller fake a transition by
+      // un-readying themselves too, which costs them one click. Requiring the
+      // stored state to be all-ready means the exception is only available
+      // when the transition it exists for is actually about to fire.
+      const midFlow = game({
+        players: [
+          player(ALICE, { selectedSpicyLevel: 'Hot', isReady: false }),
+          player(BOB, { isReady: false }),
+        ],
+      });
+      const result = authorizeGameUpdate(midFlow, BOB, {
+        players: [player(ALICE, { selectedSpicyLevel: undefined }), player(BOB)],
+      });
+      expect(refusal(result)).toMatch(/outside a reset/i);
     });
 
     it('refuses un-readying only the partner while staying ready', () => {
@@ -237,7 +265,8 @@ describe('authorizeGameUpdate', () => {
     });
 
     it('allows the bulk un-ready that step transitions depend on', () => {
-      // Every step advance resets isReady on everyone. This must keep working.
+      // Every step advance resets isReady on everyone, firing from all-ready.
+      // This must keep working — it is the flow the exception exists for.
       const ready = game({
         players: [player(ALICE, { isReady: true }), player(BOB, { isReady: true })],
       });
@@ -252,8 +281,13 @@ describe('authorizeGameUpdate', () => {
     });
 
     it("allows clearing a partner's spicy pick during a reset, but not setting one", () => {
+      // A real reset fires from all-ready, which is now required for the
+      // exception to apply at all.
       const picked = game({
-        players: [player(ALICE, { selectedSpicyLevel: 'Hot' }), player(BOB)],
+        players: [
+          player(ALICE, { selectedSpicyLevel: 'Hot', isReady: true }),
+          player(BOB, { isReady: true }),
+        ],
       });
 
       const cleared = allowed(

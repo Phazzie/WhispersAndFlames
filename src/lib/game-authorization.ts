@@ -30,8 +30,25 @@ export type AuthorizationResult =
   | { ok: true; updates: Partial<GameState> }
   | { ok: false; reason: string };
 
-/** Fields on another player's entry that a caller may never change. */
-const IMMUTABLE_PLAYER_FIELDS = ['id', 'name', 'email', 'selectedCategories'] as const;
+/**
+ * A reconcile step run by the storage layer *inside* its write transaction.
+ *
+ * Authorizing against an unlocked read is a time-of-check/time-of-use bug: the
+ * partner can change an answer between the check and the write, and the
+ * already-authorized request then replaces `gameRounds` wholesale and reverts
+ * it. Passing this to `storage.games.update` moves the decision under the same
+ * `FOR UPDATE` lock that guards the write, so what is authorized is exactly
+ * what is persisted.
+ */
+export type GameUpdateReconcile = (current: GameState) => AuthorizationResult;
+
+/** Thrown by the storage layer when a reconcile step refuses an update. */
+export class GameUpdateRefusedError extends Error {
+  constructor(reason: string) {
+    super(reason);
+    this.name = 'GameUpdateRefusedError';
+  }
+}
 
 function samePlayerIds(stored: Player[], proposed: Player[]): boolean {
   if (stored.length !== proposed.length) return false;
@@ -51,11 +68,16 @@ function authorizePlayers(
   proposed: Player[],
   callerId: string
 ): { ok: true; players: Player[] } | { ok: false; reason: string } {
-  // A step transition un-readies everyone, and the two call sites that clear a
-  // partner's spicy pick both do it as part of that. Outside such a reset there
-  // is no legitimate reason to touch another player's pick, so recognising the
-  // reset explicitly stops "clear" being a standing permission.
-  const isBulkReset = proposed.every((p) => !p.isReady);
+  // A step transition un-readies everyone, and the call sites that clear a
+  // partner's spicy pick all do it as part of that. Recognising the reset
+  // explicitly stops "clear" and "un-ready" being standing permissions.
+  //
+  // Both halves are required. Testing only the proposal would let a caller
+  // forge a reset by un-readying themselves too — griefing costs them one
+  // click. Every real reset fires from all-ready, so demanding that of the
+  // *stored* state means the exception is only available when the transition
+  // it exists for is genuinely about to happen.
+  const isBulkReset = proposed.every((p) => !p.isReady) && stored.every((p) => p.isReady);
   // The player set changes through create/join only, never through update.
   if (!samePlayerIds(stored, proposed)) {
     return { ok: false, reason: 'Players cannot be added or removed by a game update' };
@@ -76,13 +98,12 @@ function authorizePlayers(
       continue;
     }
 
-    for (const field of IMMUTABLE_PLAYER_FIELDS) {
-      const before = JSON.stringify(storedPlayer[field]);
-      const after = JSON.stringify(proposedPlayer[field]);
-      if (before !== after) {
-        return { ok: false, reason: `Cannot modify another player's ${field}` };
-      }
-    }
+    // Fields on someone else's entry are taken from storage below, so a
+    // differing value in the proposal has no effect and does not need refusing.
+    // Refusing it actively hurts: both clients post the whole array, so when
+    // both players edit between polls the second request carries a stale copy
+    // of the first's entry and would 403 — discarding the second player's own
+    // valid edit. Same lesson as the omitted-answer check removed earlier.
 
     // Raising another player's readiness is acting as them.
     if (proposedPlayer.isReady && !storedPlayer.isReady) {

@@ -4,6 +4,7 @@
 
 import { Pool } from 'pg';
 
+import { GameUpdateRefusedError, type GameUpdateReconcile } from './game-authorization';
 import type { GameState } from './game-types';
 import { createLogger } from './utils/logger';
 import { withRetry } from './utils/retry';
@@ -166,7 +167,8 @@ export const storage = {
 
     update: async (
       roomCode: string,
-      updates: Partial<GameState>
+      updates: Partial<GameState>,
+      reconcile?: GameUpdateReconcile
     ): Promise<GameState | undefined> => {
       return withRetry(async () => {
         const client = await pool.connect();
@@ -193,6 +195,18 @@ export const storage = {
             }
           } else {
             currentState = rawState;
+          }
+
+          // Decide against the row we hold the lock on, not one the caller read
+          // earlier — otherwise a partner's write between the two would be
+          // reverted by an already-authorized request. See GameUpdateReconcile.
+          if (reconcile) {
+            const decision = reconcile(currentState);
+            if (!decision.ok) {
+              await client.query('ROLLBACK');
+              throw new GameUpdateRefusedError(decision.reason);
+            }
+            updates = decision.updates;
           }
 
           if (
