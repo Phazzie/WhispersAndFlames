@@ -84,10 +84,17 @@ function authorizePlayers(
       }
     }
 
-    // Readiness may only be lowered for someone else — that is the step-
-    // transition reset. Raising it would be acting as them.
+    // Raising another player's readiness is acting as them.
     if (proposedPlayer.isReady && !storedPlayer.isReady) {
       return { ok: false, reason: 'Cannot mark another player ready' };
+    }
+
+    // Lowering it is only legitimate as part of the bulk reset, which every
+    // step transition performs on all players at once. Un-readying just the
+    // partner is equally acting on their behalf, and repeated it would hold
+    // the game at a step indefinitely by preventing the all-ready transition.
+    if (!proposedPlayer.isReady && storedPlayer.isReady && !isBulkReset) {
+      return { ok: false, reason: 'Cannot un-ready another player outside a reset' };
     }
 
     // Their spicy pick may be cleared by that reset, but never set, and never

@@ -222,6 +222,20 @@ describe('authorizeGameUpdate', () => {
       expect(refusal(result)).toMatch(/mark another player ready/i);
     });
 
+    it('refuses un-readying only the partner while staying ready', () => {
+      // isBulkReset was computed to tell a real step transition apart from a
+      // selective edit, but only guarded the spicy field. Un-readying just the
+      // partner is acting on their behalf, and repeating it would hold the game
+      // at a step forever by preventing the all-ready transition.
+      const bothReady = game({
+        players: [player(ALICE, { isReady: true }), player(BOB, { isReady: true })],
+      });
+      const result = authorizeGameUpdate(bothReady, BOB, {
+        players: [player(ALICE, { isReady: false }), player(BOB, { isReady: true })],
+      });
+      expect(refusal(result)).toMatch(/un-ready another player outside a reset/i);
+    });
+
     it('allows the bulk un-ready that step transitions depend on', () => {
       // Every step advance resets isReady on everyone. This must keep working.
       const ready = game({
