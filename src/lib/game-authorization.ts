@@ -44,6 +44,14 @@ export type GameUpdateReconcile = (current: GameState) => AuthorizationResult;
 
 /** Thrown by the storage layer when a reconcile step refuses an update. */
 export class GameUpdateRefusedError extends Error {
+  /**
+   * An authorization decision is deterministic — the same request against the
+   * same state refuses again. Without this the pg backend's withRetry wrapper
+   * would treat every refusal as transient: three transactions opened and
+   * rolled back, three log lines, ~300ms of backoff, and identical output.
+   */
+  readonly retryable = false;
+
   constructor(reason: string) {
     super(reason);
     this.name = 'GameUpdateRefusedError';
