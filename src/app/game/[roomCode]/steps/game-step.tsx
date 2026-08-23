@@ -60,8 +60,13 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
         });
       }
 
-      await updateGameState({ gameRounds: updatedGameRounds });
-      setCurrentAnswer('');
+      // Only discard what they typed once it is actually stored. The update
+      // helper toasts failures rather than throwing, so clearing unconditionally
+      // silently destroyed the answer on every failed submit.
+      const persisted = await updateGameState({ gameRounds: updatedGameRounds });
+      if (persisted) {
+        setCurrentAnswer('');
+      }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
       toast({

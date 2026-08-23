@@ -57,7 +57,7 @@ export type RouterLike = {
 
 type SharedStepHandlers = {
   roomCode: string;
-  updateGameState: (newState: Partial<GameState>) => Promise<void>;
+  updateGameState: (newState: Partial<GameState>) => Promise<boolean>;
   toast: (options: {
     title: string;
     description?: string;

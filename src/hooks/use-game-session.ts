@@ -102,21 +102,30 @@ export function useGameSession({
     };
   }, [roomCode, user, isLoaded, router, isInvalidRoomCode, toast]);
 
+  /**
+   * Applies a state update, returning whether it was persisted.
+   *
+   * Errors are toasted rather than thrown, so callers that discard local input
+   * on completion — the answer textarea, for one — need to know the write
+   * actually landed. Returning void made every failed submit look like a
+   * success to the caller.
+   */
   const updateGameState = useCallback(
-    async (newState: Partial<GameState>) => {
+    async (newState: Partial<GameState>): Promise<boolean> => {
       try {
         const currentState = stateRef.current;
         if (currentState?.gameMode === 'local') {
           const updated = localGame.update(roomCode, newState);
           if (updated) {
             setGameState(updated);
-            return;
+            return true;
           }
           throw new Error('Failed to update local game');
         }
 
         const updated = await clientGame.update(roomCode, newState);
         setGameState(updated);
+        return true;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Update failed';
         toast({
@@ -124,6 +133,7 @@ export function useGameSession({
           description: message,
           variant: 'destructive',
         });
+        return false;
       }
     },
     [roomCode, toast]
