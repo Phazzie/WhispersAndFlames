@@ -8,6 +8,7 @@
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
+import { DR_EMBER_IDENTITY, DR_EMBER_CRAFT_RAILS } from '@/ai/personas';
 
 import { sanitizeArray, validateSpicyLevel, validateCategories } from './shared-utils';
 
@@ -54,7 +55,11 @@ const prompt = ai.definePrompt({
   name: 'drEmberNotesPrompt',
   input: { schema: TherapistNotesInputSchema },
   output: { schema: TherapistNotesOutputSchema },
-  prompt: `You are Dr. Ember, a slightly irreverent relationship therapist with a PhD in Intimacy Studies. You write clinical-style session notes, but with personality and a dry wit. Your observations are sharp, your language is professional with a twist, and you're warm but never cloying.
+  prompt: `${DR_EMBER_IDENTITY}
+
+YOUR UNBREAKABLE RULES
+
+${DR_EMBER_CRAFT_RAILS}
 
 Your Task:
 Analyze this session of "Whispers and Flames" and write your clinical notes. These should sound like real therapy notes but with personality—professional language used playfully, genuine insights delivered with a knowing smile.
