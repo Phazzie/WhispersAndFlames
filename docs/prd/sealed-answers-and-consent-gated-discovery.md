@@ -163,7 +163,56 @@ expect. Expiry is 24 hours, so a deploy window past that avoids the question ent
 1. Does this **replace** the current reveal flow, or sit beside it as a mode?
 2. Ballots for trios — unanimity, or majority? (Blocks `multi-player-support.md`.)
 3. Should a player be able to change a ballot before both have voted?
-4. Does the leak in §1 warrant a hotfix now, ahead of the full model? A projection that
-   strips other players' answers is a much smaller change than everything above.
+4. Does the leak in §1 warrant a fix now, ahead of the full model? See below — it is
+   smaller than this PRD but **not** as small as it first looks.
 
 Question 4 is the one worth answering first.
+
+---
+
+## Appendix: what the minimal leak fix actually costs
+
+The obvious hotfix is "strip other players' answers from the GET projection". That does not
+work on its own, and the reason is worth writing down before someone spends a day on it.
+
+**The reveal genuinely needs them.** `game-step.tsx:230` renders
+`currentRound.answers[player.id]` for every player once the round completes. So the fix is
+conditional, not absolute: withhold until everyone in the round has answered, then send.
+
+**And "who has answered" is computed from the same object:**
+
+```ts
+const allPlayersAnswered =
+  currentRound && Object.keys(currentRound.answers).length === players.length;
+```
+
+Omitting a partner's key breaks that count. Blanking the value preserves it.
+
+**But either choice collides with field-level authorization.** The client posts the whole
+`gameRounds` array back on every answer submit. `src/lib/game-authorization.ts` compares the
+proposal against storage and refuses when another player's answer differs — including when
+it is blanked, and including when it is dropped:
+
+```ts
+if (storedAnswers[playerId] !== answer) → "Cannot submit another player's answer"
+// and
+if (playerId !== callerId && !(playerId in proposedAnswers)) → "Cannot remove another player's answer"
+```
+
+So a projected client would post back a redacted array and get a **403 on every submit**. The
+game would stop working entirely.
+
+Loosening authorization to tolerate redactions is the wrong direction — it would reintroduce
+the forgery hole by making "this value differs from storage" no longer decisive.
+
+**Therefore the minimal honest fix is a slice of `per-action-endpoints.md`:**
+
+1. Add `POST /api/game/[roomCode]/answer` taking `{ questionIndex, text }`.
+2. Move `game-step.tsx`'s submit to it, so the client stops posting whole rounds.
+3. _Then_ project other players' answers out until the round completes.
+
+That is one route, one component, and one projection — perhaps a day, versus the weeks this
+full PRD describes. It closes the live leak without waiting on the consent model, and it is
+the first step of the per-action work rather than throwaway.
+
+**Recommended: do this slice next, regardless of what is decided about the full model.**

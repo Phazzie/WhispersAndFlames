@@ -140,6 +140,19 @@ should be finished.
 
 ## Recommendation
 
-**Do this third.** Sealed answers first (there is a live leak), the trio decision second
-(it is a decision, not a build), and this last — when the app's shape has settled and the
-rewrite only has to happen once.
+**Split it.** The `/answer` route should come first and soon; the rest can wait.
+
+`sealed-answers-and-consent-gated-discovery.md` documents a live leak — the GET route sends
+both players' answers to both clients every 2 seconds. Fixing it requires the client to stop
+posting whole `gameRounds` arrays, because field-level authorization refuses a redacted
+array as tampering. So `/answer` is not merely the first slice of this work, it is a
+prerequisite for closing a privacy hole that exists today.
+
+Suggested order:
+
+1. **`/answer` plus the answer projection** — closes the leak. One route, one component,
+   one projection.
+2. **The trio decision** — a decision, not a build.
+3. **The rest of this PRD** — `/ready`, `/categories`, `/spicy`, `/advance`, `expectedVersion`,
+   and deleting the update route. Least urgent now that authorization has closed the security
+   half, and best done once the app's shape has settled so the rewrite happens only once.
