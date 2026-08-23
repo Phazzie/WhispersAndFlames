@@ -262,6 +262,46 @@ describe('POST /api/game/update', () => {
     );
   });
 
+  it('accepts the end-of-game write that persists the summary', async () => {
+    // Regression: completedAt was missing from this strict schema while
+    // game-step.tsx sent it with the summary, so every completed game got a
+    // 400 and lost its summary — the payoff moment of the whole product.
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: {
+        summary: 'You both lit up talking about the same thing.',
+        completedAt: new Date().toISOString(),
+      },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(mockGamesUpdate).toHaveBeenCalledWith(
+      'ROOM-01',
+      expect.objectContaining({ summary: 'You both lit up talking about the same thing.' })
+    );
+  });
+
+  it('rejects a non-ISO completedAt', async () => {
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: { completedAt: 'last tuesday' },
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects hostId and playerIds outright — they are not update fields', async () => {
+    // Membership and host are set by create/join. Keeping them out of the
+    // schema makes escalation unrepresentable before authorization even runs.
+    for (const updates of [{ hostId: 'other-user-id' }, { playerIds: ['mallory-id'] }]) {
+      mockGamesUpdate.mockClear();
+      const response = await POST(makeRequest({ roomCode: 'ROOM-01', updates }));
+      expect(response.status).toBe(400);
+      expect(mockGamesUpdate).not.toHaveBeenCalled();
+    }
+  });
+
   it("returns 403 when a participant writes their partner's answer", async () => {
     // The vulnerability this route previously had: being in the game was taken
     // as permission to write every field of it, including the other player's
@@ -287,16 +327,18 @@ describe('POST /api/game/update', () => {
     expect(mockGamesUpdate).not.toHaveBeenCalled();
   });
 
-  it('returns 403 when a participant tries to grant a stranger read access', async () => {
+  it('refuses to let a participant grant a stranger read access', async () => {
     // playerIds gates GET /api/game/[roomCode], and both storage backends union
     // it, so an accepted id would be permanent read access to every answer.
+    // Two layers refuse it: the strict schema no longer names the field (400),
+    // and authorizeGameUpdate would reject it anyway if the schema ever changed.
     const request = makeRequest({
       roomCode: 'ROOM-01',
       updates: { playerIds: ['test-user-id', 'other-user-id', 'mallory-id'] },
     });
     const response = await POST(request);
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(400);
     expect(mockGamesUpdate).not.toHaveBeenCalled();
   });
 

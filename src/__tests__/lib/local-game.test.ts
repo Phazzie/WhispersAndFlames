@@ -96,12 +96,15 @@ describe('localGame', () => {
       expect(current?.roomCode).toBe(game.roomCode);
     });
 
-    it('serializes createdAt to a string in storage even though the returned object holds a Date', () => {
+    it('stores createdAt as an ISO string, matching what survives the round-trip', () => {
       const game = localGame.create(['Ada']);
 
-      expect(game.createdAt).toBeInstanceOf(Date);
-      // Storage round-trips through JSON, so the persisted value is an ISO string.
-      expect(typeof localGame.get(game.roomCode)?.createdAt).toBe('string');
+      // Previously the in-memory object held a Date while storage held a
+      // string, so the declared type was wrong for any state read back.
+      // Both sides are now the ISO string that JSON actually preserves.
+      expect(typeof game.createdAt).toBe('string');
+      expect(game.createdAt).toBe(localGame.get(game.roomCode)?.createdAt);
+      expect(Number.isNaN(Date.parse(game.createdAt as string))).toBe(false);
     });
   });
 
@@ -210,7 +213,9 @@ describe('localGame', () => {
     it('throws when the game is not in local mode', () => {
       const state = makeLocalState({ gameMode: 'online' });
 
-      expect(() => localGame.nextPlayer(state)).toThrow('nextPlayer can only be used in local mode');
+      expect(() => localGame.nextPlayer(state)).toThrow(
+        'nextPlayer can only be used in local mode'
+      );
     });
   });
 

@@ -111,7 +111,7 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
             if ('summary' in summaryResult) {
               await updateGameState({
                 summary: summaryResult.summary,
-                completedAt: new Date(),
+                completedAt: new Date().toISOString(),
               });
             } else {
               toast({
@@ -216,7 +216,11 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
           <CardContent className="space-y-6 pt-6">
             <div
               className={`grid grid-cols-1 gap-4 ${
-                players.length >= 3 ? 'md:grid-cols-3' : players.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1'
+                players.length >= 3
+                  ? 'md:grid-cols-3'
+                  : players.length === 2
+                    ? 'md:grid-cols-2'
+                    : 'md:grid-cols-1'
               }`}
             >
               {players.map((player) => (

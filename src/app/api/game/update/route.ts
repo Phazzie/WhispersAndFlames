@@ -12,7 +12,7 @@ import { authorizeGameUpdate } from '@/lib/game-authorization';
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+import { RateLimiter } from '@/lib/utils/rate-limiter';
 import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
 const updateGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS / 60000);
@@ -48,7 +48,6 @@ const updateGameSchema = z.object({
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
       players: z.array(playerSchema).optional(),
-      playerIds: z.array(z.string()).optional(),
       gameMode: z.enum(['online', 'local']).optional(),
       currentPlayerIndex: z.number().int().min(0).optional(),
       commonCategories: z.array(z.string()).optional(),
@@ -61,7 +60,10 @@ const updateGameSchema = z.object({
       summary: z.string().optional(),
       visualMemories: z.array(visualMemorySchema).optional(),
       imageGenerationCount: z.number().int().min(0).optional(),
-      hostId: z.string().optional(),
+      // Set once, when the summary lands. Absent from this schema until now,
+      // which — since the schema is strict — meant the end-of-game write was
+      // rejected with a 400 and no completed game ever saved its summary.
+      completedAt: z.string().datetime().optional(),
     })
     .strict(),
 });
@@ -77,9 +79,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // Rate limiting: 60 updates per minute per IP (allows rapid gameplay)
-    const clientIp = getRateLimitIdentifier(request);
-    const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
+    // Clerk authentication. Runs before rate limiting so the limiter can key by
+    // user: an IP key puts both partners behind one router in the same bucket,
+    // which is the bug already fixed on the polled GET route. Safe because
+    // clerkMiddleware rejects unauthenticated traffic before this handler, so
+    // the limiter only ever sees authenticated requests.
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
+    }
+
+    // Rate limiting: 60 updates per minute per user (allows rapid gameplay)
+    const rateLimit = updateGameRateLimiter.check(`game-update:${userId}`);
     if (!rateLimit.allowed) {
       const rateLimitHeaders: Record<string, string> = {};
       if (rateLimit.retryAfter !== undefined) {
@@ -98,16 +113,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
         { status: 429, headers: rateLimitHeaders }
-      );
-    }
-
-    // Clerk authentication
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
       );
     }
 
