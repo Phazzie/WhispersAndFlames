@@ -62,8 +62,41 @@ describe('AI personas', () => {
   describe('question patterns', () => {
     const patterns = QUESTION_PATTERNS.split('\n').filter((l) => l.startsWith('THE '));
 
-    it('ships all nine named patterns', () => {
-      expect(patterns).toHaveLength(9);
+    /**
+     * The nine patterns that were in the shipped prompt before April deleted them.
+     *
+     * NOT the full canonical set. docs/ember-persona.md defines ten, and its
+     * PATTERN #9 — THE CHOREOGRAPHY PATTERN (Trios) — has never been in any
+     * prompt. That gap is tracked as divergence D1 in docs/ember-prompt-audit.md
+     * and is deliberately not closed here: the question flow's input schema has
+     * no player-count field, so a trio pattern could not be conditioned on there
+     * actually being a trio. Adding it blind would let the model aim trio
+     * questions at couples. Closing D1 means threading partner_count through the
+     * flow first — a feature, not a restoration.
+     */
+    const SHIPPED_PATTERNS = [
+      'EXACTLY',
+      'ONE SPECIFIC',
+      'SENSORY CONSTRAINT',
+      'OBSERVATION-BASED',
+      'COMPLETE THIS',
+      'IMPLIED HISTORY',
+      'FUTURE-PULLING',
+      'POWER PLAY',
+      'VULNERABILITY INVITATION',
+    ];
+
+    it('ships every pattern the prompt had before April', () => {
+      for (const name of SHIPPED_PATTERNS) {
+        expect(QUESTION_PATTERNS).toContain(name);
+      }
+      expect(patterns).toHaveLength(SHIPPED_PATTERNS.length);
+    });
+
+    it('does not silently claim to cover trios', () => {
+      // Guard against someone adding the Choreography pattern without also
+      // giving the flow a player count to gate it on — see D1.
+      expect(QUESTION_PATTERNS).not.toContain('CHOREOGRAPHY');
     });
 
     it('gives every pattern a worked example', () => {
