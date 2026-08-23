@@ -262,10 +262,58 @@ describe('POST /api/game/update', () => {
     );
   });
 
+  it("returns 403 when a participant writes their partner's answer", async () => {
+    // The vulnerability this route previously had: being in the game was taken
+    // as permission to write every field of it, including the other player's
+    // answers — which then fed the AI summary and therapist notes.
+    mockGamesGet.mockResolvedValue({
+      ...participantGame,
+      gameRounds: [
+        { question: 'What is love?', answers: { 'other-user-id': 'their real answer' } },
+      ],
+    });
+
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: {
+        gameRounds: [
+          { question: 'What is love?', answers: { 'other-user-id': 'a forged answer' } },
+        ],
+      },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    expect(mockGamesUpdate).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when a participant tries to grant a stranger read access', async () => {
+    // playerIds gates GET /api/game/[roomCode], and both storage backends union
+    // it, so an accepted id would be permanent read access to every answer.
+    const request = makeRequest({
+      roomCode: 'ROOM-01',
+      updates: { playerIds: ['test-user-id', 'other-user-id', 'mallory-id'] },
+    });
+    const response = await POST(request);
+
+    expect(response.status).toBe(403);
+    expect(mockGamesUpdate).not.toHaveBeenCalled();
+  });
+
   it('sanitizes gameRounds answers before persisting', async () => {
     const mockSanitizeHtml = vi.mocked(sanitizeHtml);
     // Make sanitizeHtml return a distinguishable sanitized value
     mockSanitizeHtml.mockImplementation((s: string) => `SANITIZED:${s}`);
+
+    // The partner's answer is already stored. The client posts the whole
+    // rounds array, so it echoes that answer back unchanged alongside its own
+    // — the normal read-modify-write submit path. Field-level authorization
+    // permits the echo and takes the partner's value from storage; writing a
+    // *different* value there is covered in game-authorization.test.ts.
+    mockGamesGet.mockResolvedValue({
+      ...participantGame,
+      gameRounds: [{ question: 'What is love?', answers: { 'other-user-id': 'Plain answer' } }],
+    });
 
     const request = makeRequest({
       roomCode: 'ROOM-01',

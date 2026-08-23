@@ -8,6 +8,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_ANSWER_LENGTH,
 } from '@/lib/api-constants';
+import { authorizeGameUpdate } from '@/lib/game-authorization';
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
@@ -132,10 +133,27 @@ export async function POST(request: Request) {
       );
     }
 
+    // Field-level authorization: being in the game does not mean you may write
+    // every field of it. This reconciles the proposal against stored state so a
+    // caller cannot write their partner's answers, edit their partner's entry,
+    // or extend read access to a third party.
+    const authorization = authorizeGameUpdate(game, userId, updates as Partial<GameState>);
+    if (!authorization.ok) {
+      logger.warn('Rejected unauthorized field write', {
+        roomCode,
+        userId,
+        reason: authorization.reason,
+      });
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: authorization.reason } },
+        { status: 403 }
+      );
+    }
+
     // Sanitize game rounds to prevent XSS
-    const sanitizedUpdates = { ...updates };
-    if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
-      sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
+    const sanitizedUpdates = { ...authorization.updates };
+    if (authorization.updates.gameRounds && Array.isArray(authorization.updates.gameRounds)) {
+      sanitizedUpdates.gameRounds = authorization.updates.gameRounds.map((round) => {
         const sanitizedAnswers: Record<string, string> = {};
         for (const [playerId, answer] of Object.entries(round.answers || {})) {
           sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
