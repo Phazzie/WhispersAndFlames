@@ -42,8 +42,13 @@ export type GameState = {
   }>;
   imageGenerationCount: number;
   roomCode: string;
-  createdAt?: Date;
-  completedAt?: Date;
+  /**
+   * ISO-8601 timestamps, not Date objects. Game state round-trips through JSON
+   * — localStorage for local games, a jsonb column for online ones — so a Date
+   * written here comes back as a string and any .getTime() on it would throw.
+   */
+  createdAt?: string;
+  completedAt?: string;
 };
 
 export type RouterLike = {
@@ -52,7 +57,7 @@ export type RouterLike = {
 
 type SharedStepHandlers = {
   roomCode: string;
-  updateGameState: (newState: Partial<GameState>) => Promise<void>;
+  updateGameState: (newState: Partial<GameState>) => Promise<boolean>;
   toast: (options: {
     title: string;
     description?: string;
