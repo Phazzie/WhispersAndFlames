@@ -51,6 +51,11 @@ function authorizePlayers(
   proposed: Player[],
   callerId: string
 ): { ok: true; players: Player[] } | { ok: false; reason: string } {
+  // A step transition un-readies everyone, and the two call sites that clear a
+  // partner's spicy pick both do it as part of that. Outside such a reset there
+  // is no legitimate reason to touch another player's pick, so recognising the
+  // reset explicitly stops "clear" being a standing permission.
+  const isBulkReset = proposed.every((p) => !p.isReady);
   // The player set changes through create/join only, never through update.
   if (!samePlayerIds(stored, proposed)) {
     return { ok: false, reason: 'Players cannot be added or removed by a game update' };
@@ -85,10 +90,14 @@ function authorizePlayers(
       return { ok: false, reason: 'Cannot mark another player ready' };
     }
 
-    // Their spicy pick may be cleared by the same reset, but never set.
+    // Their spicy pick may be cleared by that reset, but never set, and never
+    // cleared outside one.
     const spicyChanged = proposedPlayer.selectedSpicyLevel !== storedPlayer.selectedSpicyLevel;
     if (spicyChanged && proposedPlayer.selectedSpicyLevel !== undefined) {
       return { ok: false, reason: "Cannot change another player's spicy level" };
+    }
+    if (spicyChanged && !isBulkReset) {
+      return { ok: false, reason: "Cannot clear another player's spicy level outside a reset" };
     }
 
     reconciled.push({
@@ -117,6 +126,15 @@ function authorizeGameRounds(
   callerId: string
 ): { ok: true; gameRounds: GameRound[] } | { ok: false; reason: string } {
   const storedRounds = stored ?? [];
+
+  // Rounds are append-only. Both storage backends replace `gameRounds`
+  // wholesale, so a shorter array deletes the omitted tail — which is every
+  // answer in it, including the partner's. Refusing truncation is the only
+  // thing standing between a participant and `gameRounds: []`.
+  if (proposed.length < storedRounds.length) {
+    return { ok: false, reason: 'Cannot remove game rounds' };
+  }
+
   const reconciled: GameRound[] = [];
 
   for (const [index, proposedRound] of proposed.entries()) {
@@ -130,6 +148,14 @@ function authorizeGameRounds(
       }
       reconciled.push(proposedRound);
       continue;
+    }
+
+    // The question a round asks is fixed once the round exists. Otherwise a
+    // caller could echo the partner's answer unchanged while swapping the
+    // question out from under it — forging what that answer *means* to the UI
+    // and to both AI flows, without altering a character of the answer itself.
+    if (proposedRound.question !== storedRound.question) {
+      return { ok: false, reason: 'Cannot change the question on an existing round' };
     }
 
     const storedAnswers = storedRound.answers ?? {};
@@ -148,14 +174,10 @@ function authorizeGameRounds(
       }
     }
 
-    // Dropping someone else's answer is destructive, so refuse that too.
-    for (const playerId of Object.keys(storedAnswers)) {
-      if (playerId !== callerId && !(playerId in proposedAnswers)) {
-        return { ok: false, reason: "Cannot remove another player's answer" };
-      }
-    }
-
-    reconciled.push({ ...proposedRound, answers });
+    // No check for an omitted partner key: `answers` starts from storage, so
+    // omission preserves rather than deletes. Refusing it would 403 an honest
+    // client that simply polled before the partner's answer landed.
+    reconciled.push({ question: storedRound.question, answers });
   }
 
   return { ok: true, gameRounds: reconciled };
@@ -199,6 +221,18 @@ export function authorizeGameUpdate(
     }
   }
   delete authorized.playerIds;
+
+  // gameMode decides which storage a client writes through: use-game-session
+  // routes every write to localGame.update when it reads 'local'. Flipping a
+  // server-backed room to local points every client at a localStorage entry
+  // that does not exist, and the session stops accepting writes entirely.
+  // currentPlayerIndex is local-mode turn tracking and has no meaning online.
+  // Neither is ever sent by a client; both are set at creation.
+  if (updates.gameMode !== undefined && updates.gameMode !== game.gameMode) {
+    return { ok: false, reason: 'Game mode cannot be changed' };
+  }
+  delete authorized.gameMode;
+  delete authorized.currentPlayerIndex;
 
   if (updates.players !== undefined) {
     const result = authorizePlayers(game.players, updates.players, callerId);

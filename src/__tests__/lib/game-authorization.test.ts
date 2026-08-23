@@ -88,11 +88,17 @@ describe('authorizeGameUpdate', () => {
       expect(updates.gameRounds?.[0].answers[ALICE]).toBe('revised');
     });
 
-    it("refuses deleting a partner's answer", () => {
-      const result = authorizeGameUpdate(game(), BOB, {
-        gameRounds: [{ question: 'Q1', answers: { [BOB]: 'bob answer' } }],
-      });
-      expect(refusal(result)).toMatch(/remove another player's answer/i);
+    it("preserves a partner's answer when the proposal omits it", () => {
+      // An earlier version refused this as an attempted deletion. Review was
+      // right that it was both redundant and harmful: reconciliation starts
+      // from storage, so omission cannot delete — and refusing it would 403 a
+      // client that polled before the partner's answer arrived.
+      const updates = allowed(
+        authorizeGameUpdate(game(), BOB, {
+          gameRounds: [{ question: 'Q1', answers: { [BOB]: 'bob answer' } }],
+        })
+      );
+      expect(updates.gameRounds?.[0].answers[ALICE]).toBe('alice answer');
     });
 
     it('allows appending a new round carrying only your own answer', () => {
@@ -115,6 +121,72 @@ describe('authorizeGameUpdate', () => {
         ],
       });
       expect(refusal(result)).toMatch(/another player's answer/i);
+    });
+  });
+
+  describe('round tampering found in review', () => {
+    it('refuses truncating the rounds array', () => {
+      // Both storage backends replace gameRounds wholesale, so a shorter array
+      // deletes the omitted tail — every answer in it, including the partner's.
+      const withTwo = game({
+        gameRounds: [
+          { question: 'Q1', answers: { [ALICE]: 'a1', [BOB]: 'b1' } },
+          { question: 'Q2', answers: { [ALICE]: 'a2', [BOB]: 'b2' } },
+        ],
+      });
+      const result = authorizeGameUpdate(withTwo, BOB, {
+        gameRounds: [{ question: 'Q1', answers: { [ALICE]: 'a1', [BOB]: 'b1' } }],
+      });
+      expect(refusal(result)).toMatch(/remove game rounds/i);
+    });
+
+    it('refuses wiping every round', () => {
+      const result = authorizeGameUpdate(game(), BOB, { gameRounds: [] });
+      expect(refusal(result)).toMatch(/remove game rounds/i);
+    });
+
+    it("refuses swapping the question under a partner's answer", () => {
+      // Echoes the answer verbatim but changes what it was answering — forging
+      // the meaning without altering a character of the answer.
+      const result = authorizeGameUpdate(game(), BOB, {
+        gameRounds: [
+          { question: 'A completely different question', answers: { [ALICE]: 'alice answer' } },
+        ],
+      });
+      expect(refusal(result)).toMatch(/change the question/i);
+    });
+
+    it('tolerates a client that has not yet seen the partner answer', () => {
+      // Reconciliation starts from storage, so an omitted key preserves rather
+      // than deletes. Refusing this would 403 an honest client that polled
+      // before the partner's answer landed.
+      const updates = allowed(
+        authorizeGameUpdate(game(), BOB, {
+          gameRounds: [{ question: 'Q1', answers: { [BOB]: 'bob answer' } }],
+        })
+      );
+      expect(updates.gameRounds?.[0].answers).toEqual({
+        [ALICE]: 'alice answer',
+        [BOB]: 'bob answer',
+      });
+    });
+  });
+
+  describe('creation-only fields', () => {
+    it('refuses flipping an online game to local', () => {
+      // use-game-session routes every write through localGame.update when it
+      // reads 'local'. A server-backed room has no localStorage entry, so this
+      // would stop the session accepting writes at all.
+      const result = authorizeGameUpdate(game(), BOB, { gameMode: 'local' });
+      expect(refusal(result)).toMatch(/game mode cannot be changed/i);
+    });
+
+    it('strips gameMode and currentPlayerIndex even when unchanged', () => {
+      const updates = allowed(
+        authorizeGameUpdate(game(), BOB, { gameMode: 'online', currentPlayerIndex: 1 })
+      );
+      expect(updates).not.toHaveProperty('gameMode');
+      expect(updates).not.toHaveProperty('currentPlayerIndex');
     });
   });
 
@@ -181,6 +253,26 @@ describe('authorizeGameUpdate', () => {
         players: [player(ALICE, { selectedSpicyLevel: 'Mild' }), player(BOB)],
       });
       expect(refusal(forced)).toMatch(/another player's spicy level/i);
+    });
+
+    it("refuses clearing a partner's spicy pick outside a reset", () => {
+      // Both call sites that clear a partner's pick un-ready everyone as part
+      // of a step transition. Outside that there is no legitimate reason to
+      // touch it, and allowing it lets one player grief the other into
+      // reselecting mid-flow.
+      const picked = game({
+        players: [
+          player(ALICE, { selectedSpicyLevel: 'Hot', isReady: true }),
+          player(BOB, { isReady: true }),
+        ],
+      });
+      const result = authorizeGameUpdate(picked, BOB, {
+        players: [
+          player(ALICE, { selectedSpicyLevel: undefined, isReady: true }),
+          player(BOB, { isReady: true }),
+        ],
+      });
+      expect(refusal(result)).toMatch(/outside a reset/i);
     });
 
     it('refuses removing a player', () => {

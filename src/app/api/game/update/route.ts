@@ -48,8 +48,6 @@ const updateGameSchema = z.object({
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
       players: z.array(playerSchema).optional(),
-      gameMode: z.enum(['online', 'local']).optional(),
-      currentPlayerIndex: z.number().int().min(0).optional(),
       commonCategories: z.array(z.string()).optional(),
       finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
       chaosMode: z.boolean().optional(),
