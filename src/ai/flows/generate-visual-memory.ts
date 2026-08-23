@@ -8,6 +8,7 @@
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
+import { VISUAL_POET_IDENTITY } from '@/ai/personas';
 
 import { sanitizeInput, sanitizeArray, validateSpicyLevel } from './shared-utils';
 
@@ -49,7 +50,9 @@ const prompt = ai.definePrompt({
   name: 'visualMemoryPrompt',
   input: { schema: VisualMemoryInputSchema },
   output: { schema: VisualMemoryOutputSchema },
-  prompt: `You are an artistic director specializing in creating abstract, metaphorical visual representations of intimate conversations. Your task is to transform the emotional themes of a conversation into a tasteful, artistic image prompt.
+  prompt: `${VISUAL_POET_IDENTITY}
+
+Your task is to transform the emotional themes of a conversation into a tasteful, artistic image prompt.
 
 Session Context:
 -   Summary: {{summary}}

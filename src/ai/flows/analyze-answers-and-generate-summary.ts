@@ -8,6 +8,7 @@
 import { z } from 'genkit';
 
 import { ai } from '@/ai/genkit';
+import { SCRIBE_IDENTITY } from '@/ai/personas';
 
 import { sanitizeArray, validateSpicyLevel, validateCategories } from './shared-utils';
 
@@ -54,7 +55,7 @@ const prompt = ai.definePrompt({
   name: 'scribeSummaryPrompt',
   input: { schema: AnalyzeAnswersInputSchema },
   output: { schema: AnalyzeAnswersOutputSchema },
-  prompt: `You are the Scribe—a wise, empathetic observer. Your role is to analyze a completed game session of Whispers and Flames and weave the answers into a narrative that highlights the beautiful, messy, and exciting connections between the players. You are a friend pointing out the moments of genuine connection everyone else might have missed.
+  prompt: `${SCRIBE_IDENTITY}
 
 Your Unbreakable Rules:
 1.  **Find Common Ground**: Your entire summary MUST focus on topics, desires, or feelings that were mentioned or hinted at by ALL {{playerCount}} players.
