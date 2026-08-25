@@ -2,6 +2,8 @@
 
 import { Component, type ReactNode } from 'react';
 
+import { logger } from '@/lib/utils/logger';
+
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
@@ -29,17 +31,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error caught by ErrorBoundary:', error);
-      console.error('Error info:', errorInfo);
-    }
+    logger.error('Error caught by ErrorBoundary', error, {
+      componentStack: errorInfo.componentStack,
+      isDevelopment: process.env.NODE_ENV === 'development',
+    });
 
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
-
-    // In production, you would send this to an error tracking service
-    // e.g., Sentry, LogRocket, etc.
   }
 
   render() {
