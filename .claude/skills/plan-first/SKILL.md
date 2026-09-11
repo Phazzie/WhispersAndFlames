@@ -122,21 +122,27 @@ as blanket permission for any scope.
 
 It isn't. "Fix everything" authorizes the _work_, not the _bundling_.
 
-So: still stop, still classify. Then decide the way this particular owner would — not by
-a generic rule, but from what you actually know about them. What have they pushed back on
-before? What do they treat as urgent? Do they prefer a shipped fix or a clean diff? You
-have their history; use it.
+**So bucket 2 is not available while the owner is away.** There is no proposal without
+someone to propose to, and "they would have said yes" is an approval you granted yourself.
+A find that would have been bucket 2 is handled as bucket 3 instead: logged, left undone,
+and named in the PR body as the next thing.
 
-Then **write the inference down**, not just the decision:
+One narrow exception: leaving it undone is actively unsafe — a live security or privacy
+hole, or data being lost right now. Then do it, but **in its own commit**, so the owner can
+lift it back out without unpicking it from unrelated work. Say so at the top of the PR
+body, not buried in the diff.
+
+Either way, decide the way this particular owner would — not by a generic rule, but from
+what you know about them — and then **write the inference down**, not just the decision:
 
 ```md
-#### Found: playerIds accepts arbitrary ids → bucket 2, folding in
+#### Found: playerIds accepts arbitrary ids → would be bucket 2, treated as bucket 3
 
 Grants a stranger permanent read access to both partners' answers.
-Owner is away. Judging they'd want this in the current PR rather than a follow-up: it's
-the same route, the same class of bug, and leaving a known privacy hole open across two
-review cycles is worse than a slightly larger diff. Flagging it prominently in the PR body
-so it isn't buried.
+Owner is away, so folding it into the open PR is not mine to approve. Judging they would
+want it fixed soon but separately: a privacy fix that arrives inside an authorization PR is
+a privacy fix nobody reviewed on its own merits.
+Logged as the next work item and named at the top of the PR body.
 Correct me if that's wrong.
 ```
 
@@ -158,6 +164,24 @@ Any of these means: stop, re-read the plan, and either update it deliberately or
 
 Updating the plan is fine — plans should change when you learn something. What is not fine
 is the plan changing without anyone noticing, which is the same thing as having no plan.
+
+## What this skill does not enforce
+
+Be honest about the mechanism: this is a model-invoked skill. It fires when it gets
+selected, and nothing written here can make that happen. An agent that never loads it can
+edit every file in the repo without putting a line in `docs/worklog.md`.
+
+So the guarantee is weaker than the language above — the skill sets the standard, it does
+not impose it. Two things would impose it, and both are the owner's call rather than
+something to add unilaterally:
+
+- A line in `CLAUDE.md` pointing at this skill, so it arrives in context on every session
+  instead of depending on selection.
+- A `PreToolUse` hook on Edit and Write that refuses when `docs/worklog.md` carries no
+  entry for the work in progress.
+
+Until one of those exists, treat a missing log entry as the likeliest failure mode, not as
+evidence that no planning was needed.
 
 ## What this skill is not for
 

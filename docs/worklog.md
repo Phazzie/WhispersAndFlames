@@ -7,6 +7,35 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-09-11
 
+### Sourcery review round on PR #92
+
+Two blocking findings, both correct, both fixed in the skill itself rather than by widening
+the PR.
+
+**Finding 1 — bucket 2 during autonomous runs was self-approval.** "Decide the way the
+owner would" turned "propose it; do not assume it" into "assume it", which is the silent
+bundling the skill exists to stop. Fixed: bucket 2 is unavailable while the owner is away
+and collapses to bucket 3, with one narrow exception for a live security or privacy hole or
+active data loss — and even then the work goes in its own commit so it can be lifted back
+out.
+
+This finding would have forbidden what I actually did on PR #91 with the `playerIds` read
+escalation. That is the right outcome, and the worked example in the skill now shows the
+decision going the other way.
+
+**Finding 2 — the skill overclaimed.** It reads as a requirement, but a model-invoked skill
+fires only when selected, and nothing in the diff enforces it. Sourcery suggested softening
+the description to "guidance"; rejected, because description strength is what drives
+selection, so softening it makes the gap wider. Fixed by stating the limit honestly in a new
+section and naming the two things that would actually enforce it — a `CLAUDE.md` pointer, or
+a `PreToolUse` hook on Edit and Write.
+
+#### Found: enforcement needs CLAUDE.md or a hook → bucket 2, proposed not done
+
+Both were on this plan's "explicitly not doing" list. Doing either now would be the drift
+signal firing: the exclusion list quietly becoming things I did. Owner is reachable, so the
+gate ends in a question rather than a judgment. Raised with them; not implemented.
+
 ### Add the plan-first skill
 
 **Goal:** a skill that forces a written plan before any edit, and routes mid-task
