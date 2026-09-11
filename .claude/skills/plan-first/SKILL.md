@@ -41,6 +41,27 @@ by deleting someone else's line to make the merge clean.
 The log is for the owner to read, so write it for them: what you set out to do, what you
 found, what you decided, why. Not a transcript.
 
+### What does not go in the log
+
+**Unfixed security and privacy specifics.** This repository is public. A bucket-3 entry
+spelling out an exploitable authorization or privacy hole publishes a working attack before
+the fix exists. Record the fact and the shape — "unfixed read-access gap on the game GET
+route, specifics sent privately" — and get the details to the owner out of band. Redaction
+is not suppression: the entry still exists, so the finding cannot quietly disappear.
+
+**Anything found during a read-only pass.** A code review, an audit, an investigation that
+changes nothing writes no log entry at all. Writing one dirties a worktree that is supposed
+to stay clean, and on a review branch it risks committing reviewer notes into the change
+under review. Findings from a read-only pass belong in the review itself.
+
+### The log alone is not durable
+
+An entry only reaches the owner's running file if its branch merges. A deferred bucket-3
+find recorded on a branch that is later abandoned is lost exactly when losing it hurts
+most — it was the one thing deliberately left undone. So for any deferred find worth
+returning to, open a tracker issue and reference it from the log entry. The log says what
+happened; the issue outlives the branch.
+
 ## Before any edit
 
 Write the plan first. **Size it to the work** — this is the part that decides whether the

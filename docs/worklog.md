@@ -7,6 +7,39 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-09-11
 
+### Codex review round on PR #92
+
+Five findings on the pre-fix commit. One was already fixed, three are fixed here, one is the
+owner's call.
+
+**Already fixed (P1, bucket-2 self-approval).** Same finding Sourcery raised; closed in
+9ab36d5 before Codex's review ran. Two independent reviewers landing on it says the original
+wording was genuinely wrong, not borderline.
+
+**Unfixed security specifics in a public log (P1).** This repository is public, so writing
+exploit detail for a bucket-3 find into a tracked file publishes a working attack before the
+fix lands. The log now takes the fact and the shape, with specifics going to the owner out of
+band. Redaction, not suppression — the entry still exists so the finding cannot vanish.
+
+**Read-only passes wrote log entries (P2).** The skill fires on PR review rounds, where
+nothing should be written. That dirties a worktree meant to stay clean and risks committing
+reviewer notes into the change under review. Read-only passes now write nothing; findings go
+to the review.
+
+**Log entries die with their branch (P2).** An entry only reaches the owner's running file if
+the branch merges, so a deferred find on an abandoned branch is lost precisely when that
+hurts most. Deferred finds worth returning to now get a tracker issue, referenced from the
+log.
+
+#### Found: existing docs already publish unfixed privacy detail → bucket 3, separate
+
+The redaction rule I just added is already violated by content in this repo. PR #91's
+`docs/prd/sealed-answers-and-consent-gated-discovery.md` describes the live answer leak in
+full, including the exact route and why the UI guard does not help, and #91 is not merged so
+the leak is unfixed. Not changing it here: rewriting a PRD in an open security review is the
+drift this skill exists to stop, and whether to redact published design docs is the owner's
+decision. Raised with them.
+
 ### Sourcery review round on PR #92
 
 Two blocking findings, both correct, both fixed in the skill itself rather than by widening
