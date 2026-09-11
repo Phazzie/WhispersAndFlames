@@ -31,14 +31,15 @@ the branch merges, so a deferred find on an abandoned branch is lost precisely w
 hurts most. Deferred finds worth returning to now get a tracker issue, referenced from the
 log.
 
-#### Found: existing docs already publish unfixed privacy detail → bucket 3, separate
+#### Found: an earlier design doc overshares an unfixed issue → bucket 3, separate
 
-The redaction rule I just added is already violated by content in this repo. PR #91's
-`docs/prd/sealed-answers-and-consent-gated-discovery.md` describes the live answer leak in
-full, including the exact route and why the UI guard does not help, and #91 is not merged so
-the leak is unfixed. Not changing it here: rewriting a PRD in an open security review is the
-drift this skill exists to stop, and whether to redact published design docs is the owner's
-decision. Raised with them.
+The redaction rule added in this same commit is already violated by a document committed
+earlier in this repository. Deliberately not naming it here. A public pointer to an
+unremediated issue is precisely what the rule exists to prevent, and repeating the locator
+would defeat the rule in the commit that introduced it.
+
+Specifics sent to the owner out of band. Whether to redact published design docs is their
+decision, and not one to take inside an open security review — so nothing changed here.
 
 ### Sourcery review round on PR #92
 
