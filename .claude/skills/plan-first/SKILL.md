@@ -157,13 +157,28 @@ Either way, decide the way this particular owner would — not by a generic rule
 what you know about them — and then **write the inference down**, not just the decision:
 
 ```md
-#### Found: playerIds accepts arbitrary ids → would be bucket 2, treated as bucket 3
+#### Found: a failed save discards the text the user typed → would be bucket 2, treated as bucket 3
 
-Grants a stranger permanent read access to both partners' answers.
+Annoying, not dangerous, and not in the files this change touches.
 Owner is away, so folding it into the open PR is not mine to approve. Judging they would
-want it fixed soon but separately: a privacy fix that arrives inside an authorization PR is
-a privacy fix nobody reviewed on its own merits.
+want it soon but separately: a UX fix riding along with a schema change gets read as an
+afterthought by the reviewers of both.
 Logged as the next work item and named at the top of the PR body.
+Correct me if that's wrong.
+```
+
+And the exception, where leaving it alone is worse than a wider diff. Note that this entry
+carries no field, route, or mechanism — the log is public, so the specifics go to the owner
+separately:
+
+```md
+#### Found: a live read-access gap, specifics sent privately → exception, own commit
+
+Data readable by people who should not see it, on a path this change does not touch. Open
+right now, so deferring it leaves real users exposed across a whole review cycle.
+Owner is away. Taking the exception rather than bucket 3: fixed in its own commit, named at
+the top of the PR body, so they can lift it straight back out if they disagree.
+Specifics deliberately absent — see "What does not go in the log".
 Correct me if that's wrong.
 ```
 

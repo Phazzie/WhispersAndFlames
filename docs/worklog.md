@@ -7,6 +7,24 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-09-11
 
+### Codex review round 2 on PR #92
+
+Two P1 findings, both on the same worked example, both correct.
+
+**The example published a live hole (P1).** It named the mutable field and the access it
+grants. Codex verified the field is still accepted on this branch's base, so the example was
+an actionable description of an open issue — exactly what the redaction rule added one commit
+earlier forbids. Replaced with a non-security example.
+
+**The example contradicted the rule above it (P1).** It classified a live privacy hole as
+bucket 3, "logged, left undone", while the rule two paragraphs up says a live hole is the
+narrow exception and must be fixed in its own commit. An agent following the example would
+have knowingly left data exposed. There are now two examples: one deferring a non-urgent
+find, one taking the exception, written without specifics so it demonstrates the redaction
+rule at the same time.
+
+Also redacted a field name from this log's earlier entry, for the same reason.
+
 ### Codex review round on PR #92
 
 Five findings on the pre-fix commit. One was already fixed, three are fixed here, one is the
@@ -53,9 +71,9 @@ and collapses to bucket 3, with one narrow exception for a live security or priv
 active data loss — and even then the work goes in its own commit so it can be lifted back
 out.
 
-This finding would have forbidden what I actually did on PR #91 with the `playerIds` read
-escalation. That is the right outcome, and the worked example in the skill now shows the
-decision going the other way.
+This finding would have forbidden something I actually did on an earlier PR: folding a
+read-access fix into an unrelated authorization change. That is the right outcome, and the
+worked example in the skill now shows the decision going the other way.
 
 **Finding 2 — the skill overclaimed.** It reads as a requirement, but a model-invoked skill
 fires only when selected, and nothing in the diff enforces it. Sourcery suggested softening
