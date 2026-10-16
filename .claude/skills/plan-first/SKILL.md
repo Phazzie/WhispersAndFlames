@@ -41,18 +41,30 @@ by deleting someone else's line to make the merge clean.
 The log is for the owner to read, so write it for them: what you set out to do, what you
 found, what you decided, why. Not a transcript.
 
-### What does not go in the log
+### Unfixed security and privacy detail stays out of anything public
 
-**Unfixed security and privacy specifics.** This repository is public. A bucket-3 entry
-spelling out an exploitable authorization or privacy hole publishes a working attack before
-the fix exists. Record the fact and the shape — "unfixed read-access gap on the game GET
-route, specifics sent privately" — and get the details to the owner out of band. Redaction
-is not suppression: the entry still exists, so the finding cannot quietly disappear.
+This repository is public, and so is every pull request, review, comment and commit message
+in it. Spelling out an exploitable authorization or privacy hole publishes a working attack
+before the fix exists, and that is equally true of the work log, a PR body, a review
+comment, a commit message and a code comment. **The destination does not change the rule.**
+
+Record the fact and the shape, with no route, field, file, or mechanism — "unfixed
+read-access gap, specifics sent privately" — and get the detail to the owner out of band.
+Redaction is not suppression: the record still exists, so the finding cannot quietly
+disappear.
+
+This has been got wrong three times in this file's own history, each time by redacting one
+destination and leaving the next one open: the log, then a PR comment pointing at the log,
+then a worked example. If you are about to describe an unremediated issue anywhere at all,
+that is this rule firing.
+
+### What does not go in the log
 
 **Anything found during a read-only pass.** A code review, an audit, an investigation that
 changes nothing writes no log entry at all. Writing one dirties a worktree that is supposed
 to stay clean, and on a review branch it risks committing reviewer notes into the change
-under review. Findings from a read-only pass belong in the review itself.
+under review. Findings from a read-only pass go in the review — which is a public
+destination, so the redaction rule above governs what the review may say.
 
 ### The log alone is not durable
 
@@ -185,7 +197,7 @@ Data readable by people who should not see it, on a path this change does not to
 right now, so deferring it leaves real users exposed across a whole review cycle.
 Owner is away. Taking the exception rather than bucket 3: fixed in its own commit, named at
 the top of the PR body, so they can lift it straight back out if they disagree.
-Specifics deliberately absent — see "What does not go in the log".
+Specifics deliberately absent — see the redaction rule above.
 Correct me if that's wrong.
 ```
 

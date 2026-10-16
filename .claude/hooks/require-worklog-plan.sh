@@ -45,9 +45,13 @@ file_path="$(
     process.stdin.on("end", () => {
       try {
         const parsed = JSON.parse(raw);
+        // NotebookEdit names its target notebook_path, not file_path. Reading
+        // only file_path yielded an empty string and allowed every notebook
+        // edit, so adding NotebookEdit to the matcher gated nothing.
+        const target = parsed?.tool_input?.file_path ?? parsed?.tool_input?.notebook_path ?? "";
         // Windows gives backslash separators even under Git Bash, and a
         // forward-slash comparison would never match them.
-        process.stdout.write(String(parsed?.tool_input?.file_path ?? "").replace(/\\/g, "/"));
+        process.stdout.write(String(target).replace(/\\/g, "/"));
       } catch {
         process.exit(3);
       }
@@ -70,19 +74,36 @@ repo_root="${repo_root//\\//}"
 repo_root="${repo_root%/}"
 
 # Paths outside this project are none of this gate's business.
+#
+# Matched case-insensitively: Windows paths are case-insensitive, so an edit
+# whose drive letter or directory casing differs from CLAUDE_PROJECT_DIR names
+# the same file. A case-sensitive comparison read it as external and let an
+# in-project edit through with no plan. The prefix is then stripped by length
+# rather than by pattern, since the spellings may differ in case.
+shopt -s nocasematch
 case "$file_path" in
-  "$repo_root"/*) rel="${file_path#"$repo_root"/}" ;;
-  /* | [A-Za-z]:/*) exit 0 ;;
+  "$repo_root"/*) rel="${file_path:$((${#repo_root} + 1))}" ;;
+  /* | [A-Za-z]:/*) shopt -u nocasematch; exit 0 ;;
   *) rel="$file_path" ;;
 esac
+shopt -u nocasematch
 
 # The log itself must stay writable, or writing the plan is impossible — and
 # the policy leans on that: even an incident is one log line before the fix.
 [ "$rel" = "$LOG_PATH" ] && exit 0
 
-# ":/" anchors the pathspec at the repository root regardless of cwd.
-if git -C "$repo_root" diff --name-only -- ":/$LOG_PATH" 2>/dev/null | grep -qx "$LOG_PATH"; then exit 0; fi
-if git -C "$repo_root" diff --cached --name-only -- ":/$LOG_PATH" 2>/dev/null | grep -qx "$LOG_PATH"; then exit 0; fi
+# ":/" anchors the pathspec at the repository root regardless of cwd, and
+# --porcelain reports staged and unstaged changes in one call.
+#
+# The query's own failure is captured rather than swallowed. Piping straight
+# into grep hid it, so a missing git produced a denial instead of the inert
+# result promised above — and left no way out, since writing the plan does not
+# help when the check that reads it keeps failing.
+if ! log_status="$(git -C "$repo_root" status --porcelain -- ":/$LOG_PATH" 2>/dev/null)"; then
+  inert "git could not inspect $LOG_PATH"
+fi
+
+[ -n "$log_status" ] && exit 0
 
 cat <<JSON
 {

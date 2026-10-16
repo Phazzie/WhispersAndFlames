@@ -7,6 +7,31 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-10-16
 
+### Codex review round 6 on PR #92 — four findings, all mine
+
+**Goal:** close four findings. One P1: the redaction rule only ever covered the work log, so
+routing a read-only pass's findings into "the review" opened a second public destination for
+the detail the rule exists to withhold. Same mistake as two rounds ago, one destination
+further along.
+
+**Why now:** three of the four mean the gate does not do what the previous commit claimed.
+`NotebookEdit` supplies `notebook_path`, not `file_path`, so adding it to the matcher gated
+nothing. Windows path comparison is case-sensitive here but case-insensitive there, so a
+differently-cased in-project path reads as external and passes. And a failed git query falls
+through to deny rather than inert, which both contradicts the documented fail-open and leaves
+no way out, since writing the plan does not help if the check that reads it keeps failing.
+
+**Files:** `.claude/hooks/require-worklog-plan.sh`, `.claude/skills/plan-first/SKILL.md`,
+`docs/worklog.md`
+
+**Done when:** notebook edits are gated, path classification is case-insensitive, a git
+failure reports inert, and the redaction rule names every public destination rather than
+just this file.
+
+**Explicitly not doing:** not rewriting the hook in another language. Each round has found
+real path-handling faults in shell, which is an argument worth recording, but swapping the
+implementation mid-review is a bigger change than the findings justify.
+
 ### Codex review round 5 on PR #92 — six findings, all mine
 
 **Goal:** close six findings against the hook, its settings entry, and the `CLAUDE.md`
