@@ -43,7 +43,7 @@ async function testConcurrentUpdates(): Promise<TestResult> {
       summary: '',
       imageGenerationCount: 0,
       step: 'lobby' as const,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
 
     await storage.games.create(roomCode, initialState);
@@ -141,7 +141,7 @@ async function testQueryPerformance(): Promise<TestResult> {
         summary: '',
         imageGenerationCount: 0,
         step: 'lobby' as const,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       });
     });
 

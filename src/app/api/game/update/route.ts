@@ -8,10 +8,11 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_ANSWER_LENGTH,
 } from '@/lib/api-constants';
+import { authorizeGameUpdate, GameUpdateRefusedError } from '@/lib/game-authorization';
 import type { GameState, Player } from '@/lib/game-types';
 import { storage } from '@/lib/storage-adapter';
 import { logger } from '@/lib/utils/logger';
-import { getRateLimitIdentifier, RateLimiter } from '@/lib/utils/rate-limiter';
+import { RateLimiter } from '@/lib/utils/rate-limiter';
 import { sanitizeHtml, truncateInput } from '@/lib/utils/security';
 
 const updateGameRateLimiter = new RateLimiter(RATE_LIMIT_GAME_UPDATE, RATE_LIMIT_WINDOW_MS / 60000);
@@ -47,9 +48,6 @@ const updateGameSchema = z.object({
     .object({
       step: z.enum(['lobby', 'categories', 'spicy', 'game', 'summary']).optional(),
       players: z.array(playerSchema).optional(),
-      playerIds: z.array(z.string()).optional(),
-      gameMode: z.enum(['online', 'local']).optional(),
-      currentPlayerIndex: z.number().int().min(0).optional(),
       commonCategories: z.array(z.string()).optional(),
       finalSpicyLevel: z.enum(['Mild', 'Medium', 'Hot', 'Extra-Hot']).optional(),
       chaosMode: z.boolean().optional(),
@@ -60,7 +58,10 @@ const updateGameSchema = z.object({
       summary: z.string().optional(),
       visualMemories: z.array(visualMemorySchema).optional(),
       imageGenerationCount: z.number().int().min(0).optional(),
-      hostId: z.string().optional(),
+      // Set once, when the summary lands. Absent from this schema until now,
+      // which — since the schema is strict — meant the end-of-game write was
+      // rejected with a 400 and no completed game ever saved its summary.
+      completedAt: z.string().datetime().optional(),
     })
     .strict(),
 });
@@ -76,9 +77,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // Rate limiting: 60 updates per minute per IP (allows rapid gameplay)
-    const clientIp = getRateLimitIdentifier(request);
-    const rateLimit = updateGameRateLimiter.check(`game-update:${clientIp}`);
+    // Clerk authentication. Runs before rate limiting so the limiter can key by
+    // user: an IP key puts both partners behind one router in the same bucket,
+    // which is the bug already fixed on the polled GET route. Safe because
+    // clerkMiddleware rejects unauthenticated traffic before this handler, so
+    // the limiter only ever sees authenticated requests.
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401 }
+      );
+    }
+
+    // Rate limiting: 60 updates per minute per user (allows rapid gameplay)
+    const rateLimit = updateGameRateLimiter.check(`game-update:${userId}`);
     if (!rateLimit.allowed) {
       const rateLimitHeaders: Record<string, string> = {};
       if (rateLimit.retryAfter !== undefined) {
@@ -97,16 +111,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please slow down.' } },
         { status: 429, headers: rateLimitHeaders }
-      );
-    }
-
-    // Clerk authentication
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
       );
     }
 
@@ -132,27 +136,46 @@ export async function POST(request: Request) {
       );
     }
 
-    // Sanitize game rounds to prevent XSS
-    const sanitizedUpdates = { ...updates };
-    if (updates.gameRounds && Array.isArray(updates.gameRounds)) {
-      sanitizedUpdates.gameRounds = updates.gameRounds.map((round) => {
-        const sanitizedAnswers: Record<string, string> = {};
-        for (const [playerId, answer] of Object.entries(round.answers || {})) {
-          sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
-        }
-        return { ...round, answers: sanitizedAnswers };
-      });
-    }
-
+    // Field-level authorization: being in the game does not mean you may write
+    // every field of it. This runs inside the storage write transaction rather
+    // than here, against the row the write actually locks — authorizing against
+    // the unlocked read above would let a partner's concurrent write slip
+    // between the check and the update and be reverted by it.
     const updatedGame = await storage.games.update(
       roomCode,
-      sanitizedUpdates as Partial<GameState>
+      updates as Partial<GameState>,
+      (current) => {
+        const authorization = authorizeGameUpdate(current, userId, updates as Partial<GameState>);
+        if (!authorization.ok) return authorization;
+
+        // Sanitize game rounds to prevent XSS, on the authorized values.
+        const sanitizedUpdates = { ...authorization.updates };
+        if (authorization.updates.gameRounds && Array.isArray(authorization.updates.gameRounds)) {
+          sanitizedUpdates.gameRounds = authorization.updates.gameRounds.map((round) => {
+            const sanitizedAnswers: Record<string, string> = {};
+            for (const [playerId, answer] of Object.entries(round.answers || {})) {
+              sanitizedAnswers[playerId] = sanitizeHtml(truncateInput(answer, MAX_ANSWER_LENGTH));
+            }
+            return { ...round, answers: sanitizedAnswers };
+          });
+        }
+
+        return { ok: true, updates: sanitizedUpdates };
+      }
     );
 
     logger.info('Game updated successfully', { roomCode, userId });
 
     return NextResponse.json({ game: updatedGame }, { status: 200 });
   } catch (error) {
+    if (error instanceof GameUpdateRefusedError) {
+      logger.warn('Rejected unauthorized field write', { reason: error.message });
+      return NextResponse.json(
+        { error: { code: 'FORBIDDEN', message: error.message } },
+        { status: 403 }
+      );
+    }
+
     if (error instanceof z.ZodError) {
       logger.warn('Game update validation failed', { error: error.errors });
       return NextResponse.json(

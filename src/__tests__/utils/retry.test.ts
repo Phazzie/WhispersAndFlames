@@ -35,3 +35,27 @@ describe('withRetry', () => {
     expect(operation).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('withRetry — explicitly non-retryable errors', () => {
+  it('does not retry an error carrying retryable: false', async () => {
+    // A deterministic refusal returns the same answer every attempt, so
+    // retrying only multiplies transactions, log noise and latency.
+    class Refused extends Error {
+      readonly retryable = false;
+    }
+    const operation = vi.fn().mockRejectedValue(new Refused('nope'));
+
+    await expect(withRetry(operation)).rejects.toThrow('nope');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('still retries an ordinary transient error', async () => {
+    const operation = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('connection reset'))
+      .mockResolvedValue('ok');
+
+    await expect(withRetry(operation)).resolves.toBe('ok');
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
+});

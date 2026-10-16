@@ -3,8 +3,6 @@
  * Provides better debugging and monitoring capabilities
  */
 
-import * as Sentry from '@sentry/nextjs';
-
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogEntry {
@@ -133,11 +131,12 @@ class Logger {
    * Error level logging
    */
   error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
-    if (process.env.SENTRY_DSN && error) {
-      Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
-        extra: context,
-      });
-    }
+    // No error-reporting sink is wired up. There was a Sentry.captureException
+    // call here gated on SENTRY_DSN, but nothing ever called Sentry.init() —
+    // no instrumentation.ts, no sentry.*.config.*, no withSentryConfig — so it
+    // reported nothing even with a DSN set, while looking like monitoring.
+    // Removed with the package. To add reporting for real, initialise a client
+    // at process start and call it here.
     const logEntry = this.formatLog('error', message, context);
 
     if (error instanceof Error) {

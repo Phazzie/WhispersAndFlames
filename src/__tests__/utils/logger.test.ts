@@ -2,14 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } fr
 
 import { logger, createLogger } from '@/lib/utils/logger';
 
-// The logger imports @sentry/nextjs and calls Sentry.captureException from
-// logger.error when SENTRY_DSN is set. Nothing in this repo ever calls
-// Sentry.init(), so that branch is dead code and is deliberately untested; the
-// mock exists only to keep the real SDK out of the test run.
-vi.mock('@sentry/nextjs', () => ({
-  captureException: vi.fn(),
-}));
-
 /**
  * The logger has two output shapes, chosen at call time from NODE_ENV:
  *  - production: a single JSON string per entry
