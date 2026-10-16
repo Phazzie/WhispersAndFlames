@@ -79,13 +79,14 @@ Single word. No behaviour change.
 For real work, enough to be steerable:
 
 ```md
-### 14:35 — field-level authorization on the update route
+### 14:35 — retry the question flow on an AI timeout
 
-**Goal:** a caller may only modify their own answer and their own player entry.
-**Why now:** either partner can currently forge the other's answers, which feed the AI summary.
-**Files:** src/lib/game-authorization.ts (new), src/app/api/game/update/route.ts
-**Done when:** attack cases refused, bulk un-ready reset still works, existing tests pass.
-**Explicitly not doing:** per-action endpoints, the lost-update races.
+**Goal:** a timed-out question request retries twice before surfacing an error.
+**Why now:** one slow upstream call ends the round with a toast, and both players have to
+start the step over.
+**Files:** src/app/game/actions.ts, src/ai/flows/generate-contextual-questions.ts
+**Done when:** a timeout retries, a refusal does not, existing flow tests pass.
+**Explicitly not doing:** the summary and therapist-notes flows; no timeout values change.
 ```
 
 That last line does the most work. Naming what you are _not_ doing is what makes later
@@ -152,6 +153,12 @@ One narrow exception: leaving it undone is actively unsafe — a live security o
 hole, or data being lost right now. Then do it, but **in its own commit**, so the owner can
 lift it back out without unpicking it from unrelated work. Say so at the top of the PR
 body, not buried in the diff.
+
+**The exception does not reach a read-only pass.** A review or an audit changes nothing by
+definition, and an urgent find does not convert it into a change. Report it at the top of
+the review, say plainly that it is live, and leave who fixes it and where to the owner.
+Editing a checkout you were asked only to read is how a reviewer's notes end up committed
+into the change under review.
 
 Either way, decide the way this particular owner would — not by a generic rule, but from
 what you know about them — and then **write the inference down**, not just the decision:

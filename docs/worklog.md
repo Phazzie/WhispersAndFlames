@@ -7,6 +7,19 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-10-16
 
+### Codex review round 3 on PR #92
+
+**Goal:** close the last two findings — a worked example that still discloses a live
+authorization gap, and an emergency exception that tells a read-only pass to edit the
+checkout.
+
+**Files:** `.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** no example in the file describes an unremediated issue, and the exception
+cannot be read as licence for a reviewer to commit.
+
+**Explicitly not doing:** nothing else in the skill; the enforcement work is already done.
+
 ### Enforce the plan-first gate
 
 **Goal:** make the gate bind rather than remind. Two independent reviewers found that a
