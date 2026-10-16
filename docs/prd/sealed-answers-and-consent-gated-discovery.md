@@ -187,31 +187,35 @@ const allPlayersAnswered =
 
 Omitting a partner's key breaks that count. Blanking the value preserves it.
 
-**But either choice collides with field-level authorization.** The client posts the whole
-`gameRounds` array back on every answer submit. `src/lib/game-authorization.ts` compares the
-proposal against storage and refuses when another player's answer differs — including when
-it is blanked, and including when it is dropped:
+**How the projection interacts with field-level authorization.** The client posts the whole
+`gameRounds` array back on every answer submit, and `src/lib/game-authorization.ts` compares
+the proposal against storage. Blanking another player's answer is refused, because a changed
+value is indistinguishable from forgery and must stay decisive. **Omitting the key is not**:
+reconciliation starts from the stored answers, so an absent key is merged back rather than
+treated as a removal. That is deliberate — an honest client that polled before the partner
+answered sends a short map, and refusing it would discard that client's own submit.
 
-```ts
-if (storedAnswers[playerId] !== answer) → "Cannot submit another player's answer"
-// and
-if (playerId !== callerId && !(playerId in proposedAnswers)) → "Cannot remove another player's answer"
-```
+So a projection that _drops_ other players' answer keys round-trips without a 403, and no
+new endpoint is required to make it safe.
 
-So a projected client would post back a redacted array and get a **403 on every submit**. The
-game would stop working entirely.
+**An earlier version of this appendix said otherwise, and it is worth saying why.** It cited
+an omitted-answer check that refused a missing partner key. That check was removed during
+review for causing exactly the false refusals described above. On the strength of it, this
+appendix, `README.md` and `per-action-endpoints.md` all treated a new `/answer` route as a
+prerequisite for the minimal fix. It is not, and the documented scope was inflated.
 
-Loosening authorization to tolerate redactions is the wrong direction — it would reintroduce
-the forgery hole by making "this value differs from storage" no longer decisive.
+**The minimal fix, corrected:**
 
-**Therefore the minimal honest fix is a slice of `per-action-endpoints.md`:**
+1. Project other players' answers out of the GET response until the round completes.
+2. Add a submitted-count or per-player submitted flag to the projection, because
+   `allPlayersAnswered` in `game-step.tsx` counts the keys of the answers map and omitting a
+   key breaks that count.
 
-1. Add `POST /api/game/[roomCode]/answer` taking `{ questionIndex, text }`.
-2. Move `game-step.tsx`'s submit to it, so the client stops posting whole rounds.
-3. _Then_ project other players' answers out until the round completes.
+Two changes in the read path and one small client change. No new route, no change to the
+write path, and no loosening of authorization. Smaller than this appendix previously claimed
+and much smaller than the full consent model.
 
-That is one route, one component, and one projection — perhaps a day, versus the weeks this
-full PRD describes. It closes the live leak without waiting on the consent model, and it is
-the first step of the per-action work rather than throwaway.
+`per-action-endpoints.md` is still worth doing for the lost-update races it fixes. It is no
+longer a precondition for closing the leak.
 
 **Recommended: do this slice next, regardless of what is decided about the full model.**

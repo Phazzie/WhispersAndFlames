@@ -423,6 +423,56 @@ describe('authorizeGameUpdate', () => {
       expect(persisted.find((p) => p.id === 'user_carol')?.name).toBe('Carol');
     });
 
+    it('applies a bulk reset to a player the proposal omits', () => {
+      // Carol joined after Alice's last poll. Alice's step transition proposes
+      // un-readying the two players she can see, with everyone ready in
+      // storage — a genuine bulk reset. Carol must be reset too, or she enters
+      // the next step already ready and the next all-ready check passes on her
+      // stale flag.
+      const stored = game({
+        players: [
+          player(ALICE, { isReady: true, selectedSpicyLevel: 'Hot' }),
+          player(BOB, { isReady: true, selectedSpicyLevel: 'Hot' }),
+          player('user_carol', { name: 'Carol', isReady: true, selectedSpicyLevel: 'Hot' }),
+        ],
+        playerIds: [ALICE, BOB, 'user_carol'],
+      });
+
+      const result = authorizeGameUpdate(stored, ALICE, {
+        players: [player(ALICE, { isReady: false }), player(BOB, { isReady: false })],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected acceptance');
+
+      const persisted = result.updates.players ?? [];
+      expect(persisted).toHaveLength(3);
+      expect(persisted.every((p) => !p.isReady)).toBe(true);
+      expect(persisted.every((p) => p.selectedSpicyLevel === undefined)).toBe(true);
+    });
+
+    it('preserves an omitted player untouched when it is not a reset', () => {
+      const stored = game({
+        players: [
+          player(ALICE),
+          player(BOB),
+          player('user_carol', { name: 'Carol', isReady: true, selectedSpicyLevel: 'Hot' }),
+        ],
+        playerIds: [ALICE, BOB, 'user_carol'],
+      });
+
+      const result = authorizeGameUpdate(stored, ALICE, {
+        players: [player(ALICE, { isReady: true }), player(BOB)],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected acceptance');
+
+      const carol = (result.updates.players ?? []).find((p) => p.id === 'user_carol');
+      expect(carol?.isReady).toBe(true);
+      expect(carol?.selectedSpicyLevel).toBe('Hot');
+    });
+
     it('still refuses a player the game does not have', () => {
       const result = authorizeGameUpdate(game(), ALICE, {
         players: [player(ALICE), player(BOB), player(MALLORY, { name: 'Mallory' })],

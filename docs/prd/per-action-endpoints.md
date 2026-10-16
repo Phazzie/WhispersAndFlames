@@ -143,10 +143,14 @@ should be finished.
 **Split it.** The `/answer` route should come first and soon; the rest can wait.
 
 `sealed-answers-and-consent-gated-discovery.md` documents a live leak in the read path,
-described there without its specifics on purpose. Closing it requires the client to stop
-posting whole `gameRounds` arrays, because field-level authorization refuses a redacted
-array as tampering. So `/answer` is not merely the first slice of this work, it is a
-prerequisite for closing a privacy hole that exists today.
+described there without its specifics on purpose. An earlier version of this section called
+`/answer` a prerequisite for closing it, on the strength of an authorization check that was
+removed during review. It is not: reconciliation merges an omitted answer key back from
+storage, so a projection that drops other players' answers round-trips without a 403. See
+that PRD's appendix for the corrected, smaller fix.
+
+So this PRD stands on the lost-update races alone, which is reason enough, but it no longer
+blocks the privacy fix.
 
 Suggested order:
 

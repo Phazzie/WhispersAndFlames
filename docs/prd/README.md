@@ -14,12 +14,12 @@ Every "current state" claim below cites a file and was verified against `main`.
 
 ## Suggested order
 
-1. **The `/answer` slice** — closes a live leak in the read path: a partner's answers reach
-   your client before you have written yours. Specifics are deliberately absent from these
-   documents while the leak is open; see the sealed-answers PRD. The fix needs one new route
-   before the projection can work at all — the appendix there explains why a projection alone
-   would 403 every submit. Roughly a day, and it is the first step of the per-action work
-   rather than throwaway.
+1. **The answer projection** — closes a live leak in the read path: a partner's answers
+   reach your client before you have written yours. Specifics are deliberately absent from
+   these documents while the leak is open; see the sealed-answers PRD. Its appendix had this
+   needing a new route first and has been corrected — a projection that omits other players'
+   answers round-trips through authorization unchanged, so the fix is the projection plus a
+   submitted flag for the UI's all-answered count. Smaller than a day.
 2. **The trio decision** — a decision, not a build. Capping the game at two is a legitimate
    and much cheaper answer than supporting three.
 3. **The full consent-gated model** — the product bet: private ballots, mutual-approval

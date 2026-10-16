@@ -104,8 +104,18 @@ function authorizePlayers(
     // `players` wholesale, so dropping the entry here would remove that
     // player from the game — which is exactly what refusing truncation
     // elsewhere exists to prevent.
+    //
+    // Except under a recognised bulk reset, which applies to everyone. A
+    // player the client had not seen yet would otherwise keep isReady: true
+    // and enter the next step already ready — controls disabled, and the
+    // next all-ready check satisfied by a stale flag, advancing the step
+    // before they have done anything.
     if (!proposedPlayer) {
-      reconciled.push(storedPlayer);
+      reconciled.push(
+        isBulkReset
+          ? { ...storedPlayer, isReady: false, selectedSpicyLevel: undefined }
+          : storedPlayer
+      );
       continue;
     }
 
