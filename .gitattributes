@@ -1,0 +1,11 @@
+# Normalise line endings in the repository, and pin the files whose behaviour
+# depends on them.
+* text=auto
+
+# Shell scripts must be LF whatever the checkout. A Windows clone with
+# core.autocrlf=true would otherwise get CRLF, and bash fails to parse a
+# CRLF script and exits 2. For .claude/hooks/require-worklog-plan.sh that is
+# not a cosmetic problem: a PreToolUse exit 2 blocks the tool call, so every
+# Write and Edit would be denied, including the work-log edit that is the
+# documented way out.
+*.sh text eol=lf

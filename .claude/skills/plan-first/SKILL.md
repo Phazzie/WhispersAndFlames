@@ -163,8 +163,20 @@ and named in the PR body as the next thing.
 
 One narrow exception: leaving it undone is actively unsafe — a live security or privacy
 hole, or data being lost right now. Then do it, but **in its own commit**, so the owner can
-lift it back out without unpicking it from unrelated work. Say so at the top of the PR
-body, not buried in the diff.
+lift it back out without unpicking it from unrelated work. Say so at the top of the PR body,
+not buried in the diff.
+
+**And not in public, while production is still exposed.** This repository is public and
+production deploys from the default branch, so a fix pushed to a branch is visible for as
+long as it waits to merge — and a security fix's diff discloses the hole whatever the prose
+around it says. Redacting the PR body does not help; the patch is the disclosure.
+
+So the exception splits. If the fix does not reveal the hole, push it as above. If it does,
+and the owner is away, **do not push it**: report it to them privately and stop. Leaving a
+hole open for an hour is bad; publishing a working attack against live production and
+leaving it up until someone merges is worse, and that choice is the owner's to make, not a
+default to take on their behalf. If they want a private remediation path, that is a thing
+to set up before it is needed, not during.
 
 **The exception does not reach a read-only pass.** A review or an audit changes nothing by
 definition, and an urgent find does not convert it into a change. Report it at the top of
@@ -241,8 +253,11 @@ Where it ends, stated plainly rather than left to be discovered:
   not parse, the edit is allowed and the hook says the gate was inert. A gate that breaks
   the session gets deleted; a gate that disables itself quietly is worse than none, because
   you would go on believing it was working.
-- **It does not cover Bash.** A session that writes files through a shell command is not
-  stopped. Closing that would mean gating every Bash call, which is too blunt to live with.
+- **It does not cover the shell tools.** Neither Bash nor PowerShell is matched, so a
+  session that writes a file through `cat > x`, `Set-Content` or a script is not stopped.
+  Closing that would mean gating every shell call, which is too blunt to live with. Say
+  "shell tools", not "Bash" — describing the gap as Bash-only leaves a Windows user
+  believing the other shell is covered.
 - **It checks that an entry exists, not that it is honest.** Nothing verifies the entry
   describes the edit being made. A one-word entry passes.
 

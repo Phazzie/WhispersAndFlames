@@ -7,6 +7,30 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-10-16
 
+### Codex review round 7 on PR #92 — four findings, one severe
+
+**Goal:** close four findings. The severe one is a total lockout: with no root
+`.gitattributes`, a Windows checkout under `core.autocrlf=true` gets the hook with CRLF
+endings, bash fails to parse it and exits 2, and a PreToolUse exit 2 blocks the tool. Every
+Write and Edit would be denied — including the edit to this log that is the documented way
+out. Verified locally: a CRLF copy of a `set -uo pipefail` script exits 2.
+
+**Why now:** the Windows support added two commits ago is what makes this reachable, so the
+fix and the fault arrived together.
+
+**Files:** `.gitattributes` (new), `.claude/hooks/require-worklog-plan.sh`,
+`.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** the script is pinned to LF on checkout, case-insensitive path matching is
+limited to hosts where it is correct, the documented bypass covers shell tools generally
+rather than Bash alone, and the emergency exception stops telling an agent to publish a live
+hole's fix in a public PR before production has it.
+
+**Explicitly not doing:** still not rewriting the hook in another language. Seven rounds
+have found real faults in shell path and encoding handling, which is now a strong argument
+rather than a weak one — recorded for the owner rather than acted on, because swapping the
+implementation during review would discard the review.
+
 ### Codex review round 6 on PR #92 — four findings, all mine
 
 **Goal:** close four findings. One P1: the redaction rule only ever covered the work log, so

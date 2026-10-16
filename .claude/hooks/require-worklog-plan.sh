@@ -75,18 +75,39 @@ repo_root="${repo_root%/}"
 
 # Paths outside this project are none of this gate's business.
 #
-# Matched case-insensitively: Windows paths are case-insensitive, so an edit
-# whose drive letter or directory casing differs from CLAUDE_PROJECT_DIR names
-# the same file. A case-sensitive comparison read it as external and let an
-# in-project edit through with no plan. The prefix is then stripped by length
-# rather than by pattern, since the spellings may differ in case.
-shopt -s nocasematch
+# Exact match first. Windows paths are case-insensitive, so an edit whose drive
+# letter or directory casing differs from CLAUDE_PROJECT_DIR names the same
+# file, and a case-sensitive comparison read it as external and let an
+# in-project edit through with no plan.
+#
+# But case-insensitive matching is only correct where the filesystem is. On
+# Linux, /srv/App and /srv/app are different directories, and folding case
+# would classify an edit in the second as inside the first and deny it. So the
+# fallback is limited to hosts where the spelling can legitimately differ:
+# a drive-letter path, or a Windows-flavoured shell.
+rel=""
 case "$file_path" in
   "$repo_root"/*) rel="${file_path:$((${#repo_root} + 1))}" ;;
-  /* | [A-Za-z]:/*) shopt -u nocasematch; exit 0 ;;
-  *) rel="$file_path" ;;
 esac
-shopt -u nocasematch
+
+if [ -z "$rel" ]; then
+  case "${OSTYPE:-}:$file_path" in
+    msys* | cygwin* | win32* | *:[A-Za-z]:/*)
+      shopt -s nocasematch
+      case "$file_path" in
+        "$repo_root"/*) rel="${file_path:$((${#repo_root} + 1))}" ;;
+      esac
+      shopt -u nocasematch
+      ;;
+  esac
+fi
+
+if [ -z "$rel" ]; then
+  case "$file_path" in
+    /* | [A-Za-z]:/*) exit 0 ;;
+    *) rel="$file_path" ;;
+  esac
+fi
 
 # The log itself must stay writable, or writing the plan is impossible — and
 # the policy leans on that: even an incident is one log line before the fix.
