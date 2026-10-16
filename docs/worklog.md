@@ -5,6 +5,32 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ---
 
+## 2026-10-16
+
+### Enforce the plan-first gate
+
+**Goal:** make the gate bind rather than remind. Two independent reviewers found that a
+model-invoked skill fires only when selected, so an ordinary edit request can proceed
+without ever seeing it.
+
+**Why now:** the owner was asked and chose both mechanisms — a `CLAUDE.md` pointer so the
+skill arrives in context every session, and a `PreToolUse` hook that refuses an edit when
+this log has no entry for the work in progress.
+
+**Files:** `.claude/settings.json` (new), `.claude/hooks/require-worklog-plan.sh` (new),
+`CLAUDE.md`, `.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** the hook refuses an edit with no log entry, allows edits to this log itself,
+allows edits once an entry exists, and the skill no longer claims to be unenforced.
+
+**Explicitly not doing:** no change to what the four buckets mean, no retroactive log
+entries, no hook on Bash (a determined session can always shell out — this gate is a
+speed bump against drift, not a sandbox).
+
+Both of these were on the previous plan's "explicitly not doing" list. That list is being
+changed deliberately, by the owner's decision, which is the difference between updating a
+plan and drifting off one.
+
 ## 2026-09-11
 
 ### Codex review round 2 on PR #92

@@ -201,23 +201,29 @@ Any of these means: stop, re-read the plan, and either update it deliberately or
 Updating the plan is fine — plans should change when you learn something. What is not fine
 is the plan changing without anyone noticing, which is the same thing as having no plan.
 
-## What this skill does not enforce
+## How this is enforced, and where the enforcement ends
 
-Be honest about the mechanism: this is a model-invoked skill. It fires when it gets
-selected, and nothing written here can make that happen. An agent that never loads it can
-edit every file in the repo without putting a line in `docs/worklog.md`.
+A model-invoked skill fires only when it gets selected, so this file alone could not
+require anything. Two mechanisms close that, both of which the owner approved:
 
-So the guarantee is weaker than the language above — the skill sets the standard, it does
-not impose it. Two things would impose it, and both are the owner's call rather than
-something to add unilaterally:
+- **`CLAUDE.md` carries the rule.** It arrives in context every session and points here,
+  so the gate does not depend on this skill being selected.
+- **A `PreToolUse` hook refuses unplanned edits.** `.claude/hooks/require-worklog-plan.sh`
+  denies Edit and Write when `docs/worklog.md` has no entry for the work in progress —
+  dirty in the working tree, or carried by `HEAD` so work spanning a commit need not be
+  re-logged. Editing the log is always allowed, so the way out is to write the entry.
 
-- A line in `CLAUDE.md` pointing at this skill, so it arrives in context on every session
-  instead of depending on selection.
-- A `PreToolUse` hook on Edit and Write that refuses when `docs/worklog.md` carries no
-  entry for the work in progress.
+Where it ends, stated plainly rather than left to be discovered:
 
-Until one of those exists, treat a missing log entry as the likeliest failure mode, not as
-evidence that no planning was needed.
+- **The hook fails open.** If git is unavailable or the repo layout is unexpected, it
+  allows the edit. A gate that breaks the session gets deleted, and then there is no gate.
+- **It does not cover Bash.** A session that writes files through a shell command is not
+  stopped. Closing that would mean gating every Bash call, which is too blunt to live with.
+- **It checks that an entry exists, not that it is honest.** Nothing verifies the entry
+  describes the edit being made. A one-word entry passes.
+
+So this is a speed bump against drift, not a sandbox. It makes the unplanned edit take a
+deliberate step, which is the whole mechanism: scope creep survives on not being noticed.
 
 ## What this skill is not for
 
