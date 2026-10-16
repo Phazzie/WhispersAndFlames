@@ -91,7 +91,11 @@ export function useGameSession({
       }
     };
 
-    initializeGame();
+    // Deliberately not awaited: this is an effect body. Every failure path
+    // inside initializeGame is already caught and surfaced through setError, so
+    // `void` records that the floating promise is intentional rather than an
+    // unhandled rejection waiting to happen.
+    void initializeGame();
 
     return () => {
       isMounted = false;
