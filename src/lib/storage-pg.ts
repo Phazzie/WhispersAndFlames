@@ -167,7 +167,7 @@ export const storage = {
 
     update: async (
       roomCode: string,
-      updates: Partial<GameState>,
+      requestedUpdates: Partial<GameState>,
       reconcile?: GameUpdateReconcile
     ): Promise<GameState | undefined> => {
       return withRetry(async () => {
@@ -197,6 +197,15 @@ export const storage = {
             currentState = rawState;
           }
 
+          // Everything below derives an attempt-local value and never writes
+          // back into `requestedUpdates`. withRetry reruns this whole closure,
+          // so mutating the captured request would make the second attempt
+          // reconcile the *first attempt's output* — which carries the
+          // partner's fields as they stood then. A partner write in between
+          // would then read as this caller trying to change their fields, and
+          // a valid request would be refused on the retry.
+          let effective: Partial<GameState> = requestedUpdates;
+
           // Decide against the row we hold the lock on, not one the caller read
           // earlier — otherwise a partner's write between the two would be
           // reverted by an already-authorized request. See GameUpdateReconcile.
@@ -206,17 +215,17 @@ export const storage = {
               await client.query('ROLLBACK');
               throw new GameUpdateRefusedError(decision.reason);
             }
-            updates = decision.updates;
+            effective = decision.updates;
           }
 
           if (
-            updates.players &&
-            Array.isArray(updates.players) &&
+            effective.players &&
+            Array.isArray(effective.players) &&
             Array.isArray(currentState.players)
           ) {
             const mergedPlayers = [...currentState.players];
 
-            for (const incomingPlayer of updates.players) {
+            for (const incomingPlayer of effective.players) {
               const existingIndex = mergedPlayers.findIndex(
                 (player) => player.id === incomingPlayer.id
               );
@@ -227,20 +236,21 @@ export const storage = {
               }
             }
 
-            updates.players = mergedPlayers;
+            effective = { ...effective, players: mergedPlayers };
           }
 
           if (
-            updates.playerIds &&
-            Array.isArray(updates.playerIds) &&
+            effective.playerIds &&
+            Array.isArray(effective.playerIds) &&
             Array.isArray(currentState.playerIds)
           ) {
-            updates.playerIds = Array.from(
-              new Set([...currentState.playerIds, ...updates.playerIds])
-            );
+            effective = {
+              ...effective,
+              playerIds: Array.from(new Set([...currentState.playerIds, ...effective.playerIds])),
+            };
           }
 
-          const updatedState = { ...currentState, ...updates };
+          const updatedState = { ...currentState, ...effective };
 
           await client.query(
             'UPDATE games SET state = $1, updated_at = NOW() WHERE room_code = $2',

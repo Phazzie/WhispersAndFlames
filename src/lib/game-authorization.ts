@@ -58,12 +58,6 @@ export class GameUpdateRefusedError extends Error {
   }
 }
 
-function samePlayerIds(stored: Player[], proposed: Player[]): boolean {
-  if (stored.length !== proposed.length) return false;
-  const storedIds = new Set(stored.map((p) => p.id));
-  return proposed.every((p) => storedIds.has(p.id));
-}
-
 /**
  * Reconcile a proposed players array against what is stored.
  *
@@ -86,9 +80,18 @@ function authorizePlayers(
   // *stored* state means the exception is only available when the transition
   // it exists for is genuinely about to happen.
   const isBulkReset = proposed.every((p) => !p.isReady) && stored.every((p) => p.isReady);
-  // The player set changes through create/join only, never through update.
-  if (!samePlayerIds(stored, proposed)) {
-    return { ok: false, reason: 'Players cannot be added or removed by a game update' };
+
+  // Players join through create/join, never through update, so a proposal may
+  // only name ids the game already has.
+  //
+  // Omission is a different matter and must not be refused. A client that
+  // polled before a third player joined holds a stale array, and every step
+  // does a read-modify-write of the whole thing — so refusing the short array
+  // would 403 that client's own valid edit until it polled again. Same lesson
+  // as the omitted-answer and stale-partner-entry checks removed earlier.
+  const storedIds = new Set(stored.map((p) => p.id));
+  if (proposed.some((p) => !storedIds.has(p.id))) {
+    return { ok: false, reason: 'Players cannot be added by a game update' };
   }
 
   const byId = new Map(proposed.map((p) => [p.id, p]));
@@ -96,8 +99,14 @@ function authorizePlayers(
 
   for (const storedPlayer of stored) {
     const proposedPlayer = byId.get(storedPlayer.id);
+
+    // Absent from the proposal: keep storage. Both backends replace
+    // `players` wholesale, so dropping the entry here would remove that
+    // player from the game — which is exactly what refusing truncation
+    // elsewhere exists to prevent.
     if (!proposedPlayer) {
-      return { ok: false, reason: 'Players cannot be added or removed by a game update' };
+      reconciled.push(storedPlayer);
+      continue;
     }
 
     if (storedPlayer.id === callerId) {

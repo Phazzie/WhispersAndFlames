@@ -323,16 +323,27 @@ describe('authorizeGameUpdate', () => {
       expect(refusal(result)).toMatch(/outside a reset/i);
     });
 
-    it('refuses removing a player', () => {
+    it('cannot remove a player by omitting them', () => {
+      // An omitted player used to be a refusal. It is now accepted and
+      // preserved, because a client whose poll predates a join legitimately
+      // holds a short array — and refusing it discarded that client's own
+      // edit. What matters is the outcome, not the error: the omitted player
+      // must still be in the array that gets persisted.
       const result = authorizeGameUpdate(game(), BOB, { players: [player(BOB)] });
-      expect(refusal(result)).toMatch(/added or removed/i);
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error('expected acceptance');
+
+      const persisted = result.updates.players ?? [];
+      expect(persisted.map((p) => p.id).sort()).toEqual([ALICE, BOB].sort());
+      expect(persisted.find((p) => p.id === ALICE)).toEqual(player(ALICE));
     });
 
     it('refuses injecting a player', () => {
       const result = authorizeGameUpdate(game(), BOB, {
         players: [player(ALICE), player(BOB), player(MALLORY)],
       });
-      expect(refusal(result)).toMatch(/added or removed/i);
+      expect(refusal(result)).toMatch(/cannot be added/i);
     });
   });
 
@@ -385,6 +396,41 @@ describe('authorizeGameUpdate', () => {
     it('passes through an update that touches nothing owned', () => {
       const updates = allowed(authorizeGameUpdate(game(), BOB, { currentQuestion: 'Q2' }));
       expect(updates.currentQuestion).toBe('Q2');
+    });
+  });
+
+  describe('a player who joined after the client last polled', () => {
+    it('accepts a proposal that omits the newcomer, and keeps them', () => {
+      // Alice polled when the room held two players, then Carol joined. Alice's
+      // read-modify-write still carries the two-player array.
+      const carol = player('user_carol', { name: 'Carol' });
+      const stored = game({
+        players: [player(ALICE), player(BOB), carol],
+        playerIds: [ALICE, BOB, 'user_carol'],
+      });
+
+      const result = authorizeGameUpdate(stored, ALICE, {
+        players: [player(ALICE, { isReady: true }), player(BOB)],
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+
+      const persisted = result.updates.players ?? [];
+      expect(persisted.map((p) => p.id).sort()).toEqual([ALICE, BOB, 'user_carol'].sort());
+      // Alice's own edit lands, and Carol is not dropped from the game.
+      expect(persisted.find((p) => p.id === ALICE)?.isReady).toBe(true);
+      expect(persisted.find((p) => p.id === 'user_carol')?.name).toBe('Carol');
+    });
+
+    it('still refuses a player the game does not have', () => {
+      const result = authorizeGameUpdate(game(), ALICE, {
+        players: [player(ALICE), player(BOB), player(MALLORY, { name: 'Mallory' })],
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.reason).toMatch(/cannot be added/i);
     });
   });
 });
