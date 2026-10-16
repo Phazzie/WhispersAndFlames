@@ -142,8 +142,8 @@ should be finished.
 
 **Split it.** The `/answer` route should come first and soon; the rest can wait.
 
-`sealed-answers-and-consent-gated-discovery.md` documents a live leak — the GET route sends
-both players' answers to both clients every 2 seconds. Fixing it requires the client to stop
+`sealed-answers-and-consent-gated-discovery.md` documents a live leak in the read path,
+described there without its specifics on purpose. Closing it requires the client to stop
 posting whole `gameRounds` arrays, because field-level authorization refuses a redacted
 array as tampering. So `/answer` is not merely the first slice of this work, it is a
 prerequisite for closing a privacy hole that exists today.

@@ -23,19 +23,18 @@ never shipped. This is that idea ported onto the codebase that actually runs.
 
 ### 1. There is a live leak, today
 
-`GET /api/game/[roomCode]` returns the whole game object with no projection:
+The read endpoint returns the whole game object with no projection, so each player's client
+receives the other player's answers before the UI is willing to show them. The UI declines
+to draw them. The response does not.
 
-```ts
-return NextResponse.json({ game }, { status: 200 });
-```
+The specifics — route, field path, and poll cadence — are **deliberately left out of this
+document.** Together they are a recipe, this repository is public, and the leak is still
+open. They went to the owner in a separate note. Nothing here is needed to build the fix:
+the proposal below replaces the read path wholesale, which is what actually closes it.
 
-`game.gameRounds[].answers` holds **both** players' answers, and the client polls this
-route every 2 seconds. So your partner's answer is in your browser before you have written
-your own. The UI declines to draw it; the network tab does not.
-
-Anyone who opens devtools during a session can read what their partner wrote, at any point,
-including before answering. On an app whose premise is simultaneous honest disclosure, that
-is not a small thing — it converts a mutual reveal into a one-sided advantage, silently.
+The effect is the part worth arguing about. On an app whose premise is simultaneous honest
+disclosure, one side can hold what the other believes is still sealed. That turns a mutual
+reveal into a one-sided advantage, and the person on the losing end cannot tell.
 
 ### 2. Disclosure is unilateral, which is the harder problem
 
