@@ -1,0 +1,273 @@
+# Work log
+
+Newest first. One entry per piece of work, per the `plan-first` skill.
+Conflicts here are resolved by keeping both entries, never by deleting one.
+
+---
+
+## 2026-10-16
+
+### Codex review round 7 on PR #92 — four findings, one severe
+
+**Goal:** close four findings. The severe one is a total lockout: with no root
+`.gitattributes`, a Windows checkout under `core.autocrlf=true` gets the hook with CRLF
+endings, bash fails to parse it and exits 2, and a PreToolUse exit 2 blocks the tool. Every
+Write and Edit would be denied — including the edit to this log that is the documented way
+out. Verified locally: a CRLF copy of a `set -uo pipefail` script exits 2.
+
+**Why now:** the Windows support added two commits ago is what makes this reachable, so the
+fix and the fault arrived together.
+
+**Files:** `.gitattributes` (new), `.claude/hooks/require-worklog-plan.sh`,
+`.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** the script is pinned to LF on checkout, case-insensitive path matching is
+limited to hosts where it is correct, the documented bypass covers shell tools generally
+rather than Bash alone, and the emergency exception stops telling an agent to publish a live
+hole's fix in a public PR before production has it.
+
+**Explicitly not doing:** still not rewriting the hook in another language. Seven rounds
+have found real faults in shell path and encoding handling, which is now a strong argument
+rather than a weak one — recorded for the owner rather than acted on, because swapping the
+implementation during review would discard the review.
+
+### Codex review round 6 on PR #92 — four findings, all mine
+
+**Goal:** close four findings. One P1: the redaction rule only ever covered the work log, so
+routing a read-only pass's findings into "the review" opened a second public destination for
+the detail the rule exists to withhold. Same mistake as two rounds ago, one destination
+further along.
+
+**Why now:** three of the four mean the gate does not do what the previous commit claimed.
+`NotebookEdit` supplies `notebook_path`, not `file_path`, so adding it to the matcher gated
+nothing. Windows path comparison is case-sensitive here but case-insensitive there, so a
+differently-cased in-project path reads as external and passes. And a failed git query falls
+through to deny rather than inert, which both contradicts the documented fail-open and leaves
+no way out, since writing the plan does not help if the check that reads it keeps failing.
+
+**Files:** `.claude/hooks/require-worklog-plan.sh`, `.claude/skills/plan-first/SKILL.md`,
+`docs/worklog.md`
+
+**Done when:** notebook edits are gated, path classification is case-insensitive, a git
+failure reports inert, and the redaction rule names every public destination rather than
+just this file.
+
+**Explicitly not doing:** not rewriting the hook in another language. Each round has found
+real path-handling faults in shell, which is an argument worth recording, but swapping the
+implementation mid-review is a bigger change than the findings justify.
+
+### Codex review round 5 on PR #92 — six findings, all mine
+
+**Goal:** close six findings against the hook, its settings entry, and the `CLAUDE.md`
+summary. Two are P1.
+
+**Why now:** one is a real security issue — the hook path is rediscovered from the working
+directory, so another checkout could plant that path and get it executed. One is a
+contradiction I introduced in the previous commit: removing the HEAD exemption made the
+skill's "fix a production emergency first, log after" unperformable, because the hook now
+blocks that first fix.
+
+**Files:** `.claude/hooks/require-worklog-plan.sh`, `.claude/settings.json`, `CLAUDE.md`,
+`.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** the hook resolves from a fixed project directory, covers `NotebookEdit`,
+reads the log from the repository root whatever the working directory, matches Windows
+path separators, and no document tells a read-only pass to write an entry or an incident
+responder to do something the hook forbids.
+
+**Explicitly not doing:** no env-var bypass. Reconciling the emergency case by changing the
+policy — one log line first, which the hook always permits — is better than adding an
+escape hatch that an autonomous run could set for itself.
+
+### Codex review round 4 on PR #92 — the hook itself
+
+**Goal:** close two P1 findings against the hook added one commit earlier. Both are real
+and both made the gate weaker than its own documentation claimed.
+
+**Why now:** the first means the gate silently does nothing on a machine without `jq`,
+which this repository never required. The second means that after a task's plan is
+committed with its work, the next task's first edit passes with no plan at all — the
+per-task gate failing at exactly the boundary it exists for.
+
+**Files:** `.claude/hooks/require-worklog-plan.sh`, `.claude/skills/plan-first/SKILL.md`,
+`docs/worklog.md`
+
+**Done when:** the hook parses without `jq`, says so instead of allowing silently when it
+cannot run, and denies an edit whose plan was already committed.
+
+**Explicitly not doing:** no Bash coverage, and no session-scoped state. Dropping the
+grace entirely is simpler than tracking which task an edit belongs to, and the strictness
+matches the skill, which already says a review round is its own work.
+
+The gate denied my own next edit the moment the previous entry was committed, which is
+how this entry came to exist.
+
+### Codex review round 3 on PR #92
+
+**Goal:** close the last two findings — a worked example that still discloses a live
+authorization gap, and an emergency exception that tells a read-only pass to edit the
+checkout.
+
+**Files:** `.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** no example in the file describes an unremediated issue, and the exception
+cannot be read as licence for a reviewer to commit.
+
+**Explicitly not doing:** nothing else in the skill; the enforcement work is already done.
+
+### Enforce the plan-first gate
+
+**Goal:** make the gate bind rather than remind. Two independent reviewers found that a
+model-invoked skill fires only when selected, so an ordinary edit request can proceed
+without ever seeing it.
+
+**Why now:** the owner was asked and chose both mechanisms — a `CLAUDE.md` pointer so the
+skill arrives in context every session, and a `PreToolUse` hook that refuses an edit when
+this log has no entry for the work in progress.
+
+**Files:** `.claude/settings.json` (new), `.claude/hooks/require-worklog-plan.sh` (new),
+`CLAUDE.md`, `.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** the hook refuses an edit with no log entry, allows edits to this log itself,
+allows edits once an entry exists, and the skill no longer claims to be unenforced.
+
+**Explicitly not doing:** no change to what the four buckets mean, no retroactive log
+entries, no hook on Bash (a determined session can always shell out — this gate is a
+speed bump against drift, not a sandbox).
+
+Both of these were on the previous plan's "explicitly not doing" list. That list is being
+changed deliberately, by the owner's decision, which is the difference between updating a
+plan and drifting off one.
+
+## 2026-09-11
+
+### Codex review round 2 on PR #92
+
+Two P1 findings, both on the same worked example, both correct.
+
+**The example published a live hole (P1).** It named the mutable field and the access it
+grants. Codex verified the field is still accepted on this branch's base, so the example was
+an actionable description of an open issue — exactly what the redaction rule added one commit
+earlier forbids. Replaced with a non-security example.
+
+**The example contradicted the rule above it (P1).** It classified a live privacy hole as
+bucket 3, "logged, left undone", while the rule two paragraphs up says a live hole is the
+narrow exception and must be fixed in its own commit. An agent following the example would
+have knowingly left data exposed. There are now two examples: one deferring a non-urgent
+find, one taking the exception, written without specifics so it demonstrates the redaction
+rule at the same time.
+
+Also redacted a field name from this log's earlier entry, for the same reason.
+
+### Codex review round on PR #92
+
+Five findings on the pre-fix commit. One was already fixed, three are fixed here, one is the
+owner's call.
+
+**Already fixed (P1, bucket-2 self-approval).** Same finding Sourcery raised; closed in
+9ab36d5 before Codex's review ran. Two independent reviewers landing on it says the original
+wording was genuinely wrong, not borderline.
+
+**Unfixed security specifics in a public log (P1).** This repository is public, so writing
+exploit detail for a bucket-3 find into a tracked file publishes a working attack before the
+fix lands. The log now takes the fact and the shape, with specifics going to the owner out of
+band. Redaction, not suppression — the entry still exists so the finding cannot vanish.
+
+**Read-only passes wrote log entries (P2).** The skill fires on PR review rounds, where
+nothing should be written. That dirties a worktree meant to stay clean and risks committing
+reviewer notes into the change under review. Read-only passes now write nothing; findings go
+to the review.
+
+**Log entries die with their branch (P2).** An entry only reaches the owner's running file if
+the branch merges, so a deferred find on an abandoned branch is lost precisely when that
+hurts most. Deferred finds worth returning to now get a tracker issue, referenced from the
+log.
+
+#### Found: an earlier design doc overshares an unfixed issue → bucket 3, separate
+
+The redaction rule added in this same commit is already violated by a document committed
+earlier in this repository. Deliberately not naming it here. A public pointer to an
+unremediated issue is precisely what the rule exists to prevent, and repeating the locator
+would defeat the rule in the commit that introduced it.
+
+Specifics sent to the owner out of band. Whether to redact published design docs is their
+decision, and not one to take inside an open security review — so nothing changed here.
+
+### Sourcery review round on PR #92
+
+Two blocking findings, both correct, both fixed in the skill itself rather than by widening
+the PR.
+
+**Finding 1 — bucket 2 during autonomous runs was self-approval.** "Decide the way the
+owner would" turned "propose it; do not assume it" into "assume it", which is the silent
+bundling the skill exists to stop. Fixed: bucket 2 is unavailable while the owner is away
+and collapses to bucket 3, with one narrow exception for a live security or privacy hole or
+active data loss — and even then the work goes in its own commit so it can be lifted back
+out.
+
+This finding would have forbidden something I actually did on an earlier PR: folding a
+read-access fix into an unrelated authorization change. That is the right outcome, and the
+worked example in the skill now shows the decision going the other way.
+
+**Finding 2 — the skill overclaimed.** It reads as a requirement, but a model-invoked skill
+fires only when selected, and nothing in the diff enforces it. Sourcery suggested softening
+the description to "guidance"; rejected, because description strength is what drives
+selection, so softening it makes the gap wider. Fixed by stating the limit honestly in a new
+section and naming the two things that would actually enforce it — a `CLAUDE.md` pointer, or
+a `PreToolUse` hook on Edit and Write.
+
+#### Found: enforcement needs CLAUDE.md or a hook → bucket 2, proposed not done
+
+Both were on this plan's "explicitly not doing" list. Doing either now would be the drift
+signal firing: the exclusion list quietly becoming things I did. Owner is reachable, so the
+gate ends in a question rather than a judgment. Raised with them; not implemented.
+
+### Add the plan-first skill
+
+**Goal:** a skill that forces a written plan before any edit, and routes mid-task
+discoveries through four explicit buckets instead of absorbing them into whatever change
+is already open.
+
+**Why now:** PR #91 was opened as "field-level authorization" and shipped 22 files across
+10 commits — authorization plus a read-escalation fix, an end-of-game repair, timestamp
+typing, rate-limit keying, dead-dependency removal, and three PRDs. Every piece was real
+work. The owner never got a chance to say "that's a separate PR", because the question was
+never asked out loud. Scope creep does not feel like creep from the inside; it feels like
+doing a good job, which is why it needs a mechanical gate rather than good intentions.
+
+**Files:** `.claude/skills/plan-first/SKILL.md` (new), `docs/worklog.md` (new, this file)
+
+**Done when:** the skill is on its own branch with its own PR, and the two places where
+the draft overrode the owner are resolved in whichever direction they chose.
+
+**Explicitly not doing:** no settings.json hook to enforce it, no changes to CLAUDE.md, no
+retroactive log entries for work already merged.
+
+#### Owner decisions on the draft
+
+The first draft quietly overrode two instructions. Both went back to the owner:
+
+- **Planning threshold.** The ask was "any edit at all". The draft wrote "sized to the
+  edit". Owner chose **sized to the edit**, so the draft's wording stands — but it stood
+  by their decision, not by mine going unnoticed.
+- **Log layout.** The ask was "a running log". The draft wrote per-session files under
+  `docs/worklog/`, to dodge merge conflicts. Owner chose **one running file**. Changed to
+  this file, with an explicit rule that conflicts are resolved by keeping both entries.
+
+#### Found: the stop hook asked for a commit that would have drifted → bucket 3, separate
+
+Mid-task, the git stop hook asked for the untracked `.claude/` directory to be committed
+and pushed. The only branch this session is authorised to push is
+`claude/app-troubleshooting-r38hbx`, which is PR #91 — the authorization review. Complying
+would have dropped an unrelated working-style file into a security PR: the exact failure
+the skill exists to prevent, on its first use.
+
+Held it as a local unpushed commit instead, surfaced the branch question to the owner, and
+moved it here once they said "its own branch, then the PR". Logged rather than absorbed.
+
+#### Found: CLAUDE.md and the session config disagree about subagents → bucket 4, not ours
+
+`CLAUDE.md` documents a subagent ticket standard (`docs/SUBAGENT_TICKETS.md`); this
+session's harness config defaults subagents off. I had been describing the config line as
+though the owner had said it. They had not. Raised, and they confirmed the repo standard
+wins. No code change — recorded so it is not rediscovered.

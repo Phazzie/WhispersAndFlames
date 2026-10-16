@@ -1,0 +1,282 @@
+---
+name: plan-first
+description: Plan work before doing it, and route mid-task discoveries through the plan instead of silently absorbing them. Use this skill before ANY edit to this repo — a one-line fix, a refactor, a fix-everything session, a PR review round — and any time you find something unplanned while working. Especially important during autonomous runs where the owner is away and cannot object to scope growing. If you catch yourself about to fix something you did not set out to fix, that is exactly the moment this skill is for.
+---
+
+# Plan first, then hold the plan
+
+## Why this exists
+
+The failure this prevents is not "found a bug while doing something else." Finding
+things is good — the most valuable defect in this repo's August 2026 session was found
+sideways, while tightening an unrelated type.
+
+The failure is **deciding alone that the find belongs in the change you are already
+making.** That decision is the owner's, and it gets taken away silently.
+
+Concretely, PR #91 started as "field-level authorization" and shipped as 22 files and
+10 commits: authorization, plus a read-escalation fix, plus an end-of-game repair, plus
+timestamp typing, plus rate-limit keying, plus dead-dependency removal, plus three PRDs.
+Every piece was real. The owner never got to say "that's a separate PR," because there
+was never a moment where the question was asked.
+
+Scope creep does not feel like creep from the inside. It feels like doing a good job.
+That is exactly why it needs a mechanical gate rather than good intentions.
+
+## The log
+
+Everything goes in one running file:
+
+```
+docs/worklog.md
+```
+
+One file, not one per session — so there is a single place to look. Newest work at the
+top, under a `## YYYY-MM-DD` heading, with each plan and discovery nested beneath it.
+
+Two branches editing it will conflict, and the resolution is always the same: **keep both
+entries.** A conflict here is two pieces of history, not a disagreement. Never resolve it
+by deleting someone else's line to make the merge clean.
+
+The log is for the owner to read, so write it for them: what you set out to do, what you
+found, what you decided, why. Not a transcript.
+
+### Unfixed security and privacy detail stays out of anything public
+
+This repository is public, and so is every pull request, review, comment and commit message
+in it. Spelling out an exploitable authorization or privacy hole publishes a working attack
+before the fix exists, and that is equally true of the work log, a PR body, a review
+comment, a commit message and a code comment. **The destination does not change the rule.**
+
+Record the fact and the shape, with no route, field, file, or mechanism — "unfixed
+read-access gap, specifics sent privately" — and get the detail to the owner out of band.
+Redaction is not suppression: the record still exists, so the finding cannot quietly
+disappear.
+
+This has been got wrong three times in this file's own history, each time by redacting one
+destination and leaving the next one open: the log, then a PR comment pointing at the log,
+then a worked example. If you are about to describe an unremediated issue anywhere at all,
+that is this rule firing.
+
+### What does not go in the log
+
+**Anything found during a read-only pass.** A code review, an audit, an investigation that
+changes nothing writes no log entry at all. Writing one dirties a worktree that is supposed
+to stay clean, and on a review branch it risks committing reviewer notes into the change
+under review. Findings from a read-only pass go in the review — which is a public
+destination, so the redaction rule above governs what the review may say.
+
+### The log alone is not durable
+
+An entry only reaches the owner's running file if its branch merges. A deferred bucket-3
+find recorded on a branch that is later abandoned is lost exactly when losing it hurts
+most — it was the one thing deliberately left undone. So for any deferred find worth
+returning to, open a tracker issue and reference it from the log entry. The log says what
+happened; the issue outlives the branch.
+
+## Before any edit
+
+Write the plan first. **Size it to the work** — this is the part that decides whether the
+skill gets used or quietly abandoned. A plan that costs more than the fix will be skipped,
+and then the discipline is fiction.
+
+For a small edit, one line in the log is a plan:
+
+```md
+### 14:20 — fix typo in README install step
+
+Single word. No behaviour change.
+```
+
+For real work, enough to be steerable:
+
+```md
+### 14:35 — retry the question flow on an AI timeout
+
+**Goal:** a timed-out question request retries twice before surfacing an error.
+**Why now:** one slow upstream call ends the round with a toast, and both players have to
+start the step over.
+**Files:** src/app/game/actions.ts, src/ai/flows/generate-contextual-questions.ts
+**Done when:** a timeout retries, a refusal does not, existing flow tests pass.
+**Explicitly not doing:** the summary and therapist-notes flows; no timeout values change.
+```
+
+That last line does the most work. Naming what you are _not_ doing is what makes later
+drift visible — to you, and to whoever reads the log.
+
+If the plan takes more than a couple of minutes to write, that is a signal the work is
+bigger than it looked, which is worth knowing before starting rather than after.
+
+## The discovery gate
+
+**When you find something you did not set out to find, stop before touching it.**
+
+Not "finish this bit first, then think about it" — the finishing is where it gets
+absorbed. Stop at the moment of noticing, while the choice is still open.
+
+Then classify it into one of four buckets. Say which one, and why:
+
+**1. Blocks the plan.** You cannot deliver what you set out to deliver without it. Do it,
+and record that you did. _Example: a type fix won't compile because a caller passes the
+wrong shape — fixing that caller is part of the type fix._
+
+**2. Fits the plan's shape.** Same file, same concern, and a reviewer would find it odd to
+see one without the other. Propose it; do not assume it. _Example: while adding write
+authorization, finding a read-authorization hole two lines away._
+
+**3. Separate work.** Real, worth doing, but its own change with its own review.
+**Log it. Do not do it.** _Example: while fixing authorization, noticing every failed
+submit wipes the user's typed answer._
+
+**4. Not ours.** Out of scope for this project or this person's priorities. Log a line so
+it is not rediscovered from scratch, and move on.
+
+Bucket 3 is the one that gets skipped, and it is the one that matters. The pull to fix
+something you have already understood is strong — you have the context loaded, it would
+take ten minutes, it feels wasteful to walk away. Walk away anyway. The ten minutes is
+not the cost; the cost is a change that no longer matches its own description.
+
+### Recording a discovery
+
+```md
+#### Found: completedAt missing from the update schema → bucket 3, separate
+
+The end-of-game write sends { summary, completedAt }; the schema is .strict() and has no
+completedAt, so Zod 400s and no completed game ever saves its summary.
+Not in this change — this is a product-breaking bug that deserves its own PR and its own
+review, and burying it inside an authorization change hides it.
+Logged for: next work item.
+```
+
+## When the owner is away
+
+Autonomous runs are where this matters most and where the gate is weakest — there is
+nobody to propose bucket 2 to, and the temptation is to treat "they said fix everything"
+as blanket permission for any scope.
+
+It isn't. "Fix everything" authorizes the _work_, not the _bundling_.
+
+**So bucket 2 is not available while the owner is away.** There is no proposal without
+someone to propose to, and "they would have said yes" is an approval you granted yourself.
+A find that would have been bucket 2 is handled as bucket 3 instead: logged, left undone,
+and named in the PR body as the next thing.
+
+One narrow exception: leaving it undone is actively unsafe — a live security or privacy
+hole, or data being lost right now. Then do it, but **in its own commit**, so the owner can
+lift it back out without unpicking it from unrelated work. Say so at the top of the PR body,
+not buried in the diff.
+
+**And not in public, while production is still exposed.** This repository is public and
+production deploys from the default branch, so a fix pushed to a branch is visible for as
+long as it waits to merge — and a security fix's diff discloses the hole whatever the prose
+around it says. Redacting the PR body does not help; the patch is the disclosure.
+
+So the exception splits. If the fix does not reveal the hole, push it as above. If it does,
+and the owner is away, **do not push it**: report it to them privately and stop. Leaving a
+hole open for an hour is bad; publishing a working attack against live production and
+leaving it up until someone merges is worse, and that choice is the owner's to make, not a
+default to take on their behalf. If they want a private remediation path, that is a thing
+to set up before it is needed, not during.
+
+**The exception does not reach a read-only pass.** A review or an audit changes nothing by
+definition, and an urgent find does not convert it into a change. Report it at the top of
+the review, say plainly that it is live, and leave who fixes it and where to the owner.
+Editing a checkout you were asked only to read is how a reviewer's notes end up committed
+into the change under review.
+
+Either way, decide the way this particular owner would — not by a generic rule, but from
+what you know about them — and then **write the inference down**, not just the decision:
+
+```md
+#### Found: a failed save discards the text the user typed → would be bucket 2, treated as bucket 3
+
+Annoying, not dangerous, and not in the files this change touches.
+Owner is away, so folding it into the open PR is not mine to approve. Judging they would
+want it soon but separately: a UX fix riding along with a schema change gets read as an
+afterthought by the reviewers of both.
+Logged as the next work item and named at the top of the PR body.
+Correct me if that's wrong.
+```
+
+And the exception, where leaving it alone is worse than a wider diff. Note that this entry
+carries no field, route, or mechanism — the log is public, so the specifics go to the owner
+separately:
+
+```md
+#### Found: a live read-access gap, specifics sent privately → exception, own commit
+
+Data readable by people who should not see it, on a path this change does not touch. Open
+right now, so deferring it leaves real users exposed across a whole review cycle.
+Owner is away. Taking the exception rather than bucket 3: fixed in its own commit, named at
+the top of the PR body, so they can lift it straight back out if they disagree.
+Specifics deliberately absent — see the redaction rule above.
+Correct me if that's wrong.
+```
+
+The value is not the decision — it is that they can audit it in ten seconds instead of
+reconstructing it from a diff. A wrong call that was reasoned and recorded is recoverable.
+A right call that was silent still costs them their say.
+
+## Signals you have drifted
+
+Check these when work feels like it is sprawling:
+
+- **The title no longer describes the diff.** If the PR is called "fix X" and reviewing it
+  requires understanding Y and Z, scope has moved and the description is now misleading.
+- **You cannot state the goal in one sentence** without "and also."
+- **The plan's "explicitly not doing" list has quietly become things you did.**
+- **You are fixing something you found less than a minute ago** with no log entry for it.
+
+Any of these means: stop, re-read the plan, and either update it deliberately or split.
+
+Updating the plan is fine — plans should change when you learn something. What is not fine
+is the plan changing without anyone noticing, which is the same thing as having no plan.
+
+## How this is enforced, and where the enforcement ends
+
+A model-invoked skill fires only when it gets selected, so this file alone could not
+require anything. Two mechanisms close that, both of which the owner approved:
+
+- **`CLAUDE.md` carries the rule.** It arrives in context every session and points here,
+  so the gate does not depend on this skill being selected.
+- **A `PreToolUse` hook refuses unplanned edits.** `.claude/hooks/require-worklog-plan.sh`
+  denies Edit and Write unless `docs/worklog.md` is modified in the working tree, staged or
+  not. Editing the log is always allowed, so the way out is to write the entry.
+
+Committing the plan alongside its work closes that piece of work. The next piece needs its
+own entry — which is what this skill asks for regardless, since a review round or a
+follow-up is new work.
+
+Where it ends, stated plainly rather than left to be discovered:
+
+- **It fails open, but never in silence.** If git or node is missing, or the payload will
+  not parse, the edit is allowed and the hook says the gate was inert. A gate that breaks
+  the session gets deleted; a gate that disables itself quietly is worse than none, because
+  you would go on believing it was working.
+- **It does not cover the shell tools.** Neither Bash nor PowerShell is matched, so a
+  session that writes a file through `cat > x`, `Set-Content` or a script is not stopped.
+  Closing that would mean gating every shell call, which is too blunt to live with. Say
+  "shell tools", not "Bash" — describing the gap as Bash-only leaves a Windows user
+  believing the other shell is covered.
+- **It checks that an entry exists, not that it is honest.** Nothing verifies the entry
+  describes the edit being made. A one-word entry passes.
+
+So this is a speed bump against drift, not a sandbox. It makes the unplanned edit take a
+deliberate step, which is the whole mechanism: scope creep survives on not being noticed.
+
+## What this skill is not for
+
+**It is not for suppressing findings.** A gate that makes you ignore a live bug is worse
+than no gate. Every discovery gets logged. The gate governs what you _do_, not what you
+_notice_.
+
+**It is not a reason to stall mid-emergency, but it does not get skipped either.** An
+earlier version of this said "fix it, log it after", which the hook makes unperformable:
+it would deny the first fix. So the rule is one line in the log, then fix — editing the log
+is always permitted, and one line costs seconds. No bypass exists, deliberately: an escape
+hatch is something an autonomous run could set for itself, and then the gate is advisory
+again.
+
+**It is not a substitute for asking.** When the owner is reachable and the call is genuinely
+theirs — a product decision, a risk trade-off, anything touching auth or data deletion —
+the gate ends in a question, not a judgment.

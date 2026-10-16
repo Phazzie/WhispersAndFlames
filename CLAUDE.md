@@ -10,6 +10,7 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 
 ## Table of Contents
 
+0. [Plan Before You Edit](#plan-before-you-edit)
 1. [Project Overview](#project-overview)
 2. [Technology Stack](#technology-stack)
 3. [Directory Structure](#directory-structure)
@@ -23,6 +24,27 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 11. [Important Files Reference](#important-files-reference)
 12. [Things to Avoid](#things-to-avoid)
 13. [Delegating to Subagents](#delegating-to-subagents)
+
+---
+
+## Plan Before You Edit
+
+**Before any edit to this repository, write the plan in `docs/worklog.md`.** Before a
+one-line fix, before a refactor, before the first edit of a fix-everything session. Size
+the entry to the edit — one line is a plan for a one-line change, and one line is the whole
+requirement during an incident.
+
+A pass that changes nothing — a code review, an audit, an investigation — writes no entry
+at all. Its findings belong in the review.
+
+When you find something you did not set out to find, stop before touching it and say which
+of four buckets it falls in: it blocks the plan, it fits the plan's shape, it is separate
+work, or it is not ours. Separate work gets logged and left alone.
+
+`.claude/skills/plan-first/SKILL.md` is canonical — read it rather than working from this
+summary, and do not restate its rules here or elsewhere. A `PreToolUse` hook
+(`.claude/hooks/require-worklog-plan.sh`) refuses an edit when the log has no entry for the
+work in progress; editing the log itself is always allowed.
 
 ---
 
