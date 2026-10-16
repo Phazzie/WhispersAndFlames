@@ -30,8 +30,12 @@ This document provides comprehensive guidance for AI assistants (like Claude) wo
 ## Plan Before You Edit
 
 **Before any edit to this repository, write the plan in `docs/worklog.md`.** Before a
-one-line fix, before a refactor, before a PR review round. Size the entry to the edit — one
-line is a plan for a one-line change.
+one-line fix, before a refactor, before the first edit of a fix-everything session. Size
+the entry to the edit — one line is a plan for a one-line change, and one line is the whole
+requirement during an incident.
+
+A pass that changes nothing — a code review, an audit, an investigation — writes no entry
+at all. Its findings belong in the review.
 
 When you find something you did not set out to find, stop before touching it and say which
 of four buckets it falls in: it blocks the plan, it fits the plan's shape, it is separate

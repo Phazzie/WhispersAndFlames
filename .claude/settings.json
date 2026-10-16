@@ -2,11 +2,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$(git rev-parse --show-toplevel 2>/dev/null)/.claude/hooks/require-worklog-plan.sh\"",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/require-worklog-plan.sh\"",
             "timeout": 10,
             "statusMessage": "Checking the work log for a plan..."
           }

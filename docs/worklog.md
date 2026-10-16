@@ -7,6 +7,29 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-10-16
 
+### Codex review round 5 on PR #92 — six findings, all mine
+
+**Goal:** close six findings against the hook, its settings entry, and the `CLAUDE.md`
+summary. Two are P1.
+
+**Why now:** one is a real security issue — the hook path is rediscovered from the working
+directory, so another checkout could plant that path and get it executed. One is a
+contradiction I introduced in the previous commit: removing the HEAD exemption made the
+skill's "fix a production emergency first, log after" unperformable, because the hook now
+blocks that first fix.
+
+**Files:** `.claude/hooks/require-worklog-plan.sh`, `.claude/settings.json`, `CLAUDE.md`,
+`.claude/skills/plan-first/SKILL.md`, `docs/worklog.md`
+
+**Done when:** the hook resolves from a fixed project directory, covers `NotebookEdit`,
+reads the log from the repository root whatever the working directory, matches Windows
+path separators, and no document tells a read-only pass to write an entry or an incident
+responder to do something the hook forbids.
+
+**Explicitly not doing:** no env-var bypass. Reconciling the emergency case by changing the
+policy — one log line first, which the hook always permits — is better than adding an
+escape hatch that an autonomous run could set for itself.
+
 ### Codex review round 4 on PR #92 — the hook itself
 
 **Goal:** close two P1 findings against the hook added one commit earlier. Both are real

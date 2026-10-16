@@ -243,8 +243,12 @@ deliberate step, which is the whole mechanism: scope creep survives on not being
 than no gate. Every discovery gets logged. The gate governs what you _do_, not what you
 _notice_.
 
-**It is not a reason to stop mid-emergency.** If production is broken and you are fixing
-it, fix it. Log it after.
+**It is not a reason to stall mid-emergency, but it does not get skipped either.** An
+earlier version of this said "fix it, log it after", which the hook makes unperformable:
+it would deny the first fix. So the rule is one line in the log, then fix — editing the log
+is always permitted, and one line costs seconds. No bypass exists, deliberately: an escape
+hatch is something an autonomous run could set for itself, and then the gate is advisory
+again.
 
 **It is not a substitute for asking.** When the owner is reachable and the call is genuinely
 theirs — a product decision, a risk trade-off, anything touching auth or data deletion —
