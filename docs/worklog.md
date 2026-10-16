@@ -7,6 +7,29 @@ Conflicts here are resolved by keeping both entries, never by deleting one.
 
 ## 2026-10-16
 
+### Codex review round 4 on PR #92 — the hook itself
+
+**Goal:** close two P1 findings against the hook added one commit earlier. Both are real
+and both made the gate weaker than its own documentation claimed.
+
+**Why now:** the first means the gate silently does nothing on a machine without `jq`,
+which this repository never required. The second means that after a task's plan is
+committed with its work, the next task's first edit passes with no plan at all — the
+per-task gate failing at exactly the boundary it exists for.
+
+**Files:** `.claude/hooks/require-worklog-plan.sh`, `.claude/skills/plan-first/SKILL.md`,
+`docs/worklog.md`
+
+**Done when:** the hook parses without `jq`, says so instead of allowing silently when it
+cannot run, and denies an edit whose plan was already committed.
+
+**Explicitly not doing:** no Bash coverage, and no session-scoped state. Dropping the
+grace entirely is simpler than tracking which task an edit belongs to, and the strictness
+matches the skill, which already says a review round is its own work.
+
+The gate denied my own next edit the moment the previous entry was committed, which is
+how this entry came to exist.
+
 ### Codex review round 3 on PR #92
 
 **Goal:** close the last two findings — a worked example that still discloses a live

@@ -216,14 +216,19 @@ require anything. Two mechanisms close that, both of which the owner approved:
 - **`CLAUDE.md` carries the rule.** It arrives in context every session and points here,
   so the gate does not depend on this skill being selected.
 - **A `PreToolUse` hook refuses unplanned edits.** `.claude/hooks/require-worklog-plan.sh`
-  denies Edit and Write when `docs/worklog.md` has no entry for the work in progress —
-  dirty in the working tree, or carried by `HEAD` so work spanning a commit need not be
-  re-logged. Editing the log is always allowed, so the way out is to write the entry.
+  denies Edit and Write unless `docs/worklog.md` is modified in the working tree, staged or
+  not. Editing the log is always allowed, so the way out is to write the entry.
+
+Committing the plan alongside its work closes that piece of work. The next piece needs its
+own entry — which is what this skill asks for regardless, since a review round or a
+follow-up is new work.
 
 Where it ends, stated plainly rather than left to be discovered:
 
-- **The hook fails open.** If git is unavailable or the repo layout is unexpected, it
-  allows the edit. A gate that breaks the session gets deleted, and then there is no gate.
+- **It fails open, but never in silence.** If git or node is missing, or the payload will
+  not parse, the edit is allowed and the hook says the gate was inert. A gate that breaks
+  the session gets deleted; a gate that disables itself quietly is worse than none, because
+  you would go on believing it was working.
 - **It does not cover Bash.** A session that writes files through a shell command is not
   stopped. Closing that would mean gating every Bash call, which is too blunt to live with.
 - **It checks that an entry exists, not that it is honest.** Nothing verifies the entry
