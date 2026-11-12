@@ -6,7 +6,9 @@ export default defineConfig({
     environment: 'jsdom',
     // '.claude/**' holds Claude Code agent worktrees: full repo copies whose
     // test files would otherwise be collected alongside the real suite.
-    exclude: ['node_modules', 'e2e/**', '.next/**', 'dist/**', '.claude/**'],
+    // scripts/** uses node:test (see scripts/ai-review.test.mjs) and is
+    // executed with `node --test`.
+    exclude: ['node_modules', 'e2e/**', '.next/**', 'dist/**', '.claude/**', 'scripts/**'],
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     coverage: {
