@@ -33,11 +33,8 @@ does not exist for a dummy key.
 
 The audit job is that GitHub security workflow with the same outcomes:
 moderate findings are printed and do not fail the job; high or critical
-findings do. On the lockfile this port was added against, the high check
-exits 1 (40 high and 9 critical, including `next`, `vitest`, and
-`@sentry/nextjs`). This change does not upgrade dependencies, so the Depot
-`audit` job stays red until that tree is fixed. The other jobs do not depend
-on it.
+findings do. Moderate advisories can remain. The high check is what fails
+the job.
 
 `ai-review` calls Grok (`grok-4.5` on `https://api.x.ai/v1/chat/completions`)
 with `XAI_API_KEY`. With the key unset it prints `AI review skipped` and
