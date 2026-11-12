@@ -89,8 +89,8 @@ Rules:
 ```
 
 The dummy env trio above is throwaway by design, but it must stay in sync with
-the `env:` block in `.github/workflows/ci.yml` — when one changes, change both
-in the same commit.
+the `env:` block in `.github/workflows/ci.yml` and `.depot/workflows/ci.yml`.
+When one of those changes, change all three in the same commit.
 
 The trio covers builds, unit tests, and curl-level checks **only**. Browser
 e2e (`npm run test:e2e`) cannot run against dummy Clerk keys: clerkMiddleware

@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: depot-ubuntu-24.04
+    env:
+      # Throwaway values. Must match the trio in .github/workflows/ci.yml
+      # and docs/SUBAGENT_TICKETS.md. Real Clerk keys are not required to
+      # typecheck, lint, unit-test, or build.
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dGVzdC1jbGVyay1kdW1teS5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_SECRET_KEY: sk_test_dummy
+      XAI_API_KEY: xai-dummy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: node --test scripts/ai-review.test.mjs
+      - run: npm run build
+        env:
+          NODE_ENV: production
+
+  e2e:
+    runs-on: depot-ubuntu-24.04
+    # Pull requests only, matching .github/workflows/ci.yml. Browser e2e
+    # needs a real Clerk development instance: placeholder keys make
+    # clerkMiddleware redirect every page to a handshake host that does
+    # not exist. Leave the two secrets unset and this job records a skip
+    # and exits clean. GitHub's `e2e` environment (required reviewers)
+    # has no Depot equivalent; see docs/origin-ci.md.
+    if: github.event_name == 'pull_request'
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.E2E_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.E2E_CLERK_SECRET_KEY }}
+      XAI_API_KEY: xai-dummy
+    steps:
+      - name: Note when Clerk e2e secrets are absent
+        if: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY == '' || env.CLERK_SECRET_KEY == ''
+        run: echo "E2E tests skipped — E2E_CLERK_PUBLISHABLE_KEY / E2E_CLERK_SECRET_KEY secrets are not configured."
+
+      - name: Checkout code
+        if: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && env.CLERK_SECRET_KEY != ''
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && env.CLERK_SECRET_KEY != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && env.CLERK_SECRET_KEY != ''
+        run: npm ci
+
+      - name: Install Playwright browsers
+        if: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && env.CLERK_SECRET_KEY != ''
+        run: npx playwright install --with-deps
+
+      - name: Run E2E tests
+        if: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY != '' && env.CLERK_SECRET_KEY != ''
+        run: npm run test:e2e
+
+  audit:
+    runs-on: depot-ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      - name: Check for vulnerable dependencies
+        run: |
+          if npm audit --audit-level=high --json > audit.json; then
+            echo "No high or critical vulnerabilities found"
+          else
+            echo "High or critical vulnerabilities detected"
+            cat audit.json
+            exit 1
+          fi
+
+  ai-review:
+    if: github.event_name == 'pull_request'
+    runs-on: depot-ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Grok review
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: node scripts/ai-review.mjs
