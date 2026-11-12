@@ -110,9 +110,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ game }, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.warn('Game creation validation failed', { error: error.errors });
+      logger.warn('Game creation validation failed', { error: error.issues });
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: error.errors } },
+        { error: { code: 'VALIDATION_ERROR', message: 'Invalid input', details: error.issues } },
         { status: 400 }
       );
     }

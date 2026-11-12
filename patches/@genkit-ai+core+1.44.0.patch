@@ -1,0 +1,240 @@
+diff --git a/node_modules/@genkit-ai/core/lib/action.js b/node_modules/@genkit-ai/core/lib/action.js
+index 2920c73..615ec97 100644
+--- a/node_modules/@genkit-ai/core/lib/action.js
++++ b/node_modules/@genkit-ai/core/lib/action.js
+@@ -49,7 +49,7 @@ __export(action_exports, {
+   statusNameToCode: () => import_statusTypes.statusNameToCode
+ });
+ module.exports = __toCommonJS(action_exports);
+-var z = __toESM(require("zod"));
++var z = __toESM(require("zod/v3"));
+ var import_async_context = require("./async-context.js");
+ var import_async = require("./async.js");
+ var import_context = require("./context.js");
+diff --git a/node_modules/@genkit-ai/core/lib/action.mjs b/node_modules/@genkit-ai/core/lib/action.mjs
+index cb76082..09e4ade 100644
+--- a/node_modules/@genkit-ai/core/lib/action.mjs
++++ b/node_modules/@genkit-ai/core/lib/action.mjs
+@@ -1,4 +1,4 @@
+-import * as z from "zod";
++import * as z from "zod/v3";
+ import { getAsyncContext } from "./async-context.mjs";
+ import { Channel, lazy } from "./async.mjs";
+ import { getContext, runWithContext } from "./context.mjs";
+diff --git a/node_modules/@genkit-ai/core/lib/background-action.js b/node_modules/@genkit-ai/core/lib/background-action.js
+index 223b920..f965bb1 100644
+--- a/node_modules/@genkit-ai/core/lib/background-action.js
++++ b/node_modules/@genkit-ai/core/lib/background-action.js
+@@ -36,7 +36,7 @@ __export(background_action_exports, {
+   registerBackgroundAction: () => registerBackgroundAction
+ });
+ module.exports = __toCommonJS(background_action_exports);
+-var z = __toESM(require("zod"));
++var z = __toESM(require("zod/v3"));
+ var import_action = require("./action.js");
+ var import_error = require("./error.js");
+ var import_schema = require("./schema.js");
+diff --git a/node_modules/@genkit-ai/core/lib/background-action.mjs b/node_modules/@genkit-ai/core/lib/background-action.mjs
+index 8069255..bb89847 100644
+--- a/node_modules/@genkit-ai/core/lib/background-action.mjs
++++ b/node_modules/@genkit-ai/core/lib/background-action.mjs
+@@ -1,4 +1,4 @@
+-import * as z from "zod";
++import * as z from "zod/v3";
+ import { action } from "./action.mjs";
+ import { GenkitError } from "./error.mjs";
+ import { toJsonSchema } from "./schema.mjs";
+diff --git a/node_modules/@genkit-ai/core/lib/dynamic-action-provider.js b/node_modules/@genkit-ai/core/lib/dynamic-action-provider.js
+index a4230ef..ef78137 100644
+--- a/node_modules/@genkit-ai/core/lib/dynamic-action-provider.js
++++ b/node_modules/@genkit-ai/core/lib/dynamic-action-provider.js
+@@ -32,7 +32,7 @@ __export(dynamic_action_provider_exports, {
+   isDynamicActionProvider: () => isDynamicActionProvider
+ });
+ module.exports = __toCommonJS(dynamic_action_provider_exports);
+-var z = __toESM(require("zod"));
++var z = __toESM(require("zod/v3"));
+ var import_action = require("./action.js");
+ var import_error = require("./error.js");
+ class SimpleCache {
+diff --git a/node_modules/@genkit-ai/core/lib/dynamic-action-provider.mjs b/node_modules/@genkit-ai/core/lib/dynamic-action-provider.mjs
+index 2a7cee6..08a2426 100644
+--- a/node_modules/@genkit-ai/core/lib/dynamic-action-provider.mjs
++++ b/node_modules/@genkit-ai/core/lib/dynamic-action-provider.mjs
+@@ -1,4 +1,4 @@
+-import * as z from "zod";
++import * as z from "zod/v3";
+ import {
+   ActionMetadataSchema,
+   defineAction
+diff --git a/node_modules/@genkit-ai/core/lib/index.js b/node_modules/@genkit-ai/core/lib/index.js
+index e7fe6a6..ec95b44 100644
+--- a/node_modules/@genkit-ai/core/lib/index.js
++++ b/node_modules/@genkit-ai/core/lib/index.js
+@@ -58,7 +58,7 @@ __export(index_exports, {
+ });
+ module.exports = __toCommonJS(index_exports);
+ var import_version = require("./__codegen/version.js");
+-var import_zod = require("zod");
++var import_zod = require("zod/v3");
+ __reExport(index_exports, require("./action.js"), module.exports);
+ var import_async_context = require("./async-context.js");
+ var import_background_action = require("./background-action.js");
+diff --git a/node_modules/@genkit-ai/core/lib/index.mjs b/node_modules/@genkit-ai/core/lib/index.mjs
+index d028921..21eb6f6 100644
+--- a/node_modules/@genkit-ai/core/lib/index.mjs
++++ b/node_modules/@genkit-ai/core/lib/index.mjs
+@@ -2,7 +2,7 @@ import { version } from "./__codegen/version.mjs";
+ const GENKIT_VERSION = version;
+ const GENKIT_CLIENT_HEADER = `genkit-node/${GENKIT_VERSION} gl-node/${process.versions.node}`;
+ const GENKIT_REFLECTION_API_SPEC_VERSION = 1;
+-import { z } from "zod";
++import { z } from "zod/v3";
+ export * from "./action.mjs";
+ import { getAsyncContext } from "./async-context.mjs";
+ import {
+diff --git a/node_modules/@genkit-ai/core/lib/reflection-types.js b/node_modules/@genkit-ai/core/lib/reflection-types.js
+index cbcc860..4a295da 100644
+--- a/node_modules/@genkit-ai/core/lib/reflection-types.js
++++ b/node_modules/@genkit-ai/core/lib/reflection-types.js
+@@ -32,7 +32,7 @@ __export(reflection_types_exports, {
+   ReflectionStreamChunkParamsSchema: () => ReflectionStreamChunkParamsSchema
+ });
+ module.exports = __toCommonJS(reflection_types_exports);
+-var import_zod = require("zod");
++var import_zod = require("zod/v3");
+ var import_action = require("./action.js");
+ const ReflectionRegisterParamsSchema = import_zod.z.object({
+   id: import_zod.z.string(),
+diff --git a/node_modules/@genkit-ai/core/lib/reflection-types.mjs b/node_modules/@genkit-ai/core/lib/reflection-types.mjs
+index 00fa368..d771393 100644
+--- a/node_modules/@genkit-ai/core/lib/reflection-types.mjs
++++ b/node_modules/@genkit-ai/core/lib/reflection-types.mjs
+@@ -1,4 +1,4 @@
+-import { z } from "zod";
++import { z } from "zod/v3";
+ import { ActionMetadataSchema } from "./action.mjs";
+ const ReflectionRegisterParamsSchema = z.object({
+   id: z.string(),
+diff --git a/node_modules/@genkit-ai/core/lib/reflection.js b/node_modules/@genkit-ai/core/lib/reflection.js
+index 8023396..faeaba4 100644
+--- a/node_modules/@genkit-ai/core/lib/reflection.js
++++ b/node_modules/@genkit-ai/core/lib/reflection.js
+@@ -36,7 +36,7 @@ var import_express = __toESM(require("express"));
+ var import_promises = __toESM(require("fs/promises"));
+ var import_get_port = __toESM(require("get-port"));
+ var import_path = __toESM(require("path"));
+-var z = __toESM(require("zod"));
++var z = __toESM(require("zod/v3"));
+ var import_action = require("./action.js");
+ var import_config = require("./config.js");
+ var import_index = require("./index.js");
+diff --git a/node_modules/@genkit-ai/core/lib/reflection.mjs b/node_modules/@genkit-ai/core/lib/reflection.mjs
+index edce695..c2d6245 100644
+--- a/node_modules/@genkit-ai/core/lib/reflection.mjs
++++ b/node_modules/@genkit-ai/core/lib/reflection.mjs
+@@ -2,7 +2,7 @@ import express from "express";
+ import fs from "fs/promises";
+ import getPort, { makeRange } from "get-port";
+ import path from "path";
+-import * as z from "zod";
++import * as z from "zod/v3";
+ import { StatusCodes, statusNameToCode } from "./action.mjs";
+ import { getGenkitRuntimeConfig } from "./config.mjs";
+ import { GENKIT_REFLECTION_API_SPEC_VERSION, GENKIT_VERSION } from "./index.mjs";
+diff --git a/node_modules/@genkit-ai/core/lib/schema.js b/node_modules/@genkit-ai/core/lib/schema.js
+index dd4b000..ddccb45 100644
+--- a/node_modules/@genkit-ai/core/lib/schema.js
++++ b/node_modules/@genkit-ai/core/lib/schema.js
+@@ -41,7 +41,7 @@ module.exports = __toCommonJS(schema_exports);
+ var import_json_schema = require("@cfworker/json-schema");
+ var import_ajv = __toESM(require("ajv"));
+ var import_ajv_formats = __toESM(require("ajv-formats"));
+-var import_zod = require("zod");
++var import_zod = require("zod/v3");
+ var import_zod_to_json_schema = __toESM(require("zod-to-json-schema"));
+ var import_config = require("./config.js");
+ var import_error = require("./error.js");
+@@ -100,8 +100,9 @@ function applyAnnotations(schema, json) {
+   while (current) {
+     const ann = schemaAnnotations.get(current);
+     if (ann) annotationsToApply.push(ann);
+-    if (current instanceof import_zod.z.ZodOptional || current instanceof import_zod.z.ZodNullable || current instanceof import_zod.z.ZodDefault || current instanceof import_zod.z.ZodEffects) {
+-      current = current._def.innerType || current._def.schema;
++    const wrapperName = current?.constructor?.name;
++    if (current instanceof import_zod.z.ZodOptional || current instanceof import_zod.z.ZodNullable || current instanceof import_zod.z.ZodDefault || wrapperName === "ZodEffects" || wrapperName === "ZodPipe") {
++      current = current._def.innerType || current._def.schema || current._def.in;
+     } else {
+       break;
+     }
+diff --git a/node_modules/@genkit-ai/core/lib/schema.mjs b/node_modules/@genkit-ai/core/lib/schema.mjs
+index 05f5662..6da0e13 100644
+--- a/node_modules/@genkit-ai/core/lib/schema.mjs
++++ b/node_modules/@genkit-ai/core/lib/schema.mjs
+@@ -1,7 +1,7 @@
+ import { Validator } from "@cfworker/json-schema";
+ import Ajv from "ajv";
+ import addFormats from "ajv-formats";
+-import { z } from "zod";
++import { z } from "zod/v3";
+ import zodToJsonSchema from "zod-to-json-schema";
+ import { getGenkitRuntimeConfig } from "./config.mjs";
+ import { GenkitError } from "./error.mjs";
+@@ -60,8 +60,9 @@ function applyAnnotations(schema, json) {
+   while (current) {
+     const ann = schemaAnnotations.get(current);
+     if (ann) annotationsToApply.push(ann);
+-    if (current instanceof z.ZodOptional || current instanceof z.ZodNullable || current instanceof z.ZodDefault || current instanceof z.ZodEffects) {
+-      current = current._def.innerType || current._def.schema;
++    const wrapperName = current?.constructor?.name;
++    if (current instanceof z.ZodOptional || current instanceof z.ZodNullable || current instanceof z.ZodDefault || wrapperName === "ZodEffects" || wrapperName === "ZodPipe") {
++      current = current._def.innerType || current._def.schema || current._def.in;
+     } else {
+       break;
+     }
+diff --git a/node_modules/@genkit-ai/core/lib/statusTypes.js b/node_modules/@genkit-ai/core/lib/statusTypes.js
+index 4eec3b4..b37458e 100644
+--- a/node_modules/@genkit-ai/core/lib/statusTypes.js
++++ b/node_modules/@genkit-ai/core/lib/statusTypes.js
+@@ -35,7 +35,7 @@ __export(statusTypes_exports, {
+   statusNameToCode: () => statusNameToCode
+ });
+ module.exports = __toCommonJS(statusTypes_exports);
+-var z = __toESM(require("zod"));
++var z = __toESM(require("zod/v3"));
+ var StatusCodes = /* @__PURE__ */ ((StatusCodes2) => {
+   StatusCodes2[StatusCodes2["OK"] = 0] = "OK";
+   StatusCodes2[StatusCodes2["CANCELLED"] = 1] = "CANCELLED";
+diff --git a/node_modules/@genkit-ai/core/lib/statusTypes.mjs b/node_modules/@genkit-ai/core/lib/statusTypes.mjs
+index c244bb2..f3656f8 100644
+--- a/node_modules/@genkit-ai/core/lib/statusTypes.mjs
++++ b/node_modules/@genkit-ai/core/lib/statusTypes.mjs
+@@ -1,4 +1,4 @@
+-import * as z from "zod";
++import * as z from "zod/v3";
+ var StatusCodes = /* @__PURE__ */ ((StatusCodes2) => {
+   StatusCodes2[StatusCodes2["OK"] = 0] = "OK";
+   StatusCodes2[StatusCodes2["CANCELLED"] = 1] = "CANCELLED";
+diff --git a/node_modules/@genkit-ai/core/lib/tracing/types.js b/node_modules/@genkit-ai/core/lib/tracing/types.js
+index d9ff0cd..592b040 100644
+--- a/node_modules/@genkit-ai/core/lib/tracing/types.js
++++ b/node_modules/@genkit-ai/core/lib/tracing/types.js
+@@ -30,7 +30,7 @@ __export(types_exports, {
+   TraceMetadataSchema: () => TraceMetadataSchema
+ });
+ module.exports = __toCommonJS(types_exports);
+-var import_zod = require("zod");
++var import_zod = require("zod/v3");
+ const PathMetadataSchema = import_zod.z.object({
+   path: import_zod.z.string(),
+   status: import_zod.z.string(),
+diff --git a/node_modules/@genkit-ai/core/lib/tracing/types.mjs b/node_modules/@genkit-ai/core/lib/tracing/types.mjs
+index f30c532..545d21f 100644
+--- a/node_modules/@genkit-ai/core/lib/tracing/types.mjs
++++ b/node_modules/@genkit-ai/core/lib/tracing/types.mjs
+@@ -1,4 +1,4 @@
+-import { z } from "zod";
++import { z } from "zod/v3";
+ const PathMetadataSchema = z.object({
+   path: z.string(),
+   status: z.string(),
