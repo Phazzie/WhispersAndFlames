@@ -1,6 +1,10 @@
 # Whispers and Flames
 
-An intimate conversation experience designed to foster deeper connections through AI-guided questions.
+An intimate conversation game for couples, dressed as a classified case file. Two or three
+"agents" sign in, pull the files they want opened (categories), set a security clearance (how
+spicy), and give sealed statements to Ember, the AI handler. Nothing is declassified until
+everyone has talked. At the end Ember writes the debrief, hands out commendations, and Dr. Ember
+adds privileged clinical notes. Can also be played on one device, passed between players.
 
 ## 🔥 Overview
 
@@ -108,6 +112,7 @@ npm run genkit:watch     # Start Genkit with watch mode
 | `CRON_SECRET`                       | If DB    | —                       | Bearer token for `/api/cron/cleanup`; the route 403s without it       |
 | `NODE_ENV`                          | No       | `development`           | Environment mode                                                      |
 | `NEXT_PUBLIC_APP_URL`               | No       | `http://localhost:9002` | Public app URL                                                        |
+| `XAI_IMAGE_MODEL`                   | No       | `grok-2-image`          | xAI image model for Exhibits; falls back to a labelled placeholder    |
 
 ## 🧪 Testing
 
@@ -124,6 +129,15 @@ npm run test              # All unit/integration tests
 npm run test:e2e          # End-to-end tests only
 npm run test:coverage     # Generate coverage report
 ```
+
+### End-to-end tests (no real keys needed)
+
+`npm run test:e2e` starts `next dev` with `E2E_FAKE_SERVICES=1`, which swaps Clerk for a
+cookie-based fake user and swaps Grok and the image API for canned answers (see `e2e/fakes/`).
+`next.config.mjs` refuses to build with that flag in production. The suite plays a full
+two-device game, a full one-device game, a bad room code, a stranger trying to open someone
+else's room, and the signed-out redirect. In a sandbox with its own Chromium, set
+`PW_CHROMIUM_PATH=/path/to/chromium`.
 
 ## 🚢 Deployment
 
@@ -203,12 +217,21 @@ src/
 
 ## ⚠️ Known Limitations
 
+What's still rough (Nov 2026):
+
+- Real image generation (Exhibits) has only been tested against a fake. If the xAI image model
+  name is wrong or the key lacks image access, players see a labelled placeholder painting.
+- Production must have `DATABASE_URL`. Without it, each serverless instance keeps its own
+  in-memory games, so a partner may get "Room not found".
+- The production Content-Security-Policy now allows inline scripts (Next.js needs them on
+  prerendered pages). Moving to per-request nonces would be stricter.
+- Category descriptions are short and generic compared with the rest of the copy.
+
 - **Storage**: Data resets on restart when using in-memory storage
 - **Database Troubleshooting**: If experiencing database issues, set `DISABLE_DATABASE=true` to temporarily use in-memory storage
 - **Sessions**: Session-based authentication (stored in memory)
 - **Scaling**: No horizontal scaling support - single instance only
 - **Rate Limiting**: Per-instance only (not distributed)
-- **Network**: Google Fonts may fail in restricted environments
 - **Real-time Updates**: Uses polling (2-second intervals) instead of WebSockets
 
 ## 📝 Contributing
