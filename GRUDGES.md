@@ -17,8 +17,8 @@ Things that failed silently or lied. Read this before every deploy.
   answered for everyone. Fixed, with a handoff screen.
 - **Image generation was a fake that looked real.** It always returned a gradient SVG. It now
   calls xAI and only falls back to a placeholder that says it is one.
-- **GitHub Actions is billing-locked on this account.** Every CI job "fails" in about 2 seconds
-  without running. A red X here means nothing about the code; run the checks locally.
+- **CI's e2e job "passed" in 4 seconds without running anything.** It skipped every step unless
+  real Clerk secrets were set, and reported success. It now runs the fake-backed suite on every PR.
 - **A production build run while `next dev` is up shares `.next` and produces a broken
   middleware** (`EvalError: Code generation from strings disallowed`). Stop the dev server and
   delete `.next` first. Output is `standalone`, so start with `node .next/standalone/server.js`.

@@ -74,7 +74,6 @@ agency psychologist without touching her prompt.
 - **Open the Vercel preview** from the PR and click through once with your real Clerk sign-in.
 - **Confirm production has `DATABASE_URL`** (I wasn't allowed to read Vercel env vars). Without
   it, partners will see "Room not found".
-- **GitHub Actions billing** is locked, so CI can't run. The checks pass locally.
 - **xAI image access:** paint one exhibit on the preview. If you see the placeholder, the key
   lacks image access or the model name needs changing.
 
@@ -88,5 +87,7 @@ $0. RunPod was not used.
   ready-up, "[object Object]" errors, one-device mode never passing the device, Dr. Ember's notes
   not loading on tap, lost category picks on quick taps, join box cutting codes to 6 characters,
   broken hero image, confetti blocked by CSP, production CSP blocking hydration.
-- Added 6 Playwright end-to-end tests and the fake-services harness.
+- Added 6 Playwright end-to-end tests and the fake-services harness; CI now runs them on every PR
+  (before, the e2e job skipped itself and reported success).
+- Vercel no longer builds Node 20, so every deploy failed instantly. Moved to Node 22.
 - Redesigned every screen as the Eyes Only case file; two screenshot rounds at phone and laptop.
