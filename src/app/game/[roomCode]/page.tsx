@@ -2,7 +2,9 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
+import { Sheet, Stamp } from '@/components/dossier';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Button } from '@/components/ui/button';
 import { useGameSession } from '@/hooks/use-game-session';
@@ -23,11 +25,40 @@ import { LobbyStep } from './steps/lobby-step';
 import { SpicyStep } from './steps/spicy-step';
 import { SummaryStep } from './steps/summary-step';
 
+function DeadEnd({
+  stamp,
+  title,
+  body,
+  onBack,
+}: {
+  stamp: string;
+  title: string;
+  body: string;
+  onBack: () => void;
+}) {
+  return (
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <Sheet className="max-w-md" form="Notice" file="Returned to sender" tilt={-0.8}>
+        <Stamp className="text-2xl" tilt={-10}>
+          {stamp}
+        </Stamp>
+        <h1 className="mt-6 font-typewriter text-2xl">{title}</h1>
+        <p className="mt-3 text-card-foreground/80">{body}</p>
+        <Button className="mt-6 w-full font-typewriter uppercase tracking-widest" onClick={onBack}>
+          Back to the front desk
+        </Button>
+      </Sheet>
+    </main>
+  );
+}
+
 export default function GamePage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const { user, isLoaded } = useUser();
+  // Local games share one device: whose turn the screen was last handed to.
+  const [handedToPlayerId, setHandedToPlayerId] = useState<string | null>(null);
 
   const roomCodeParam = params.roomCode;
 
@@ -47,12 +78,12 @@ export default function GamePage() {
   // Invalid room code
   if (isInvalidRoomCode) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Invalid Room Code</h2>
-          <p>Please check your room code and try again.</p>
-        </div>
-      </div>
+      <DeadEnd
+        stamp="Bad codename"
+        title="That codename doesn't parse"
+        body="Check the codename on your partner's file and try again."
+        onBack={() => router.push('/')}
+      />
     );
   }
 
@@ -62,17 +93,16 @@ export default function GamePage() {
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">
-            {error.toLowerCase().includes('room not found') ? 'Room not found' : 'Error'}
-          </h2>
-          <p>{error}</p>
-          <Button className="mt-4" onClick={() => router.push('/')}>
-            Back to Home
-          </Button>
-        </div>
-      </div>
+      <DeadEnd
+        stamp={error.toLowerCase().includes('not found') ? 'No such file' : 'Access denied'}
+        title={
+          error.toLowerCase().includes('not found')
+            ? 'Room not found'
+            : 'Error: this file is above your clearance'
+        }
+        body={error}
+        onBack={() => router.push('/')}
+      />
     );
   }
 
@@ -87,12 +117,39 @@ export default function GamePage() {
   const me = gameState.players.find((p) => p.id === currentUserId);
   if (!me) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Not in Game</h2>
-          <p>You are not a player in this game.</p>
-        </div>
-      </div>
+      <DeadEnd
+        stamp="Not on the list"
+        title="You are not a player in this game"
+        body="This file belongs to other agents. Ask them for an invite link."
+        onBack={() => router.push('/')}
+      />
+    );
+  }
+
+  // Pass-the-device screen: hides the previous player's screen until the next
+  // player confirms they are holding the device.
+  if (gameState.gameMode === 'local' && handedToPlayerId !== me.id) {
+    return (
+      <GameLayout gameState={gameState} error={error}>
+        <Sheet className="max-w-md text-center" form="Custody transfer" file="Sealed">
+          <Stamp className="text-xl" tilt={-6}>
+            Hand-off
+          </Stamp>
+          <h2 className="mt-6 font-typewriter text-3xl sm:text-4xl">
+            Pass the file to <span className="font-hand text-5xl text-accent">{me.name}</span>
+          </h2>
+          <p className="mt-4 text-card-foreground/80">
+            Everyone else, eyes on the ceiling. Statements stay sealed until every agent has talked.
+          </p>
+          <Button
+            size="lg"
+            className="mt-8 w-full font-typewriter uppercase tracking-widest"
+            onClick={() => setHandedToPlayerId(me.id)}
+          >
+            I&apos;m {me.name}, show me
+          </Button>
+        </Sheet>
+      </GameLayout>
     );
   }
 
@@ -106,14 +163,19 @@ export default function GamePage() {
   let StepComponent;
   switch (gameState.step) {
     case 'lobby':
-      StepComponent = <LobbyStep gameState={gameState} me={me} handlers={sharedHandlers} />;
+      StepComponent = (
+        <LobbyStep key={me.id} gameState={gameState} me={me} handlers={sharedHandlers} />
+      );
       break;
     case 'categories':
-      StepComponent = <CategoriesStep gameState={gameState} me={me} handlers={sharedHandlers} />;
+      StepComponent = (
+        <CategoriesStep key={me.id} gameState={gameState} me={me} handlers={sharedHandlers} />
+      );
       break;
     case 'spicy':
       StepComponent = (
         <SpicyStep
+          key={me.id}
           gameState={gameState}
           me={me}
           handlers={{ ...sharedHandlers, generateQuestionAction }}
@@ -123,6 +185,7 @@ export default function GamePage() {
     case 'game':
       StepComponent = (
         <GamePlayStep
+          key={me.id}
           gameState={gameState}
           me={me}
           handlers={{ ...sharedHandlers, generateQuestionAction, analyzeAndSummarizeAction }}

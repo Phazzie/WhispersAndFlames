@@ -2,10 +2,20 @@
  * In-memory storage for game state.
  */
 
+import { GameUpdateRefusedError, type GameUpdateReconcile } from './game-authorization';
 import type { GameState } from './game-types';
 
-const games = new Map<string, GameState>();
-const gameSubscribers = new Map<string, Set<(state: GameState) => void>>();
+// Kept on globalThis so every route shares one store. Next.js bundles each
+// route separately in dev, so a plain module-level Map gave every route its
+// own empty copy: a game created via /api/game/create was invisible to
+// /api/game/[roomCode] and /api/game/join.
+type MemoryStore = {
+  games: Map<string, GameState>;
+  gameSubscribers: Map<string, Set<(state: GameState) => void>>;
+};
+const globalStore = globalThis as typeof globalThis & { __wfMemoryStore?: MemoryStore };
+globalStore.__wfMemoryStore ??= { games: new Map(), gameSubscribers: new Map() };
+const { games, gameSubscribers } = globalStore.__wfMemoryStore;
 
 export const storage = {
   games: {
@@ -18,9 +28,23 @@ export const storage = {
       return games.get(roomCode);
     },
 
-    update: (roomCode: string, updates: Partial<GameState>): GameState | undefined => {
+    update: (
+      roomCode: string,
+      updates: Partial<GameState>,
+      reconcile?: GameUpdateReconcile
+    ): GameState | undefined => {
       const game = games.get(roomCode);
       if (!game) return undefined;
+
+      // Decide against the state we are about to write over, not one read
+      // earlier by the caller. See GameUpdateReconcile.
+      if (reconcile) {
+        const result = reconcile(game);
+        if (!result.ok) {
+          throw new GameUpdateRefusedError(result.reason);
+        }
+        updates = result.updates;
+      }
 
       const updated = { ...game, ...updates };
 

@@ -1,13 +1,12 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Users } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { type ReactNode } from 'react';
 
 import { Logo } from '@/components/icons/logo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Progress } from '@/components/ui/progress';
 import type { GameState } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
@@ -17,71 +16,91 @@ type GameLayoutProps = {
   error: string | null;
 };
 
-const backgroundColors: Record<GameState['step'], string> = {
-  lobby: 'bg-gradient-to-br from-background to-blue-950/30',
-  categories: 'bg-gradient-to-br from-background to-purple-950/30',
-  spicy: 'bg-gradient-to-br from-background to-amber-950/30',
-  game: 'bg-gradient-to-br from-background to-red-950/40',
-  summary: 'bg-gradient-to-br from-background to-emerald-950/30',
+const STEP_TITLES: Record<GameState['step'], string> = {
+  lobby: 'Briefing room',
+  categories: 'Lines of inquiry',
+  spicy: 'Clearance',
+  game: 'Interrogation',
+  summary: 'Debrief',
 };
 
 export function GameLayout({ children, gameState, error }: GameLayoutProps) {
   const router = useRouter();
-  const { step, players, currentQuestionIndex, totalQuestions } = gameState;
+  const { step, players, currentQuestionIndex, totalQuestions, roomCode } = gameState;
 
-  const progress = (() => {
-    if (step === 'summary') return 100;
-    if (step === 'game' && totalQuestions > 0) return (currentQuestionIndex / totalQuestions) * 100;
-    if (step === 'spicy') return 20;
-    if (step === 'categories') return 10;
-    return 0;
-  })();
+  const pageLabel =
+    step === 'game' && totalQuestions > 0
+      ? `Question ${currentQuestionIndex} of ${totalQuestions}`
+      : STEP_TITLES[step];
 
   const animationKey = `${step}-${step === 'game' ? currentQuestionIndex : '0'}`;
-  const bgClass = backgroundColors[step] || 'bg-background';
 
   return (
-    <div
-      className={cn(
-        'min-h-screen flex flex-col items-center justify-center p-4 relative transition-colors duration-1000',
-        bgClass
-      )}
-    >
-      <div className="absolute top-0 left-0 right-0 p-4">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <Logo
-            className="w-10 h-10 text-primary cursor-pointer"
+    <div className="relative flex min-h-screen flex-col items-center px-3 pb-10 pt-4 sm:px-6">
+      <header className="mb-6 w-full max-w-4xl">
+        <div className="flex items-center justify-between gap-3 border-b border-foreground/15 pb-3">
+          <button
+            type="button"
             onClick={() => router.push('/')}
-          />
-          <div className="flex items-center gap-4">
-            {players.length > 0 && (
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Users className="w-5 h-5" />
-                <span aria-label={`${players.length} of 3 seats filled`}>{players.length} / 3 seats</span>
-              </div>
-            )}
-            {step !== 'lobby' && <Progress value={progress} className="w-32 sm:w-64" />}
+            className="flex items-center gap-2 text-left"
+            aria-label="Back to the front desk"
+          >
+            <Logo className="h-9 w-9 shrink-0" />
+            <span className="hidden font-typewriter text-[11px] uppercase leading-tight tracking-[0.2em] text-foreground/70 sm:block">
+              Operation
+              <br />
+              <span className="text-foreground">{roomCode}</span>
+            </span>
+          </button>
+          <div className="text-right font-typewriter text-[11px] uppercase leading-tight tracking-[0.2em] text-foreground/70">
+            <span className="text-foreground">{pageLabel}</span>
+            <br />
+            <span aria-label={`${players.length} of 3 seats filled`}>
+              Agents on file: {players.length}/3
+            </span>
           </div>
         </div>
-      </div>
+        <ol className="mt-3 flex gap-1" aria-label="Progress through the file">
+          {(Object.keys(STEP_TITLES) as GameState['step'][]).map((s) => {
+            const order = Object.keys(STEP_TITLES).indexOf(s);
+            const current = Object.keys(STEP_TITLES).indexOf(step);
+            return (
+              <li
+                key={s}
+                aria-current={s === step ? 'step' : undefined}
+                className={cn(
+                  'h-1 flex-1 transition-colors duration-700',
+                  order < current && 'bg-foreground/50',
+                  order === current && 'bg-primary',
+                  order > current && 'bg-foreground/10'
+                )}
+              >
+                <span className="sr-only">{STEP_TITLES[s]}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </header>
 
       {error && (
-        <Alert variant="destructive" className="max-w-md mb-4">
+        <Alert variant="destructive" className="paper mb-4 max-w-md">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>An Error Occurred</AlertTitle>
+          <AlertTitle className="font-typewriter uppercase tracking-wider">
+            Transmission problem
+          </AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="flex-grow flex items-center justify-center w-full">
+      <div className="flex w-full flex-grow items-start justify-center sm:items-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={animationKey}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="w-full flex justify-center"
+            initial={{ opacity: 0, y: 24, rotate: -0.6 }}
+            animate={{ opacity: 1, y: 0, rotate: 0 }}
+            exit={{ opacity: 0, x: 60, rotate: 2 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="flex w-full justify-center"
           >
             {children}
           </motion.div>

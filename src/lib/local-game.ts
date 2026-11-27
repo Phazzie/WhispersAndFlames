@@ -50,7 +50,7 @@ export const localGame = {
       summary: '',
       imageGenerationCount: 0,
       roomCode,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
 
     // Save to localStorage

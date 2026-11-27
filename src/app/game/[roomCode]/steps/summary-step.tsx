@@ -2,12 +2,11 @@
 
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clipboard, Download, Loader2, Trophy, PartyPopper } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import { Badge } from '@/components/ui/badge';
+import { Sheet, Stamp } from '@/components/dossier';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { calculateAchievements, getPlayerName, type Achievement } from '@/lib/achievements';
 import type { SummaryStepProps } from '@/lib/game-types';
@@ -108,8 +107,8 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
   const generateVisualMemory = async () => {
     if (imageGenerationCount >= 3) {
       toast({
-        title: 'Limit Reached',
-        description: 'You can generate up to 3 visual memories per session.',
+        title: 'Exhibit budget spent',
+        description: 'Three paintings per file. Bureaucracy.',
         variant: 'destructive',
       });
       return;
@@ -138,10 +137,18 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
           imageGenerationCount: imageGenerationCount + 1,
         });
 
-        toast({
-          title: 'Visual Memory Created',
-          description: 'Your artistic memory has been generated!',
-        });
+        toast(
+          result.isPlaceholder
+            ? {
+                title: 'The painter called in sick',
+                description:
+                  "The image service didn't answer, so you got a color study instead. Try again in a bit.",
+              }
+            : {
+                title: 'Exhibit filed',
+                description: 'A new painting is clipped to your debrief.',
+              }
+        );
       } else {
         toast({
           title: 'Generation Failed',
@@ -163,199 +170,256 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
   };
 
   if (!summary) {
-    return <LoadingScreen message="Ember is analyzing your answers..." />;
+    return <LoadingScreen message="Ember is writing up the debrief…" />;
   }
 
+  const EXHIBIT = ['A', 'B', 'C'];
+
   return (
-    <div className="w-full max-w-2xl">
-      <Card>
-        <CardHeader className="items-center text-center">
-          <PartyPopper className="w-12 h-12 text-primary mb-2" />
-          <CardTitle className="text-3xl">Your Session Summary</CardTitle>
-          <CardDescription>A little insight from your conversation.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="summary">Playful Summary</TabsTrigger>
-              <TabsTrigger value="achievements">
-                <Trophy className="w-4 h-4 mr-2" />
-                Achievements
-              </TabsTrigger>
-              <TabsTrigger value="therapist" onClick={loadTherapistNotes}>
-                Dr. Ember&apos;s Notes
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="summary" className="mt-6">
-              <div className="prose prose-invert prose-p:text-foreground/90 prose-headings:text-primary max-w-none text-base whitespace-pre-wrap p-4 bg-secondary rounded-md">
-                {summary}
-              </div>
+    <div className="w-full max-w-3xl">
+      <Sheet form="Form WF-6 · Debrief" file={`Op. ${gameState.roomCode}`} clip>
+        <div className="flex flex-col-reverse items-start gap-4 sm:flex-row sm:justify-between">
+          <div>
+            <h2 className="font-typewriter text-2xl sm:text-3xl">The debrief</h2>
+            <p className="mt-1 text-sm text-card-foreground/75">
+              Case closed. Here&apos;s what Ember found, filed for both of you.
+            </p>
+          </div>
+          <Stamp className="shrink-0 self-end text-lg sm:self-start sm:text-xl" tilt={8}>
+            Case closed
+          </Stamp>
+        </div>
 
-              {/* Visual Memories Section */}
-              <div className="mt-8">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">AI Art Preview</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Placeholder visual generation output
-                    </p>
-                  </div>
-                  <Button
-                    onClick={generateVisualMemory}
-                    disabled={isGeneratingImage || remainingGenerations === 0}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {isGeneratingImage ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>Generate Visual Memory ({remainingGenerations} left)</>
-                    )}
-                  </Button>
-                </div>
+        <Tabs
+          defaultValue="summary"
+          className="mt-6 w-full"
+          onValueChange={(value) => {
+            // Load on any way of reaching the tab (click, keyboard, touch).
+            if (value === 'therapist') void loadTherapistNotes();
+          }}
+        >
+          <TabsList className="flex w-full justify-start">
+            <TabsTrigger value="summary">Ember&apos;s report</TabsTrigger>
+            <TabsTrigger value="achievements">Commendations</TabsTrigger>
+            <TabsTrigger value="therapist">Dr. Ember&apos;s notes</TabsTrigger>
+          </TabsList>
 
-                {visualMemories.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {visualMemories.map((memory, index) => (
-                      <motion.div
-                        key={memory.timestamp}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.2 }}
-                        className="relative group rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={memory.imageUrl}
-                          alt="Visual Memory"
-                          className="w-full h-64 object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                          <p className="text-white text-sm line-clamp-2">{memory.prompt}</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            const a = document.createElement('a');
-                            a.href = memory.imageUrl;
-                            a.download = `visual-memory-${memory.timestamp}.svg`;
-                            a.click();
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
-                    <p className="text-muted-foreground">
-                      Generate artistic visual memories of your session
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      (Ephemeral - will expire with session)
-                    </p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="achievements" className="mt-6">
-              <div className="space-y-4">
-                <AnimatePresence mode="popLayout">
-                  {achievements.map((achievement, index) => (
-                    <motion.div
-                      key={achievement.id}
-                      initial={{ opacity: 0, y: 50, scale: 0.8 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      transition={{ delay: index * 0.3, type: 'spring', stiffness: 100 }}
-                      className={cn(
-                        'relative rounded-lg border-2 p-6 bg-card overflow-hidden',
-                        achievement.rarity === 'legendary' && 'legendary-glow border-accent',
-                        achievement.rarity === 'rare' && 'border-primary',
-                        achievement.rarity === 'common' && 'border-border'
-                      )}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="text-6xl flex-shrink-0">{achievement.icon}</div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold mb-1">{achievement.name}</h3>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {achievement.description}
-                          </p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge
-                              variant={achievement.rarity === 'legendary' ? 'default' : 'outline'}
-                              style={{
-                                backgroundColor:
-                                  achievement.rarity === 'legendary'
-                                    ? achievement.color
-                                    : 'transparent',
-                                borderColor: achievement.color,
-                                color:
-                                  achievement.rarity === 'legendary' ? 'white' : achievement.color,
-                              }}
-                            >
-                              {achievement.rarity}
-                            </Badge>
-                            {achievement.playerId && (
-                              <Badge variant="secondary">
-                                {getPlayerName(gameState, achievement.playerId)}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                {achievements.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">
-                    No achievements yet. Complete a session to earn them!
+          <TabsContent value="summary" className="mt-6">
+            <div className="whitespace-pre-wrap text-[15px] leading-relaxed">{summary}</div>
+
+            <section className="mt-10" aria-labelledby="exhibits-heading">
+              <div className="flex flex-col gap-3 border-t-2 border-dashed border-card-foreground/40 pt-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 id="exhibits-heading" className="font-typewriter text-lg">
+                    Exhibits
+                  </h3>
+                  <p className="text-xs text-card-foreground/70">
+                    Abstract art painted from your debrief. Never literal, never faces.
                   </p>
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="therapist" className="mt-6">
-              {isLoadingNotes ? (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                  <p className="text-muted-foreground">Dr. Ember is reviewing your session...</p>
                 </div>
-              ) : therapistNotes ? (
-                <div className="space-y-4">
-                  <div
-                    className="bg-white text-black p-6 rounded-md font-mono text-sm whitespace-pre-wrap"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(0deg, transparent, transparent 24px, #e5e7eb 24px, #e5e7eb 25px)',
-                      lineHeight: '25px',
-                    }}
-                  >
-                    {therapistNotes}
-                  </div>
-                  <Button onClick={downloadNotes} variant="outline" className="w-full" size="sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Notes
-                  </Button>
+                <Button
+                  onClick={generateVisualMemory}
+                  disabled={isGeneratingImage || remainingGenerations === 0}
+                  size="sm"
+                  variant="outline"
+                  aria-label={`Generate Visual Memory (${remainingGenerations} left)`}
+                  className="border-2 border-card-foreground bg-transparent font-typewriter uppercase tracking-wider hover:bg-card-foreground hover:text-card"
+                >
+                  {isGeneratingImage ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Developing…
+                    </>
+                  ) : remainingGenerations === 0 ? (
+                    'Exhibit budget spent'
+                  ) : (
+                    <>Paint an exhibit ({remainingGenerations} left)</>
+                  )}
+                </Button>
+              </div>
+
+              {visualMemories.length > 0 ? (
+                <div className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-2">
+                  {visualMemories.map((memory, index) => (
+                    <motion.figure
+                      key={memory.timestamp}
+                      initial={{ opacity: 0, y: 30, rotate: 0 }}
+                      animate={{ opacity: 1, y: 0, rotate: index % 2 ? 1.5 : -1.5 }}
+                      transition={{ delay: index * 0.15 }}
+                      className="group relative bg-[hsl(45_30%_96%)] p-3 pb-4 shadow-[0_14px_28px_-12px_rgba(0,0,0,0.7)]"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={memory.imageUrl}
+                        alt="Visual Memory"
+                        className="aspect-square w-full object-cover"
+                      />
+                      <figcaption className="mt-3 font-typewriter text-[11px] leading-snug">
+                        <span className="uppercase tracking-[0.2em]">
+                          Exhibit {EXHIBIT[index] ?? index + 1}
+                        </span>
+                        <span className="mt-1 line-clamp-3 block text-card-foreground/70">
+                          {memory.prompt}
+                        </span>
+                      </figcaption>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="absolute right-4 top-4 opacity-80 transition-opacity group-hover:opacity-100"
+                        aria-label="Download visual memory"
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = memory.imageUrl;
+                          const isSvg = memory.imageUrl.startsWith('data:image/svg+xml');
+                          a.download = `exhibit-${memory.timestamp}.${isSvg ? 'svg' : 'jpg'}`;
+                          // Remote images ignore `download` cross-origin; open them instead.
+                          a.target = '_blank';
+                          a.rel = 'noopener noreferrer';
+                          a.click();
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </motion.figure>
+                  ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Clipboard className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Click the tab to load notes</p>
+                <div className="mt-5 border-2 border-dashed border-card-foreground/30 py-8 text-center">
+                  <p className="font-typewriter text-sm uppercase tracking-wider text-card-foreground/70">
+                    No exhibits on file yet
+                  </p>
+                  <p className="mt-1 text-xs text-card-foreground/60">
+                    Up to three per file. Shredded with the file after 24 hours.
+                  </p>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
-          <Button onClick={() => router.push('/profile')} className="w-full mt-6" size="lg">
-            View My History
+            </section>
+          </TabsContent>
+
+          <TabsContent value="achievements" className="mt-6">
+            <ul className="space-y-4">
+              <AnimatePresence mode="popLayout">
+                {achievements.map((achievement, index) => (
+                  <motion.li
+                    key={achievement.id}
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.25, type: 'spring', stiffness: 120 }}
+                    className={cn(
+                      'relative flex items-start gap-4 border-2 p-4',
+                      achievement.rarity === 'legendary'
+                        ? 'legendary-glow border-primary'
+                        : 'border-card-foreground/30'
+                    )}
+                  >
+                    <div
+                      className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-double text-3xl"
+                      style={{ borderColor: achievement.color }}
+                      aria-hidden="true"
+                    >
+                      {achievement.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-typewriter text-lg leading-tight">{achievement.name}</h3>
+                      <p className="mt-1 text-sm text-card-foreground/80">
+                        {achievement.description}
+                      </p>
+                      <p className="mt-2 font-typewriter text-[11px] uppercase tracking-[0.2em] text-card-foreground/60">
+                        {achievement.rarity}
+                        {achievement.playerId &&
+                          ` · awarded to ${getPlayerName(gameState, achievement.playerId)}`}
+                      </p>
+                    </div>
+                    {achievement.rarity === 'legendary' && (
+                      <Stamp className="absolute -right-2 -top-3 bg-card text-xs" tilt={9}>
+                        Legendary
+                      </Stamp>
+                    )}
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+            {achievements.length === 0 && (
+              <p className="py-8 text-center font-typewriter text-sm uppercase tracking-wider text-card-foreground/70">
+                No commendations this time. The board meets again next file.
+              </p>
+            )}
+          </TabsContent>
+
+          <TabsContent value="therapist" className="mt-6">
+            {isLoadingNotes ? (
+              <div className="flex flex-col items-center justify-center py-12" role="status">
+                <Loader2 className="mb-4 h-8 w-8 animate-spin text-primary" />
+                <p className="font-typewriter text-sm uppercase tracking-wider text-card-foreground/70">
+                  Dr. Ember is reviewing your file…
+                </p>
+              </div>
+            ) : therapistNotes ? (
+              <div className="space-y-4">
+                <div className="border border-card-foreground/25 bg-[hsl(45_60%_94%)] shadow-inner">
+                  <div className="flex items-center justify-between border-b-2 border-card-foreground/70 px-5 py-3">
+                    <div>
+                      <p className="font-typewriter text-sm uppercase tracking-[0.2em]">
+                        Dr. Ember
+                      </p>
+                      <p className="text-[11px] uppercase tracking-wider text-card-foreground/60">
+                        Clinical notes · privileged and confidential
+                      </p>
+                    </div>
+                    <Stamp className="text-xs" blue tilt={6}>
+                      Privileged
+                    </Stamp>
+                  </div>
+                  <div className="ruled whitespace-pre-wrap px-5 py-3 font-sans text-[15px]">
+                    {therapistNotes}
+                  </div>
+                </div>
+                <Button
+                  onClick={downloadNotes}
+                  variant="outline"
+                  className="w-full border-2 border-card-foreground bg-transparent font-typewriter uppercase tracking-wider"
+                  size="sm"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Take a copy
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12">
+                <p className="mb-4 font-typewriter text-sm uppercase tracking-wider text-card-foreground/70">
+                  Dr. Ember hasn&apos;t written yet.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-2 border-card-foreground bg-transparent font-typewriter uppercase tracking-wider"
+                  onClick={() => void loadTherapistNotes()}
+                >
+                  Ask Dr. Ember for notes
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-8 grid gap-3 border-t-2 border-dashed border-card-foreground/40 pt-5 sm:grid-cols-2">
+          <Button
+            onClick={() => router.push('/')}
+            className="w-full font-typewriter uppercase tracking-widest"
+            size="lg"
+          >
+            Open a new file
           </Button>
-        </CardContent>
-      </Card>
+          <Button
+            onClick={() => router.push('/profile')}
+            variant="outline"
+            className="w-full border-2 border-card-foreground bg-transparent font-typewriter uppercase tracking-widest"
+            size="lg"
+          >
+            Past files
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

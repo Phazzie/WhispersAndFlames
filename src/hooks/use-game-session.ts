@@ -15,6 +15,24 @@ type ToastFn = (options: {
   duration?: number;
 }) => void;
 
+/**
+ * Local (one device) games pass the device around. After every change, hand
+ * it to the first player who still owes an action at this step: an answer to
+ * the current question during play, otherwise a ready-up. When nobody owes
+ * anything (a transition just reset everyone), it goes back to player one.
+ */
+export function nextLocalPlayerIndex(state: GameState): number {
+  const players = state.players;
+  if (state.step === 'game') {
+    const round = state.gameRounds.find((r) => r.question === state.currentQuestion);
+    const unanswered = players.findIndex((p) => !round?.answers[p.id]);
+    if (unanswered >= 0) return unanswered;
+  }
+  if (state.step === 'summary') return 0;
+  const notReady = players.findIndex((p) => !p.isReady);
+  return notReady >= 0 ? notReady : 0;
+}
+
 type UseGameSessionParams = {
   roomCode: string;
   isInvalidRoomCode: boolean;
@@ -78,7 +96,7 @@ export function useGameSession({
           ) {
             toast({
               title: 'New update',
-              description: 'Your partner just answered.',
+              description: 'Your partner just gave a statement.',
             });
           }
           setGameState(nextGame);
@@ -91,7 +109,11 @@ export function useGameSession({
       }
     };
 
-    initializeGame();
+    // Deliberately not awaited: this is an effect body. Every failure path
+    // inside initializeGame is already caught and surfaced through setError, so
+    // `void` records that the floating promise is intentional rather than an
+    // unhandled rejection waiting to happen.
+    void initializeGame();
 
     return () => {
       isMounted = false;
@@ -102,21 +124,37 @@ export function useGameSession({
     };
   }, [roomCode, user, isLoaded, router, isInvalidRoomCode, toast]);
 
+  /**
+   * Applies a state update and returns the state the server now holds, or
+   * null if the write failed.
+   *
+   * Errors are toasted rather than thrown, so callers that discard local input
+   * on completion — the answer textarea, for one — need to know the write
+   * actually landed. Callers that check "is everyone ready?" must use the
+   * returned state, not their own pre-write copy: when both partners click at
+   * once, each local copy still shows the other as not ready, so neither
+   * would advance and the room would hang.
+   */
   const updateGameState = useCallback(
-    async (newState: Partial<GameState>) => {
+    async (newState: Partial<GameState>): Promise<GameState | null> => {
       try {
         const currentState = stateRef.current;
         if (currentState?.gameMode === 'local') {
-          const updated = localGame.update(roomCode, newState);
+          const merged = { ...currentState, ...newState } as GameState;
+          const updated = localGame.update(roomCode, {
+            ...newState,
+            currentPlayerIndex: nextLocalPlayerIndex(merged),
+          });
           if (updated) {
             setGameState(updated);
-            return;
+            return updated;
           }
           throw new Error('Failed to update local game');
         }
 
         const updated = await clientGame.update(roomCode, newState);
         setGameState(updated);
+        return updated;
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Update failed';
         toast({
@@ -124,6 +162,7 @@ export function useGameSession({
           description: message,
           variant: 'destructive',
         });
+        return null;
       }
     },
     [roomCode, toast]

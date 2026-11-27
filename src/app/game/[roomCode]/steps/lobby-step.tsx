@@ -3,35 +3,50 @@
 import { Loader2, ClipboardCopy } from 'lucide-react';
 import { useState } from 'react';
 
+import { FieldLabel, Sheet, Stamp } from '@/components/dossier';
 import { QRCodeShare } from '@/components/qr-code-share';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { StepProps, Player } from '@/lib/game-types';
 
-const PlayerDisplay = ({ player, isMe }: { player: Player; isMe: boolean }) => (
-  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary">
-    <div className="flex flex-col">
-      <span className="font-semibold">
-        {player.name} {isMe && '(You)'}
+const PlayerDisplay = ({
+  player,
+  isMe,
+  index,
+}: {
+  player: Player;
+  isMe: boolean;
+  index: number;
+}) => (
+  <li className="flex items-center justify-between gap-3 border-b border-dashed border-card-foreground/30 py-3">
+    <div className="min-w-0">
+      <span className="font-typewriter text-[11px] uppercase tracking-[0.2em] text-card-foreground/60">
+        Agent {index + 1}
+        {isMe && ' · you'}
       </span>
-      <span className="text-xs text-muted-foreground">{player.email}</span>
+      <p className="truncate font-hand text-3xl leading-none text-accent">{player.name}</p>
     </div>
     {player.isReady ? (
-      <span className="text-sm text-green-400">Ready</span>
+      <Stamp className="shrink-0 text-sm" tilt={-7}>
+        Ready
+      </Stamp>
     ) : (
-      <span className="text-sm text-amber-400">Waiting...</span>
+      <span className="shrink-0 font-typewriter text-xs uppercase tracking-wider text-card-foreground/60">
+        Waiting...
+      </span>
     )}
-  </div>
+  </li>
 );
 
-const EmptyPlayerSlot = () => (
-  <div className="flex items-center justify-center p-3 rounded-lg bg-secondary/50 border border-dashed">
-    <div className="text-sm text-muted-foreground text-center">
+const EmptyPlayerSlot = ({ index }: { index: number }) => (
+  <li className="flex items-center justify-between border-b border-dashed border-card-foreground/30 py-3">
+    <span className="font-typewriter text-[11px] uppercase tracking-[0.2em] text-card-foreground/50">
+      Agent {index + 1}
+    </span>
+    <span className="font-typewriter text-xs uppercase tracking-wider text-card-foreground/40">
       Open seat (optional, up to 3 players)
-    </div>
-  </div>
+    </span>
+  </li>
 );
 
 export function LobbyStep({ gameState, me, handlers }: StepProps) {
@@ -55,8 +70,8 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     // Check if we have at least 2 players before allowing ready-up.
     if (gameState.players.length < 2) {
       toast({
-        title: 'Waiting for more players',
-        description: 'You need at least 2 players to start.',
+        title: 'Need a second agent',
+        description: 'Send your partner the codename or the QR code first.',
         variant: 'destructive',
       });
       return;
@@ -65,11 +80,13 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     const updatedPlayers = gameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
-    await updateGameState({ players: updatedPlayers });
+    const saved = await updateGameState({ players: updatedPlayers });
+    if (!saved) return;
 
-    const allPlayersReady = updatedPlayers.every((p: Player) => p.isReady);
-    if (allPlayersReady) {
-      const resetPlayers = updatedPlayers.map((p: Player) => ({ ...p, isReady: false }));
+    // Decide from the server's copy: our local one may not show a partner who
+    // readied up a moment ago.
+    if (saved.step === 'lobby' && saved.players.every((p: Player) => p.isReady)) {
+      const resetPlayers = saved.players.map((p: Player) => ({ ...p, isReady: false }));
       await updateGameState({ step: 'categories', players: resetPlayers });
     }
   };
@@ -77,7 +94,7 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
   const copyRoomCode = () => {
     if (roomCode) {
       navigator.clipboard.writeText(roomCode);
-      toast({ title: 'Copied to Clipboard!' });
+      toast({ title: 'Codename copied', description: 'Send it to your partner. Only them.' });
     }
   };
 
@@ -93,61 +110,72 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
       : '';
 
   return (
-    <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Your Private Room</CardTitle>
-          <CardDescription>Share the code, choose your name, and get ready.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2 rounded-lg border border-dashed p-4 justify-between">
-            <span className="font-mono text-lg font-bold text-primary">{roomCode}</span>
-            <Button variant="ghost" size="icon" onClick={copyRoomCode}>
-              <ClipboardCopy className="h-5 w-5" />
-            </Button>
-          </div>
+    <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-[1.4fr_1fr]">
+      <Sheet form="Form WF-2 · Briefing" file={`Op. ${roomCode}`} clip>
+        <h2 className="font-typewriter text-2xl sm:text-3xl">Your private room</h2>
+        <p className="mt-2 text-sm text-card-foreground/75">
+          Two or three agents. Everyone signs in, everyone says they&apos;re in, then Ember opens
+          the file.
+        </p>
 
-          <div className="space-y-2">
-            <Label htmlFor="playerName">Your Name</Label>
-            <div className="flex space-x-2">
-              <Input
-                id="playerName"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                onBlur={handleNameChange} // Update name on blur
-                placeholder="Enter your name"
-                disabled={me.isReady}
-              />
-            </div>
+        <div className="mt-5 flex items-center justify-between gap-2 border-2 border-card-foreground/70 px-3 py-2">
+          <div className="min-w-0">
+            <FieldLabel>Codename</FieldLabel>
+            <span className="block truncate font-typewriter text-lg tracking-wider text-primary sm:text-xl">
+              {roomCode}
+            </span>
           </div>
-
-          <div className="space-y-2">
-            {allPlayers.map((player, index) =>
-              player ? (
-                <PlayerDisplay key={player.id} player={player} isMe={player.id === me.id} />
-              ) : (
-                <EmptyPlayerSlot key={`empty-${index}`} />
-              )
-            )}
-          </div>
-          <Button
-            onClick={handlePlayerReady}
-            className="w-full"
-            size="lg"
-            disabled={me.isReady || players.length < 2}
-          >
-            {me.isReady ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
-              </>
-            ) : players.length < 2 ? (
-              'Waiting for at least 2 players...'
-            ) : (
-              "I'm Ready!"
-            )}
+          <Button variant="ghost" size="icon" onClick={copyRoomCode} aria-label="Copy codename">
+            <ClipboardCopy className="h-5 w-5" />
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="mt-5 space-y-1">
+          <FieldLabel htmlFor="playerName">Your alias</FieldLabel>
+          <Input
+            id="playerName"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            onBlur={handleNameChange}
+            placeholder="What should Ember call you?"
+            disabled={me.isReady}
+            className="bg-card/60 font-hand text-2xl"
+          />
+        </div>
+
+        <ul className="mt-4" aria-label="Agents">
+          {allPlayers.map((player, index) =>
+            player ? (
+              <PlayerDisplay
+                key={player.id}
+                player={player}
+                isMe={player.id === me.id}
+                index={index}
+              />
+            ) : (
+              <EmptyPlayerSlot key={`empty-${index}`} index={index} />
+            )
+          )}
+        </ul>
+
+        <Button
+          onClick={handlePlayerReady}
+          className="mt-6 w-full font-typewriter uppercase tracking-widest"
+          size="lg"
+          disabled={me.isReady || players.length < 2}
+          aria-label={me.isReady ? 'Waiting for others' : "I'm Ready!"}
+        >
+          {me.isReady ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting on the others…
+            </>
+          ) : players.length < 2 ? (
+            'Waiting for a second agent…'
+          ) : (
+            "I'm in. Open the file."
+          )}
+        </Button>
+      </Sheet>
 
       {joinUrl && <QRCodeShare roomCode={roomCode} gameUrl={joinUrl} />}
     </div>

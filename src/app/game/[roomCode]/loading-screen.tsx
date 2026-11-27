@@ -1,13 +1,12 @@
 'use client';
-import { Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const LOADING_MESSAGES = [
-  'Fanning the flames...',
-  'Crafting the perfect question...',
-  'Stoking the embers of connection...',
-  'Translating whispers into words...',
-  'Finding the right spark...',
+  'Ember is typing up the next question…',
+  'Pulling your file from the cabinet…',
+  'Checking the codename against the ledger…',
+  'Steaming open the envelope…',
+  'Sharpening the red pencil…',
 ];
 
 export function LoadingScreen({ message }: { message?: string }) {
@@ -26,9 +25,24 @@ export function LoadingScreen({ message }: { message?: string }) {
   }, [message]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-      <Loader2 className="h-16 w-16 animate-spin text-primary" />
-      <p className="mt-4 text-muted-foreground text-lg animate-pulse">{loadingMessage}</p>
+    <div
+      className="flex min-h-[60vh] w-full flex-col items-center justify-center p-4"
+      role="status"
+      aria-live="polite"
+    >
+      {/* A typewriter carriage: three keys striking in turn. */}
+      <div className="flex gap-2" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <span
+            key={i}
+            className="block h-3 w-3 rounded-full bg-foreground/80 animate-bounce"
+            style={{ animationDelay: `${i * 150}ms` }}
+          />
+        ))}
+      </div>
+      <p className="mt-5 max-w-sm text-center font-typewriter text-sm uppercase tracking-[0.2em] text-foreground/80">
+        {loadingMessage}
+      </p>
     </div>
   );
 }

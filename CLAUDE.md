@@ -63,7 +63,7 @@ Each step is a separate component in `src/app/game/[roomCode]/steps/`
 - **Next.js 15.5.6** - App Router (not Pages Router)
 - **React 18.3.1** - Server Components by default, Client Components marked with `'use client'`
 - **TypeScript 5** - Strict mode enabled
-- **Node.js 20.x** - Required version (enforced in package.json)
+- **Node.js 22.x** - Required version (Vercel dropped Node 20 in Oct 2026) (enforced in package.json)
 
 ### Styling
 
