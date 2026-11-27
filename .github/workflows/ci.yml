@@ -78,10 +78,10 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Run E2E tests
-        run: npx playwright test --trace off
+        run: npm run test:e2e -- --trace off
 
       - name: Upload test results
         uses: actions/upload-artifact@v5
