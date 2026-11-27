@@ -181,10 +181,12 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
   }
 
   return (
-    <Card className="w-full max-w-sm mx-auto shadow-md">
+    <Card className="w-full max-w-sm mx-auto rotate-[1.2deg]">
       <CardHeader className="text-center pb-2">
-        <CardTitle className="text-xl font-bold">Share Game</CardTitle>
-        <CardDescription>Scan QR code or share link to join</CardDescription>
+        <CardTitle className="text-xl">Invite your partner</CardTitle>
+        <CardDescription>
+          Scan it, or send the link. Whoever opens it joins this file.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex justify-center">

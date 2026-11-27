@@ -12,8 +12,8 @@ test.describe('Signed-out visitor', () => {
   test('home page offers sign in and sign up', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Whispers|Flames/i);
-    await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Create Account' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show your badge' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Request clearance' })).toBeVisible();
   });
 
   test('game routes bounce back to the home page', async ({ page }) => {
@@ -64,8 +64,8 @@ test.describe('Online game, two devices', () => {
 
     // One shared category x 2 questions per category = 2 questions.
     for (const questionNumber of [1, 2]) {
-      await expect(alice.getByText(`Question ${questionNumber} of 2`)).toBeVisible();
-      await expect(bob.getByText(`Question ${questionNumber} of 2`)).toBeVisible();
+      await expect(alice.getByText(`Question ${questionNumber} of 2`).first()).toBeVisible();
+      await expect(bob.getByText(`Question ${questionNumber} of 2`).first()).toBeVisible();
       await expect(alice.getByText(/E2E question \d+/)).toBeVisible();
 
       await alice
@@ -97,7 +97,7 @@ test.describe('Online game, two devices', () => {
     await expect(bob.getByAltText('Visual Memory')).toBeVisible();
 
     // Achievements tab.
-    await alice.getByRole('tab', { name: 'Achievements' }).click();
+    await alice.getByRole('tab', { name: 'Commendations' }).click();
     await expect(alice.getByRole('tabpanel')).toBeVisible();
 
     // Dr. Ember's notes load on demand.
@@ -108,9 +108,9 @@ test.describe('Online game, two devices', () => {
   test('joining a room that does not exist shows an error, not a hang', async ({ browser }) => {
     const carol = await signedInPage(browser, 'carol');
     await carol.goto('/');
-    await carol.getByPlaceholder('Your name').fill('Carol');
+    await carol.getByLabel('Your alias').fill('Carol');
     await carol.getByLabel('Room code').fill('NOPE-NOPE-NOPE-11');
-    await carol.getByRole('button', { name: 'Join' }).click();
+    await carol.getByRole('button', { name: 'Report in' }).click();
     await expect(carol.getByText('Room not found', { exact: false }).first()).toBeVisible();
     await expect(carol).toHaveURL(/\/$/);
   });
@@ -132,10 +132,10 @@ test.describe('Local game, one device', () => {
   test('two players pass the device and finish a game', async ({ browser }) => {
     const page = await signedInPage(browser, 'dana');
     await page.goto('/');
-    await page.getByLabel('Play Locally').click();
-    await page.getByPlaceholder('Player 1 name').fill('Dana');
-    await page.getByPlaceholder('Player 2 name').fill('Eli');
-    await page.getByRole('button', { name: 'Play Locally' }).click();
+    await page.getByLabel('Play on one device').click();
+    await page.getByLabel('Agent 1 alias').fill('Dana');
+    await page.getByLabel('Agent 2 alias').fill('Eli');
+    await page.getByRole('button', { name: 'Open the file on this device' }).click();
     await page.waitForURL(/\/game\//);
 
     const takeDevice = async (name: string) => {
@@ -166,7 +166,7 @@ test.describe('Local game, one device', () => {
     // Two questions, each answered privately, then revealed.
     for (const n of [1, 2]) {
       await takeDevice('Dana');
-      await expect(page.getByText(`Question ${n} of 2`)).toBeVisible();
+      await expect(page.getByText(`Question ${n} of 2`).first()).toBeVisible();
       await page.getByLabel('Your answer to the current question').fill(`Dana says ${n}`);
       await page.getByRole('button', { name: 'Submit your answer' }).click();
       await takeDevice('Eli');

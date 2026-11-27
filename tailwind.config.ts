@@ -17,9 +17,13 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-playfair)', 'serif'],
-        headline: ['var(--font-playfair)', 'serif'],
-        code: ['monospace'],
+        // Self-hosted via @fontsource (imported in app/layout.tsx).
+        sans: ['"Courier Prime"', '"Courier New"', 'monospace'],
+        typewriter: ['"Special Elite"', '"Courier Prime"', 'monospace'],
+        headline: ['"Special Elite"', '"Courier Prime"', 'monospace'],
+        stamp: ['"Black Ops One"', 'Impact', 'sans-serif'],
+        hand: ['Caveat', '"Bradley Hand"', 'cursive'],
+        code: ['"Courier Prime"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',

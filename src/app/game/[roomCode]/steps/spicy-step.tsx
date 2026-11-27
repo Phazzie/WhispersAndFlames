@@ -1,9 +1,9 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Sparkles, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useState } from 'react';
 
+import { CLEARANCE, Sheet, Stamp } from '@/components/dossier';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { SPICY_LEVELS } from '@/lib/constants';
@@ -87,161 +87,104 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
     await updateGameState({ chaosMode: checked });
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 30, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      transition: { type: 'spring', stiffness: 100, damping: 10 },
-    },
-    hover: {
-      scale: 1.03,
-      translateY: -5,
-      boxShadow: '0px 15px 25px hsla(var(--primary) / 0.15)',
-      transition: { type: 'spring', stiffness: 300, damping: 15 },
-    },
-  };
-
   if (players.every((p) => p.isReady)) {
-    return <LoadingScreen message="Calculating your perfect game..." />;
+    return <LoadingScreen message="Clearance granted. Ember is typing your first question…" />;
   }
 
   return (
-    <div className="w-full max-w-5xl text-center">
-      <h1 className="text-5xl md:text-6xl font-bold leading-tight">Set the Mood</h1>
-      <p className="mt-2 text-lg text-muted-foreground max-w-lg mx-auto">
-        Choose your heat. The game will use the mildest level chosen by any player.
-      </p>
+    <div className="w-full max-w-5xl">
+      <Sheet form="Form WF-4 · Security clearance" file={`Op. ${gameState.roomCode}`}>
+        <h2 className="font-typewriter text-2xl sm:text-3xl">Set your clearance</h2>
+        <p className="mt-2 max-w-2xl text-sm text-card-foreground/75">
+          How far in are you willing to go? The file opens at the <em>lowest</em> clearance any
+          agent picks, so nobody gets dragged past their own line.
+        </p>
 
-      <motion.div
-        className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {SPICY_LEVELS.map((level) => {
-          const Icon = level.icon;
-          const isSelectedByMe = selectedLevel === level.name;
-
-          return (
-            <motion.div
-              key={level.name}
-              variants={cardVariants}
-              whileHover={me.isReady ? '' : 'hover'}
-              role="button"
-              tabIndex={me.isReady ? -1 : 0}
-              aria-pressed={isSelectedByMe}
-              aria-disabled={me.isReady}
-              aria-label={`${level.name} spice level`}
-              onClick={() => handleSpicySelect(level.name)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  void handleSpicySelect(level.name);
-                }
-              }}
-              className={cn(
-                'group relative rounded-xl border-4 p-6 text-center cursor-pointer transition-all duration-300 ease-in-out overflow-hidden',
-                me.isReady && 'opacity-60 cursor-not-allowed',
-                isSelectedByMe
-                  ? 'border-primary bg-primary/10 shadow-2xl shadow-primary/20'
-                  : 'border-border bg-card'
-              )}
-            >
-              <div className="relative z-10 flex flex-col items-center">
-                <motion.div
-                  className={cn(
-                    'flex items-center justify-center w-16 h-16 rounded-full mb-4 transition-colors duration-300',
-                    isSelectedByMe
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground group-hover:bg-primary group-hover:text-primary-foreground'
-                  )}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                  animate={{ scale: isSelectedByMe ? 1.1 : 1 }}
-                >
-                  <Icon className="w-8 h-8" />
-                </motion.div>
-                <h3 className="text-2xl font-bold">{level.name}</h3>
-                <p className="mt-2 text-muted-foreground text-sm h-12">{level.description}</p>
-              </div>
-
-              <AnimatePresence>
-                {isSelectedByMe && (
-                  <motion.div
-                    initial={{ scale: 0.5, opacity: 0, rotate: -90 }}
-                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                    exit={{ scale: 0.5, opacity: 0, rotate: 90 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                    className="absolute -top-3 -right-3 w-8 h-8 bg-accent rounded-full flex items-center justify-center text-accent-foreground"
-                  >
-                    <Sparkles className="w-5 h-5" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-
-      <div className="flex items-center gap-3 mt-8 justify-center">
-        <Switch
-          id="chaos-mode"
-          checked={chaosMode}
-          onCheckedChange={handleChaosToggle}
-          disabled={me.isReady}
-        />
-        <Label
-          htmlFor="chaos-mode"
-          className={cn('cursor-pointer flex items-center gap-2', me.isReady && 'opacity-60')}
-        >
-          <Zap className="w-4 h-4" />
-          <span>Chaos Mode: Surprise spicy upgrades (1 in 5 chance)</span>
-        </Label>
-      </div>
-
-      {me.isReady && (
-        <div className="mt-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-          <p className="mt-2 text-muted-foreground">Waiting for other players to choose...</p>
-        </div>
-      )}
-
-      <div
-        className={cn(
-          'grid grid-cols-1 gap-4 mt-8 p-4 bg-secondary/50 rounded-lg max-w-2xl mx-auto',
-          players.length >= 3
-            ? 'sm:grid-cols-3'
-            : players.length === 2
-              ? 'sm:grid-cols-2'
-              : 'sm:grid-cols-1'
-        )}
-      >
-        {players.map((player) => (
-          <div key={player.id} className="text-center">
-            <p className="font-semibold">
-              {player.name}
-              {player.id === me.id ? ' (You)' : ''}:
-            </p>
-            <AnimatePresence mode="wait">
-              <motion.p
-                key={player.selectedSpicyLevel || 'Choosing...'}
-                initial={{ opacity: 0, y: 10 }}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {SPICY_LEVELS.map((level, index) => {
+            const isSelectedByMe = selectedLevel === level.name;
+            const clearance = CLEARANCE[level.name];
+            return (
+              <motion.div
+                key={level.name}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="text-primary font-bold text-xl"
+                transition={{ delay: index * 0.07 }}
+                role="button"
+                tabIndex={me.isReady ? -1 : 0}
+                aria-pressed={isSelectedByMe}
+                aria-disabled={me.isReady}
+                aria-label={`${level.name} spice level`}
+                onClick={() => handleSpicySelect(level.name)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    void handleSpicySelect(level.name);
+                  }
+                }}
+                className={cn(
+                  'relative flex min-h-[11rem] cursor-pointer flex-col justify-between border-2 p-4 outline-none transition-all',
+                  'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                  isSelectedByMe
+                    ? 'border-primary bg-primary/10'
+                    : 'border-card-foreground/30 hover:border-card-foreground/70',
+                  me.isReady && !isSelectedByMe && 'cursor-not-allowed opacity-50'
+                )}
+                style={{ transform: `rotate(${[-0.8, 0.6, -0.4, 0.9][index]}deg)` }}
               >
-                {player.selectedSpicyLevel || 'Choosing...'}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        ))}
-      </div>
+                <div className="flex items-start justify-between">
+                  <span className="font-stamp text-3xl leading-none text-card-foreground/25">
+                    {clearance.code}
+                  </span>
+                  <span className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-card-foreground/55">
+                    Level {index + 1} · {level.name}
+                  </span>
+                </div>
+                <div>
+                  <Stamp
+                    className={cn('text-lg', !isSelectedByMe && 'opacity-60')}
+                    tilt={isSelectedByMe ? -6 : 0}
+                  >
+                    {clearance.label}
+                  </Stamp>
+                  <p className="mt-3 text-[13px] leading-snug">{clearance.brief}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 flex items-start gap-3 border-2 border-dashed border-card-foreground/40 p-3">
+          <Switch
+            id="chaos-mode"
+            checked={chaosMode}
+            onCheckedChange={handleChaosToggle}
+            disabled={me.isReady}
+          />
+          <Label
+            htmlFor="chaos-mode"
+            className={cn('cursor-pointer leading-snug', me.isReady && 'opacity-60')}
+          >
+            <span className="font-typewriter uppercase tracking-wider">Rogue handler</span>
+            <span className="mt-1 block text-xs font-normal text-card-foreground/70">
+              Ember may bump a question up one clearance level without warning. About one in five.
+            </span>
+          </Label>
+        </div>
+
+        <ul className="mt-6 grid gap-2 border-t-2 border-dashed border-card-foreground/40 pt-4 sm:grid-cols-3">
+          {players.map((player) => (
+            <li key={player.id} className="flex items-baseline justify-between gap-2">
+              <span className="truncate font-hand text-2xl text-accent">{player.name}</span>
+              <span className="font-typewriter text-xs uppercase tracking-wider">
+                {player.selectedSpicyLevel
+                  ? CLEARANCE[player.selectedSpicyLevel].label
+                  : 'Deciding…'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Sheet>
     </div>
   );
 }

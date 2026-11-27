@@ -1,39 +1,52 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
+import { useRef, useState } from 'react';
 
+import { Sheet, Stamp } from '@/components/dossier';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { CATEGORIES, QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { StepProps } from '@/lib/game-types';
-
-const PLAYER_COLORS = ['bg-blue-400', 'bg-green-400', 'bg-yellow-400'];
-const getPlayerColor = (playerIndex: number) => PLAYER_COLORS[playerIndex] || 'bg-gray-400';
+import { cn } from '@/lib/utils';
 
 export function CategoriesStep({ gameState, me, handlers }: StepProps) {
   const { updateGameState, toast } = handlers;
   const { players } = gameState;
 
+  // My picks live locally and are written in order. Computing each toggle
+  // from `me` (the last server copy) dropped picks when someone tapped two
+  // files quickly: the second write was built before the first came back.
+  const [myPicks, setMyPicks] = useState<string[]>(me.selectedCategories || []);
+  const myPicksRef = useRef<string[]>(me.selectedCategories || []);
+  const writeChain = useRef<Promise<unknown>>(Promise.resolve());
+
   const handleToggleCategory = async (categoryName: string) => {
     if (me.isReady) return;
 
-    const myCurrentCategories = me.selectedCategories || [];
-    const newCategories = myCurrentCategories.includes(categoryName)
-      ? myCurrentCategories.filter((c) => c !== categoryName)
-      : [...myCurrentCategories, categoryName];
+    const current = myPicksRef.current;
+    const next = current.includes(categoryName)
+      ? current.filter((c) => c !== categoryName)
+      : [...current, categoryName];
+    myPicksRef.current = next;
+    setMyPicks(next);
 
-    const updatedPlayers = gameState.players.map((p) =>
-      p.id === me.id ? { ...p, selectedCategories: newCategories } : p
+    writeChain.current = writeChain.current.then(() =>
+      updateGameState({
+        players: gameState.players.map((p) =>
+          p.id === me.id ? { ...p, selectedCategories: myPicksRef.current } : p
+        ),
+      })
     );
-    await updateGameState({ players: updatedPlayers });
+    await writeChain.current;
   };
 
   const handlePlayerReady = async () => {
     // Player must select at least one category to be ready
-    if (me.selectedCategories.length === 0) {
+    await writeChain.current;
+    if (myPicksRef.current.length === 0) {
       toast({
-        title: 'No categories selected',
-        description: 'Please select at least one category to explore.',
+        title: 'No files pulled',
+        description: 'Pick at least one line of inquiry first.',
         variant: 'destructive',
       });
       return;
@@ -51,7 +64,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     }
 
     const updatedPlayers = gameState.players.map((p) =>
-      p.id === me.id ? { ...p, isReady: true } : p
+      p.id === me.id ? { ...p, isReady: true, selectedCategories: myPicksRef.current } : p
     );
     const saved = await updateGameState({ players: updatedPlayers });
     if (!saved || saved.step !== 'categories') return;
@@ -68,9 +81,9 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
 
       if (commonCategories.length === 0) {
         toast({
-          title: 'No Common Ground',
+          title: 'No common ground',
           description:
-            'All players must select at least one category in common. Please discuss and re-select.',
+            "You didn't pull a single file in common. Talk it over (that's kind of the point) and pick again.",
           variant: 'destructive',
           duration: 8000,
         });
@@ -95,81 +108,114 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     }
   };
 
+  const commonCount = CATEGORIES.filter(
+    (cat) =>
+      players.length > 1 &&
+      players.every((p) => (p.id === me.id ? myPicks : p.selectedCategories)?.includes(cat.name))
+  ).length;
+
   return (
-    <div className="w-full max-w-3xl">
-      <h2 className="text-3xl font-bold text-center mb-2">Choose Your Categories</h2>
-      <p className="text-muted-foreground text-center mb-8">
-        Select themes to explore together. Questions will be drawn from categories you all choose.
-      </p>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        {CATEGORIES.map((cat) => {
-          const isSelectedByMe = me.selectedCategories.includes(cat.name);
-          const selections = players.filter((p) => p.selectedCategories?.includes(cat.name));
-          const isCommon = players.length > 1 && selections.length === players.length;
+    <div className="w-full max-w-5xl">
+      <Sheet form="Form WF-3 · Lines of inquiry" file={`Op. ${gameState.roomCode}`}>
+        <h2 className="font-typewriter text-2xl sm:text-3xl">Choose Your Categories</h2>
+        <p className="mt-2 max-w-2xl text-sm text-card-foreground/75">
+          Pull the files you want opened. Ember only investigates the ones <em>every</em> agent
+          pulls, two questions per file. Your partner&apos;s initials show up on the tabs as they
+          pick.
+        </p>
 
-          return (
-            <Card
-              key={cat.name}
-              role="button"
-              tabIndex={me.isReady ? -1 : 0}
-              aria-pressed={isSelectedByMe}
-              aria-disabled={me.isReady}
-              aria-label={cat.name}
-              onClick={() => handleToggleCategory(cat.name)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  void handleToggleCategory(cat.name);
-                }
-              }}
-              className={`transition-all duration-200 cursor-pointer relative overflow-hidden
-                ${me.isReady ? 'cursor-not-allowed opacity-70' : ''}
-                ${
-                  isCommon
-                    ? 'border-primary ring-2 ring-primary shadow-lg'
-                    : isSelectedByMe
-                      ? 'border-blue-400 ring-2 ring-blue-400'
-                      : 'hover:border-primary/50'
-                }
-              `}
-            >
-              <CardContent className="p-4 flex flex-col items-center justify-center text-center aspect-square">
-                <cat.icon
-                  className={`w-8 h-8 mb-2 ${selections.length > 0 ? 'text-primary' : ''}`}
-                />
-                <h3 className="font-semibold text-sm">{cat.name}</h3>
-              </CardContent>
-              <div className="absolute bottom-1 right-1 flex gap-1">
-                {players.map(
-                  (player, index) =>
-                    player.selectedCategories?.includes(cat.name) && (
-                      <div
-                        key={player.id}
-                        className={`w-2 h-2 rounded-full ${getPlayerColor(index)}`}
-                        title={`Selected by ${player.name}`}
-                      />
-                    )
+        <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
+          {CATEGORIES.map((cat) => {
+            const isSelectedByMe = myPicks.includes(cat.name);
+            const selections = players.filter((p) =>
+              (p.id === me.id ? myPicks : p.selectedCategories)?.includes(cat.name)
+            );
+            const isCommon = players.length > 1 && selections.length === players.length;
+
+            return (
+              <div
+                key={cat.name}
+                role="button"
+                tabIndex={me.isReady ? -1 : 0}
+                aria-pressed={isSelectedByMe}
+                aria-disabled={me.isReady}
+                aria-label={cat.name}
+                onClick={() => handleToggleCategory(cat.name)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    void handleToggleCategory(cat.name);
+                  }
+                }}
+                className={cn(
+                  'group relative cursor-pointer outline-none transition-transform duration-200',
+                  'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                  isSelectedByMe ? '-translate-y-2' : 'hover:-translate-y-1',
+                  me.isReady && 'cursor-not-allowed opacity-70'
                 )}
+              >
+                {/* folder tab */}
+                <div
+                  className={cn(
+                    'ml-2 inline-block rounded-t-sm px-2 pt-1 font-typewriter text-[10px] uppercase tracking-wider',
+                    isSelectedByMe ? 'bg-[hsl(41_45%_62%)]' : 'bg-[hsl(41_30%_58%)]'
+                  )}
+                >
+                  {selections.length > 0
+                    ? selections.map((p) => p.name.slice(0, 1).toUpperCase()).join(' · ')
+                    : 'File'}
+                </div>
+                <div
+                  className={cn(
+                    'relative flex aspect-[4/3] flex-col justify-between overflow-hidden rounded-sm border p-3 shadow-[0_6px_14px_-6px_rgba(0,0,0,0.55)]',
+                    isSelectedByMe
+                      ? 'border-card-foreground/50 bg-[hsl(41_45%_62%)]'
+                      : 'border-card-foreground/25 bg-[hsl(41_30%_66%)]'
+                  )}
+                >
+                  <cat.icon className="h-5 w-5 opacity-70" aria-hidden="true" />
+                  <div>
+                    <h3 className="font-typewriter text-sm leading-tight">{cat.name}</h3>
+                    <p className="mt-1 hidden text-[11px] leading-snug text-card-foreground/70 sm:block">
+                      {cat.description}
+                    </p>
+                  </div>
+                  {isCommon && (
+                    <Stamp className="absolute right-1 top-2 text-[11px] sm:text-xs" tilt={-14}>
+                      Match
+                    </Stamp>
+                  )}
+                </div>
               </div>
-            </Card>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      <Button
-        onClick={handlePlayerReady}
-        className="w-full max-w-xs mx-auto flex"
-        size="lg"
-        disabled={me.isReady}
-      >
-        {me.isReady ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting for others...
-          </>
-        ) : (
-          'Confirm Selections'
-        )}
-      </Button>
+        <div className="mt-8 flex flex-col items-center gap-3 border-t-2 border-dashed border-card-foreground/40 pt-5 sm:flex-row sm:justify-between">
+          <p className="font-typewriter text-xs uppercase tracking-[0.2em] text-card-foreground/70">
+            {commonCount === 0
+              ? 'No shared files yet'
+              : `${commonCount} shared file${commonCount === 1 ? '' : 's'} · ${
+                  commonCount * QUESTIONS_PER_CATEGORY
+                } questions`}
+          </p>
+          <Button
+            onClick={handlePlayerReady}
+            className="w-full font-typewriter uppercase tracking-widest sm:w-auto"
+            size="lg"
+            disabled={me.isReady}
+            aria-label={me.isReady ? 'Waiting for others' : 'Confirm Selections'}
+          >
+            {me.isReady ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Waiting on the others…
+              </>
+            ) : (
+              'Seal my picks'
+            )}
+          </Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

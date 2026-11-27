@@ -15,17 +15,17 @@ export async function signedInPage(browser: Browser, id: string): Promise<Page> 
 
 export async function createRoom(page: Page, name: string): Promise<string> {
   await page.goto('/');
-  await page.getByPlaceholder('Your name').fill(name);
-  await page.getByRole('button', { name: 'Create New Room' }).click();
+  await page.getByLabel('Your alias').fill(name);
+  await page.getByRole('button', { name: 'Open a new file' }).click();
   await page.waitForURL(/\/game\/[A-Z0-9-]+$/);
   return decodeURIComponent(page.url().split('/game/')[1]);
 }
 
 export async function joinRoomByTyping(page: Page, name: string, roomCode: string) {
   await page.goto('/');
-  await page.getByPlaceholder('Your name').fill(name);
+  await page.getByLabel('Your alias').fill(name);
   await page.getByLabel('Room code').fill(roomCode);
-  await page.getByRole('button', { name: 'Join' }).click();
+  await page.getByRole('button', { name: 'Report in' }).click();
   await page.waitForURL(new RegExp(`/game/${roomCode}$`));
 }
 

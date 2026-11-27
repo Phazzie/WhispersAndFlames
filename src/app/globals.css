@@ -4,26 +4,28 @@
 
 @layer base {
   :root {
-    --background: 39 100% 97%; /* Light Cream */
-    --foreground: 20 14% 12%; /* Dark Brown-Gray */
-    --card: 39 80% 94%;
-    --card-foreground: 20 14% 12%;
-    --popover: 39 100% 97%;
-    --popover-foreground: 20 14% 12%;
-    --primary: 340 82% 52%; /* Hot Magenta */
-    --primary-foreground: 0 0% 100%;
-    --secondary: 14 70% 90%; /* Soft Orange */
-    --secondary-foreground: 340 82% 40%;
-    --muted: 39 70% 90%;
-    --muted-foreground: 20 14% 40%;
-    --accent: 14 85% 60%; /* Fiery Orange */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 39 20% 85%;
-    --input: 39 20% 85%;
-    --ring: 340 82% 52%;
-    --radius: 0.75rem;
+    /* EYES ONLY: a case file on a desk under a lamp.
+       background = the desk, card = manila paper, primary = rubber-stamp red. */
+    --background: 20 16% 8%; /* walnut desk in low light */
+    --foreground: 42 45% 88%; /* lamp-lit paper white */
+    --card: 43 52% 83%; /* manila */
+    --card-foreground: 28 18% 11%; /* typewriter ink */
+    --popover: 43 52% 86%;
+    --popover-foreground: 28 18% 11%;
+    --primary: 3 68% 40%; /* stamp red */
+    --primary-foreground: 43 60% 94%;
+    --secondary: 41 38% 72%; /* older, darker manila */
+    --secondary-foreground: 28 18% 11%;
+    --muted: 41 32% 74%;
+    --muted-foreground: 28 14% 30%;
+    --accent: 214 52% 28%; /* carbon-copy blue */
+    --accent-foreground: 43 60% 94%;
+    --destructive: 3 68% 40%;
+    --destructive-foreground: 43 60% 94%;
+    --border: 33 22% 52%;
+    --input: 33 22% 52%;
+    --ring: 3 68% 40%;
+    --radius: 2px;
   }
 
   .dark {
@@ -54,7 +56,72 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    /* A desk lamp somewhere above and to the left. */
+    background-image:
+      radial-gradient(ellipse 70% 55% at 30% 0%, hsl(36 60% 40% / 0.28), transparent 70%),
+      radial-gradient(ellipse 90% 70% at 50% 110%, hsl(0 0% 0% / 0.55), transparent 70%),
+      repeating-linear-gradient(
+        92deg,
+        hsl(20 18% 9%) 0px,
+        hsl(20 16% 7%) 3px,
+        hsl(22 18% 10%) 7px,
+        hsl(20 16% 8%) 12px
+      );
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  /* A sheet of paper in the file. */
+  .paper {
+    @apply bg-card text-card-foreground;
+    background-image:
+      radial-gradient(circle at 12% 18%, hsl(38 40% 60% / 0.18), transparent 35%),
+      radial-gradient(circle at 85% 80%, hsl(30 40% 45% / 0.14), transparent 40%),
+      linear-gradient(hsl(43 52% 85%), hsl(42 46% 80%));
+    box-shadow:
+      0 1px 0 hsl(43 60% 92%) inset,
+      0 18px 40px -12px hsl(0 0% 0% / 0.7),
+      0 2px 6px hsl(0 0% 0% / 0.4);
+  }
+  /* Ruled index-card lines for handwritten statements. */
+  .ruled {
+    background-image: repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 31px,
+      hsl(214 50% 45% / 0.25) 31px,
+      hsl(214 50% 45% / 0.25) 32px
+    );
+    line-height: 32px;
+  }
+  .stamp {
+    @apply font-stamp uppercase text-primary;
+    border: 3px solid currentColor;
+    padding: 0.15em 0.5em;
+    letter-spacing: 0.08em;
+    mix-blend-mode: multiply;
+    /* Uneven ink: knock holes out of the stamp so it reads as rubber, not CSS. */
+    -webkit-mask-image:
+      radial-gradient(circle at 20% 30%, #000 60%, transparent 61%), linear-gradient(#000, #000);
+    -webkit-mask-composite: source-over;
+    opacity: 0.88;
+  }
+  .redacted {
+    background: hsl(28 18% 8%);
+    color: transparent;
+    border-radius: 1px;
+    user-select: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
@@ -66,10 +133,10 @@
   @keyframes pulse-glow {
     0%,
     100% {
-      box-shadow: 0 0 20px rgba(169, 50, 38, 0.5);
+      box-shadow: 0 0 20px hsl(3 68% 40% / 0.5);
     }
     50% {
-      box-shadow: 0 0 40px rgba(169, 50, 38, 0.8);
+      box-shadow: 0 0 40px hsl(3 68% 40% / 0.8);
     }
   }
 }

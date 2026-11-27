@@ -1,16 +1,16 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, ArrowRight, Zap } from 'lucide-react';
+import { Loader2, ArrowRight } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
+import { FieldLabel, Redacted, Sheet, Stamp } from '@/components/dossier';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { QUESTIONS_PER_CATEGORY } from '@/lib/constants';
 import type { GameStepProps } from '@/lib/game-types';
 import { applyChaosMode } from '@/lib/game-utils';
+import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
 
@@ -38,7 +38,11 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
 
   const handleSubmitAnswer = useCallback(async () => {
     if (!currentAnswer.trim()) {
-      toast({ title: "Answer can't be empty", variant: 'destructive' });
+      toast({
+        title: 'Blank statement',
+        description: 'Ember needs at least a sentence.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -195,8 +199,6 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
   }, [
     gameState.players,
     gameState.currentQuestionIndex,
-    gameState.totalQuestions,
-    gameState.gameRounds,
     gameState.commonCategories,
     gameState.finalSpicyLevel,
     gameState.chaosMode,
@@ -208,133 +210,174 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
   ]);
 
   if (isSubmitting) {
-    return <LoadingScreen message="Submitting your answer..." />;
+    return <LoadingScreen message="Sealing your statement in an envelope…" />;
   }
+
+  const questionBlock = (
+    <>
+      <p className="font-typewriter text-[11px] uppercase tracking-[0.25em] text-card-foreground/70">
+        Question {currentQuestionIndex} of {totalQuestions} · Ember asks:
+      </p>
+      <blockquote className="mt-3 font-typewriter text-xl leading-snug sm:text-2xl">
+        {currentQuestion}
+      </blockquote>
+    </>
+  );
 
   if (allPlayersAnswered) {
     const readyPlayerCount = players.filter((p) => p.isReady).length;
+    const isLast = currentQuestionIndex >= totalQuestions;
     return (
       <div className="w-full max-w-4xl">
-        <p className="text-center text-primary font-semibold mb-4">
-          Question {currentQuestionIndex} of {totalQuestions}
-        </p>
-        <Card>
-          <CardHeader>
-            <blockquote className="text-center text-2xl font-semibold leading-relaxed">
-              “{currentQuestion}”
-            </blockquote>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-6">
-            <div
-              className={`grid grid-cols-1 gap-4 ${
-                players.length >= 3
-                  ? 'md:grid-cols-3'
-                  : players.length === 2
-                    ? 'md:grid-cols-2'
-                    : 'md:grid-cols-1'
-              }`}
-            >
-              {players.map((player) => (
-                <div key={player.id} className="space-y-2">
-                  <Label className="font-semibold text-base">{player.name}&apos;s Answer:</Label>
-                  <p className="p-4 bg-secondary rounded-md whitespace-pre-wrap h-full">
-                    {currentRound.answers[player.id]}
-                  </p>
-                </div>
-              ))}
-            </div>
+        <Sheet form="Form WF-5 · Statements" file={`Op. ${gameState.roomCode}`}>
+          {questionBlock}
 
-            <Button
-              onClick={handleNextStep}
-              className="w-full mt-6"
-              size="lg"
-              disabled={me.isReady}
-              aria-label={
-                me.isReady
-                  ? 'Waiting for other players'
-                  : currentQuestionIndex >= totalQuestions
-                    ? 'View game summary'
-                    : 'Proceed to next question'
-              }
-              aria-live="polite"
-            >
-              {me.isReady ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  <span className="sr-only">Loading</span>
-                </>
-              ) : currentQuestionIndex >= totalQuestions ? (
-                'See Summary'
-              ) : (
-                'Next Question'
-              )}
-              {!me.isReady && currentQuestionIndex < totalQuestions && (
-                <ArrowRight className="ml-2" aria-hidden="true" />
-              )}
-            </Button>
-
-            {me.isReady && readyPlayerCount < players.length && (
-              <p className="text-center text-sm text-muted-foreground mt-2 animate-pulse">
-                Waiting for {players.length - readyPlayerCount} more player
-                {players.length - readyPlayerCount > 1 ? 's' : ''}...
-              </p>
+          <div
+            className={cn(
+              'mt-7 grid grid-cols-1 gap-5',
+              players.length >= 3 ? 'md:grid-cols-3' : players.length === 2 && 'md:grid-cols-2'
             )}
-          </CardContent>
-        </Card>
+          >
+            {players.map((player, index) => (
+              <motion.figure
+                key={player.id}
+                initial={{ opacity: 0, rotate: 0 }}
+                animate={{ opacity: 1, rotate: index % 2 ? 0.8 : -0.8 }}
+                transition={{ delay: 0.15 + index * 0.25 }}
+                className="relative border border-card-foreground/25 bg-[hsl(45_60%_92%)] px-4 pb-4 pt-3 shadow-[0_8px_18px_-10px_rgba(0,0,0,0.6)]"
+              >
+                <figcaption className="font-typewriter text-[11px] uppercase tracking-[0.2em] text-card-foreground/60">
+                  Statement of agent <span className="normal-case">{player.name}</span>
+                </figcaption>
+                <p className="ruled mt-1 whitespace-pre-wrap font-hand text-2xl text-accent">
+                  {currentRound.answers[player.id]}
+                </p>
+                <motion.span
+                  initial={{ scale: 2.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.5 + index * 0.25, type: 'spring', stiffness: 260 }}
+                  className="absolute -right-2 -top-3"
+                  aria-hidden="true"
+                >
+                  <Stamp className="text-xs sm:text-sm" tilt={-11}>
+                    Declassified
+                  </Stamp>
+                </motion.span>
+              </motion.figure>
+            ))}
+          </div>
+
+          <Button
+            onClick={handleNextStep}
+            className="mt-8 w-full font-typewriter uppercase tracking-widest"
+            size="lg"
+            disabled={me.isReady}
+            aria-label={
+              me.isReady
+                ? 'Waiting for other players'
+                : isLast
+                  ? 'View game summary'
+                  : 'Proceed to next question'
+            }
+            aria-live="polite"
+          >
+            {me.isReady ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                Waiting on the others…
+              </>
+            ) : isLast ? (
+              'Close the file. Debrief us.'
+            ) : (
+              <>
+                Next question
+                <ArrowRight className="ml-2" aria-hidden="true" />
+              </>
+            )}
+          </Button>
+
+          {me.isReady && readyPlayerCount < players.length && (
+            <p className="mt-3 text-center font-typewriter text-xs uppercase tracking-wider text-card-foreground/70">
+              Waiting for {players.length - readyPlayerCount} more agent
+              {players.length - readyPlayerCount > 1 ? 's' : ''}…
+            </p>
+          )}
+        </Sheet>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl relative">
+    <div className="relative w-full max-w-2xl">
       <AnimatePresence>
         {chaosUpgraded && (
           <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            exit={{ scale: 0, rotate: 180 }}
-            className="absolute top-4 right-4 bg-accent text-white px-4 py-2 rounded-full shadow-lg z-10 flex items-center gap-2"
+            initial={{ scale: 2, rotate: -30, opacity: 0 }}
+            animate={{ scale: 1, rotate: -8, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute -top-4 right-2 z-10"
+            role="status"
           >
-            <Zap className="w-4 h-4" />
-            Chaos! Spicy level upgraded
+            <Stamp className="bg-card text-base">Rogue handler: clearance raised</Stamp>
           </motion.div>
         )}
       </AnimatePresence>
-      <p className="text-center text-primary font-semibold mb-4">
-        Question {currentQuestionIndex} of {totalQuestions}
-      </p>
-      <Card>
-        <CardContent className="p-6">
-          <blockquote className="text-center text-2xl font-semibold leading-relaxed mb-6">
-            “{currentQuestion}”
-          </blockquote>
+      <Sheet form="Form WF-5 · Interrogation" file={`Op. ${gameState.roomCode}`} clip>
+        {questionBlock}
+
+        <div className="mt-6">
+          <FieldLabel htmlFor="statement">
+            {myAnswer ? 'Your statement is sealed' : 'Your statement (only Ember sees it, for now)'}
+          </FieldLabel>
           <Textarea
-            placeholder="Your answer..."
+            id="statement"
+            placeholder="Be specific. Ember can tell."
             rows={5}
-            value={currentAnswer}
+            value={myAnswer ?? currentAnswer}
             onChange={(e) => setCurrentAnswer(e.target.value)}
-            className="text-base"
+            className={cn(
+              'ruled mt-2 resize-none rounded-none border-0 border-l-4 border-primary/40 bg-[hsl(45_60%_92%)] px-4 py-0 font-hand text-2xl text-accent shadow-inner focus-visible:ring-1',
+              myAnswer && 'blur-[3px]'
+            )}
             disabled={!!myAnswer}
             aria-label="Your answer to the current question"
             aria-required="true"
           />
-          <Button
-            onClick={handleSubmitAnswer}
-            className="w-full mt-6"
-            size="lg"
-            disabled={!currentAnswer.trim() || !!myAnswer}
-            aria-label={myAnswer ? 'Waiting for other players' : 'Submit your answer'}
-          >
-            {myAnswer ? 'Waiting for other players...' : 'Submit Answer'}
-          </Button>
+        </div>
+        <Button
+          onClick={handleSubmitAnswer}
+          className="mt-5 w-full font-typewriter uppercase tracking-widest"
+          size="lg"
+          disabled={!currentAnswer.trim() || !!myAnswer}
+          aria-label={myAnswer ? 'Waiting for other players' : 'Submit your answer'}
+        >
+          {myAnswer ? 'Sealed. Waiting on the others…' : 'Seal my statement'}
+        </Button>
 
-          {myAnswer && !allPlayersAnswered && (
-            <p className="text-center text-muted-foreground text-sm mt-4 animate-pulse">
-              Waiting for other players to answer...
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        <ul className="mt-6 space-y-2 border-t-2 border-dashed border-card-foreground/40 pt-4">
+          {players
+            .filter((p) => p.id !== me.id)
+            .map((p) => {
+              const answered = !!currentRound?.answers[p.id];
+              return (
+                <li key={p.id} className="flex items-center justify-between gap-3">
+                  <span className="font-typewriter text-xs uppercase tracking-wider">
+                    Agent <span className="normal-case">{p.name}</span>
+                  </span>
+                  {answered ? (
+                    <span className="flex items-center gap-2">
+                      <Redacted length={30} label={`${p.name}'s statement, sealed`} />
+                    </span>
+                  ) : (
+                    <span className="font-typewriter text-xs uppercase tracking-wider text-card-foreground/60 animate-pulse">
+                      Hasn&apos;t talked yet
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+        </ul>
+      </Sheet>
     </div>
   );
 }

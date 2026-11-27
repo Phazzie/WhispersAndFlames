@@ -20,7 +20,7 @@ describe('QRCodeShare', () => {
     render(<QRCodeShare {...defaultProps} />);
 
     // Wait for the main content to appear (it renders a spinner initially)
-    const title = await screen.findByText('Share Game');
+    const title = await screen.findByText('Invite your partner');
     expect(title).toBeInTheDocument();
     expect(screen.getByText('ABCD')).toBeInTheDocument();
   });
@@ -36,7 +36,7 @@ describe('QRCodeShare', () => {
   it('renders social share buttons', async () => {
     render(<QRCodeShare {...defaultProps} />);
 
-    await screen.findByText('Share Game');
+    await screen.findByText('Invite your partner');
 
     expect(screen.getByRole('button', { name: /copy link/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /download qr/i })).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('QRCodeShare', () => {
     vi.stubGlobal('navigator', { ...navigator, share: shareMock });
 
     render(<QRCodeShare {...defaultProps} />);
-    await screen.findByText('Share Game');
+    await screen.findByText('Invite your partner');
 
     // Force re-render or wait for effect?
     // The effect runs on mount and checks navigator.share.

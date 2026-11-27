@@ -96,7 +96,7 @@ export function useGameSession({
           ) {
             toast({
               title: 'New update',
-              description: 'Your partner just answered.',
+              description: 'Your partner just gave a statement.',
             });
           }
           setGameState(nextGame);
