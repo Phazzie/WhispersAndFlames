@@ -65,11 +65,13 @@ export function LobbyStep({ gameState, me, handlers }: StepProps) {
     const updatedPlayers = gameState.players.map((p: Player) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
-    await updateGameState({ players: updatedPlayers });
+    const saved = await updateGameState({ players: updatedPlayers });
+    if (!saved) return;
 
-    const allPlayersReady = updatedPlayers.every((p: Player) => p.isReady);
-    if (allPlayersReady) {
-      const resetPlayers = updatedPlayers.map((p: Player) => ({ ...p, isReady: false }));
+    // Decide from the server's copy: our local one may not show a partner who
+    // readied up a moment ago.
+    if (saved.step === 'lobby' && saved.players.every((p: Player) => p.isReady)) {
+      const resetPlayers = saved.players.map((p: Player) => ({ ...p, isReady: false }));
       await updateGameState({ step: 'categories', players: resetPlayers });
     }
   };

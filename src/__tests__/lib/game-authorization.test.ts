@@ -225,12 +225,31 @@ describe('authorizeGameUpdate', () => {
       ]);
     });
 
-    it('refuses marking your partner ready', () => {
+    it('ignores an attempt to mark your partner ready', () => {
       // Would let one player drive the game forward on the other's behalf.
-      const result = authorizeGameUpdate(game(), BOB, {
-        players: [player(ALICE, { isReady: true }), player(BOB, { isReady: true })],
+      // The stored value wins, so the write has no effect on the partner.
+      const updates = allowed(
+        authorizeGameUpdate(game(), BOB, {
+          players: [player(ALICE, { isReady: true }), player(BOB, { isReady: true })],
+        })
+      );
+      expect(updates.players?.find((p) => p.id === ALICE)?.isReady).toBe(false);
+      expect(updates.players?.find((p) => p.id === BOB)?.isReady).toBe(true);
+    });
+
+    it('lets both partners ready up at the same moment (stale partner copy)', () => {
+      // Alice readied first. Bob's client has not polled yet, so his request
+      // carries Alice as not-ready. That used to 403 Bob's own ready-up and
+      // strand the room with nobody able to advance.
+      const aliceReady = game({
+        players: [player(ALICE, { isReady: true }), player(BOB, { isReady: false })],
       });
-      expect(refusal(result)).toMatch(/mark another player ready/i);
+      const updates = allowed(
+        authorizeGameUpdate(aliceReady, BOB, {
+          players: [player(ALICE, { isReady: false }), player(BOB, { isReady: true })],
+        })
+      );
+      expect(updates.players?.every((p) => p.isReady)).toBe(true);
     });
 
     it('refuses a forged reset when nobody was ready', () => {
@@ -244,13 +263,15 @@ describe('authorizeGameUpdate', () => {
           player(BOB, { isReady: false }),
         ],
       });
-      const result = authorizeGameUpdate(midFlow, BOB, {
-        players: [player(ALICE, { selectedSpicyLevel: undefined }), player(BOB)],
-      });
-      expect(refusal(result)).toMatch(/outside a reset/i);
+      const updates = allowed(
+        authorizeGameUpdate(midFlow, BOB, {
+          players: [player(ALICE, { selectedSpicyLevel: undefined }), player(BOB)],
+        })
+      );
+      expect(updates.players?.find((p) => p.id === ALICE)?.selectedSpicyLevel).toBe('Hot');
     });
 
-    it('refuses un-readying only the partner while staying ready', () => {
+    it('ignores un-readying only the partner while staying ready', () => {
       // isBulkReset was computed to tell a real step transition apart from a
       // selective edit, but only guarded the spicy field. Un-readying just the
       // partner is acting on their behalf, and repeating it would hold the game
@@ -258,10 +279,12 @@ describe('authorizeGameUpdate', () => {
       const bothReady = game({
         players: [player(ALICE, { isReady: true }), player(BOB, { isReady: true })],
       });
-      const result = authorizeGameUpdate(bothReady, BOB, {
-        players: [player(ALICE, { isReady: false }), player(BOB, { isReady: true })],
-      });
-      expect(refusal(result)).toMatch(/un-ready another player outside a reset/i);
+      const updates = allowed(
+        authorizeGameUpdate(bothReady, BOB, {
+          players: [player(ALICE, { isReady: false }), player(BOB, { isReady: true })],
+        })
+      );
+      expect(updates.players?.find((p) => p.id === ALICE)?.isReady).toBe(true);
     });
 
     it('allows the bulk un-ready that step transitions depend on', () => {
@@ -297,13 +320,15 @@ describe('authorizeGameUpdate', () => {
       );
       expect(cleared.players?.find((p) => p.id === ALICE)?.selectedSpicyLevel).toBeUndefined();
 
-      const forced = authorizeGameUpdate(picked, BOB, {
-        players: [player(ALICE, { selectedSpicyLevel: 'Mild' }), player(BOB)],
-      });
-      expect(refusal(forced)).toMatch(/another player's spicy level/i);
+      const forced = allowed(
+        authorizeGameUpdate(picked, BOB, {
+          players: [player(ALICE, { selectedSpicyLevel: 'Mild' }), player(BOB)],
+        })
+      );
+      expect(forced.players?.find((p) => p.id === ALICE)?.selectedSpicyLevel).toBeUndefined();
     });
 
-    it("refuses clearing a partner's spicy pick outside a reset", () => {
+    it("ignores clearing a partner's spicy pick outside a reset", () => {
       // Both call sites that clear a partner's pick un-ready everyone as part
       // of a step transition. Outside that there is no legitimate reason to
       // touch it, and allowing it lets one player grief the other into
@@ -314,13 +339,15 @@ describe('authorizeGameUpdate', () => {
           player(BOB, { isReady: true }),
         ],
       });
-      const result = authorizeGameUpdate(picked, BOB, {
-        players: [
-          player(ALICE, { selectedSpicyLevel: undefined, isReady: true }),
-          player(BOB, { isReady: true }),
-        ],
-      });
-      expect(refusal(result)).toMatch(/outside a reset/i);
+      const updates = allowed(
+        authorizeGameUpdate(picked, BOB, {
+          players: [
+            player(ALICE, { selectedSpicyLevel: undefined, isReady: true }),
+            player(BOB, { isReady: true }),
+          ],
+        })
+      );
+      expect(updates.players?.find((p) => p.id === ALICE)?.selectedSpicyLevel).toBe('Hot');
     });
 
     it('cannot remove a player by omitting them', () => {

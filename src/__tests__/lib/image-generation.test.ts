@@ -5,6 +5,11 @@ vi.mock('@/ai/flows/generate-visual-memory', () => ({
   generateVisualMemory: vi.fn(),
 }));
 
+// Image API unavailable by default, so the gradient fallback is exercised.
+vi.mock('@/lib/xai-image', () => ({
+  generateImageFromPrompt: vi.fn().mockRejectedValue(new Error('image API unavailable')),
+}));
+
 describe('Image Generation', () => {
   describe('generateSessionImage', () => {
     it('should generate image with valid inputs', async () => {
@@ -25,6 +30,43 @@ describe('Image Generation', () => {
       expect(result).not.toBeNull();
       expect(result?.imageUrl).toContain('data:image/svg+xml;base64,');
       expect(result?.prompt).toBe('Watercolor painting of intertwined light trails');
+      expect(result?.isPlaceholder).toBe(true);
+    });
+
+    it('returns the rendered image URL when the image API succeeds', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateImageFromPrompt } = await import('@/lib/xai-image');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      vi.mocked(generateVisualMemory).mockResolvedValue({
+        imagePrompt: 'Oil painting of two flames',
+        safetyLevel: 'safe',
+      });
+      vi.mocked(generateImageFromPrompt).mockResolvedValueOnce('https://imgen.x.ai/abc.jpg');
+
+      const result = await generateSessionImage('Summary', 'Hot', ['Power Play']);
+
+      expect(generateImageFromPrompt).toHaveBeenCalledWith('Oil painting of two flames');
+      expect(result).toEqual({
+        imageUrl: 'https://imgen.x.ai/abc.jpg',
+        prompt: 'Oil painting of two flames',
+        isPlaceholder: false,
+      });
+    });
+
+    it('escapes prompt text exactly once in the placeholder SVG', async () => {
+      const { generateVisualMemory } = await import('@/ai/flows/generate-visual-memory');
+      const { generateSessionImage } = await import('@/lib/image-generation');
+
+      vi.mocked(generateVisualMemory).mockResolvedValue({
+        imagePrompt: 'Fire & silk <glow>',
+        safetyLevel: 'safe',
+      });
+
+      const result = await generateSessionImage('Summary', 'Mild', []);
+      const decoded = Buffer.from(result!.imageUrl.split(',')[1], 'base64').toString();
+      expect(decoded).toContain('Fire &amp; silk &lt;glow&gt;');
+      expect(decoded).not.toContain('&amp;lt;');
     });
 
     it('should return null if AI generation fails', async () => {

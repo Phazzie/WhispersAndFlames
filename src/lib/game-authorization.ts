@@ -27,8 +27,7 @@ import type { GameRound, GameState, Player } from './game-types';
  */
 
 export type AuthorizationResult =
-  | { ok: true; updates: Partial<GameState> }
-  | { ok: false; reason: string };
+  { ok: true; updates: Partial<GameState> } | { ok: false; reason: string };
 
 /**
  * A reconcile step run by the storage layer *inside* its write transaction.
@@ -132,34 +131,20 @@ function authorizePlayers(
     // of the first's entry and would 403 — discarding the second player's own
     // valid edit. Same lesson as the omitted-answer check removed earlier.
 
-    // Raising another player's readiness is acting as them.
-    if (proposedPlayer.isReady && !storedPlayer.isReady) {
-      return { ok: false, reason: 'Cannot mark another player ready' };
-    }
-
-    // Lowering it is only legitimate as part of the bulk reset, which every
-    // step transition performs on all players at once. Un-readying just the
-    // partner is equally acting on their behalf, and repeated it would hold
-    // the game at a step indefinitely by preventing the all-ready transition.
-    if (!proposedPlayer.isReady && storedPlayer.isReady && !isBulkReset) {
-      return { ok: false, reason: 'Cannot un-ready another player outside a reset' };
-    }
-
-    // Their spicy pick may be cleared by that reset, but never set, and never
-    // cleared outside one.
-    const spicyChanged = proposedPlayer.selectedSpicyLevel !== storedPlayer.selectedSpicyLevel;
-    if (spicyChanged && proposedPlayer.selectedSpicyLevel !== undefined) {
-      return { ok: false, reason: "Cannot change another player's spicy level" };
-    }
-    if (spicyChanged && !isBulkReset) {
-      return { ok: false, reason: "Cannot clear another player's spicy level outside a reset" };
-    }
-
-    reconciled.push({
-      ...storedPlayer,
-      isReady: proposedPlayer.isReady,
-      selectedSpicyLevel: proposedPlayer.selectedSpicyLevel,
-    });
+    // Someone else's readiness and spicy pick may only change as part of the
+    // bulk reset that every step transition performs. Outside a reset, keep
+    // what is stored rather than refusing: a differing value is almost always
+    // a stale copy, not an attack. Both partners post the whole array, so
+    // when they click "ready" at the same moment the second request carries
+    // the first player as not-ready. Refusing that 403'd the second player's
+    // own ready-up and left the room stuck with nobody able to advance.
+    // Ignoring it is just as safe: the stored value wins either way, so
+    // nobody can raise, lower or rewrite a partner's entry.
+    reconciled.push(
+      isBulkReset
+        ? { ...storedPlayer, isReady: false, selectedSpicyLevel: undefined }
+        : storedPlayer
+    );
   }
 
   return { ok: true, players: reconciled };

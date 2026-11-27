@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { SPICY_LEVELS } from '@/lib/constants';
-import type { SpicyLevel, SpicyStepProps } from '@/lib/game-types';
+import type { Player, SpicyLevel, SpicyStepProps } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 
 import { LoadingScreen } from '../loading-screen';
@@ -20,7 +20,11 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
   );
   const [chaosMode, setChaosMode] = useState(gameState.chaosMode || false);
 
-  const startFirstQuestion = async (level: SpicyLevel['name'], categories: string[]) => {
+  const startFirstQuestion = async (
+    level: SpicyLevel['name'],
+    categories: string[],
+    currentPlayers: Player[]
+  ) => {
     try {
       const result = await generateQuestionAction({
         categories: [categories[0]],
@@ -29,7 +33,7 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
       });
 
       if ('question' in result) {
-        const resetPlayers = gameState.players.map((p) => ({ ...p, isReady: false }));
+        const resetPlayers = currentPlayers.map((p) => ({ ...p, isReady: false }));
         await updateGameState({
           currentQuestion: result.question,
           step: 'game',
@@ -42,7 +46,7 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'An error occurred';
       toast({ title: 'Error starting game', description: errorMessage, variant: 'destructive' });
-      const unreadyPlayers = gameState.players.map((p) => ({
+      const unreadyPlayers = currentPlayers.map((p) => ({
         ...p,
         isReady: false,
         selectedSpicyLevel: undefined,
@@ -59,19 +63,21 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
       p.id === me.id ? { ...p, selectedSpicyLevel: value, isReady: true } : p
     );
 
-    await updateGameState({ players: updatedPlayers, chaosMode });
+    const saved = await updateGameState({ players: updatedPlayers, chaosMode });
+    if (!saved || saved.step !== 'spicy') return;
 
-    const allReady = updatedPlayers.every((p) => p.isReady);
+    // Use the server's copy so a partner's just-made pick counts.
+    const allReady = saved.players.every((p) => p.isReady && p.selectedSpicyLevel);
 
     if (allReady) {
-      const playerLevels = updatedPlayers.map((p) =>
+      const playerLevels = saved.players.map((p) =>
         SPICY_LEVELS.findIndex((l) => l.name === p.selectedSpicyLevel!)
       );
       const finalLevelIndex = Math.min(...playerLevels);
       const finalLevel = SPICY_LEVELS[finalLevelIndex].name;
 
       await updateGameState({ finalSpicyLevel: finalLevel });
-      await startFirstQuestion(finalLevel, gameState.commonCategories);
+      await startFirstQuestion(finalLevel, saved.commonCategories, saved.players);
     }
   };
 
@@ -128,7 +134,18 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
               key={level.name}
               variants={cardVariants}
               whileHover={me.isReady ? '' : 'hover'}
+              role="button"
+              tabIndex={me.isReady ? -1 : 0}
+              aria-pressed={isSelectedByMe}
+              aria-disabled={me.isReady}
+              aria-label={`${level.name} spice level`}
               onClick={() => handleSpicySelect(level.name)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  void handleSpicySelect(level.name);
+                }
+              }}
               className={cn(
                 'group relative rounded-xl border-4 p-6 text-center cursor-pointer transition-all duration-300 ease-in-out overflow-hidden',
                 me.isReady && 'opacity-60 cursor-not-allowed',
@@ -198,7 +215,11 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
       <div
         className={cn(
           'grid grid-cols-1 gap-4 mt-8 p-4 bg-secondary/50 rounded-lg max-w-2xl mx-auto',
-          players.length >= 3 ? 'sm:grid-cols-3' : players.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1'
+          players.length >= 3
+            ? 'sm:grid-cols-3'
+            : players.length === 2
+              ? 'sm:grid-cols-2'
+              : 'sm:grid-cols-1'
         )}
       >
         {players.map((player) => (

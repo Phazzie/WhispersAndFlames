@@ -2,6 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ export default function GamePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isLoaded } = useUser();
+  // Local games share one device: whose turn the screen was last handed to.
+  const [handedToPlayerId, setHandedToPlayerId] = useState<string | null>(null);
 
   const roomCodeParam = params.roomCode;
 
@@ -96,6 +99,25 @@ export default function GamePage() {
     );
   }
 
+  // Pass-the-device screen: hides the previous player's screen until the next
+  // player confirms they are holding the device.
+  if (gameState.gameMode === 'local' && handedToPlayerId !== me.id) {
+    return (
+      <GameLayout gameState={gameState} error={error}>
+        <div className="w-full max-w-md text-center space-y-6 py-12">
+          <p className="text-sm uppercase tracking-widest text-muted-foreground">Pass the device</p>
+          <h2 className="text-4xl font-bold">{me.name}, you&apos;re up.</h2>
+          <p className="text-muted-foreground">
+            Everyone else, eyes elsewhere. No peeking at answers.
+          </p>
+          <Button size="lg" className="w-full" onClick={() => setHandedToPlayerId(me.id)}>
+            I&apos;m {me.name}, show me
+          </Button>
+        </div>
+      </GameLayout>
+    );
+  }
+
   const sharedHandlers = {
     roomCode,
     updateGameState,
@@ -106,14 +128,19 @@ export default function GamePage() {
   let StepComponent;
   switch (gameState.step) {
     case 'lobby':
-      StepComponent = <LobbyStep gameState={gameState} me={me} handlers={sharedHandlers} />;
+      StepComponent = (
+        <LobbyStep key={me.id} gameState={gameState} me={me} handlers={sharedHandlers} />
+      );
       break;
     case 'categories':
-      StepComponent = <CategoriesStep gameState={gameState} me={me} handlers={sharedHandlers} />;
+      StepComponent = (
+        <CategoriesStep key={me.id} gameState={gameState} me={me} handlers={sharedHandlers} />
+      );
       break;
     case 'spicy':
       StepComponent = (
         <SpicyStep
+          key={me.id}
           gameState={gameState}
           me={me}
           handlers={{ ...sharedHandlers, generateQuestionAction }}
@@ -123,6 +150,7 @@ export default function GamePage() {
     case 'game':
       StepComponent = (
         <GamePlayStep
+          key={me.id}
           gameState={gameState}
           me={me}
           handlers={{ ...sharedHandlers, generateQuestionAction, analyzeAndSummarizeAction }}

@@ -2,19 +2,22 @@
 
 import { generateVisualMemory } from '@/ai/flows/generate-visual-memory';
 import { createLogger } from '@/lib/utils/logger';
+import { generateImageFromPrompt } from '@/lib/xai-image';
 
 const logger = createLogger('image-generation');
 
 export interface GenerateSessionImageResult {
   imageUrl: string;
   prompt: string;
+  /** True when the image API failed and a gradient stand-in was returned. */
+  isPlaceholder: boolean;
 }
 
 /**
- * Generates a visual memory for a session.
- * In a production environment, this would call an actual image generation API
- * (like Stability AI or DALL-E). For this implementation, we create a
- * placeholder gradient based on the prompt.
+ * Generates a visual memory for a session: the Visual Poet persona writes an
+ * abstract image prompt, then xAI's image model renders it. If the image call
+ * fails, a gradient stand-in is returned (flagged with isPlaceholder) so the
+ * player still gets something instead of an error.
  */
 export async function generateSessionImage(
   summary: string,
@@ -53,18 +56,23 @@ export async function generateSessionImage(
       safetyLevel: result.safetyLevel,
     });
 
-    // In production, you would call an image generation API here:
-    // const imageResponse = await fetch('https://api.stability.ai/v1/generation/...')
-    // For now, we create a placeholder gradient SVG
-
-    const imageUrl = createPlaceholderImage(result.imagePrompt, spicyLevel);
+    let imageUrl: string;
+    let isPlaceholder = false;
+    try {
+      imageUrl = await generateImageFromPrompt(result.imagePrompt);
+    } catch (imageError) {
+      logger.error('Image render failed; using gradient placeholder', imageError);
+      imageUrl = createPlaceholderImage(result.imagePrompt, spicyLevel);
+      isPlaceholder = true;
+    }
 
     const elapsed = Date.now() - startTime;
-    logger.info('Generated successfully', { elapsedMs: elapsed });
+    logger.info('Generated successfully', { elapsedMs: elapsed, isPlaceholder });
 
     return {
       imageUrl,
       prompt: result.imagePrompt,
+      isPlaceholder,
     };
   } catch (error) {
     const elapsed = Date.now() - startTime;
@@ -103,10 +111,11 @@ function createPlaceholderImage(prompt: string, spicyLevel: string): string {
     }
 
     // Sanitize prompt for SVG
+    // Escape & first so the entities produced below aren't double-escaped.
     const sanitizedPrompt = prompt
+      .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&apos;');
 

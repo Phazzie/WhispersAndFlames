@@ -92,20 +92,24 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
       const updatedPlayers = gameState.players.map((p) =>
         p.id === me.id ? { ...p, isReady: true } : p
       );
-      await updateGameState({ players: updatedPlayers });
+      const saved = await updateGameState({ players: updatedPlayers });
+      if (!saved || saved.step !== 'game') return;
+      // Someone else already moved us on to another question.
+      if (saved.currentQuestionIndex !== gameState.currentQuestionIndex) return;
 
-      // Check if all players are ready
-      if (updatedPlayers.every((p) => p.isReady)) {
-        const resetPlayers = updatedPlayers.map((p) => ({ ...p, isReady: false }));
+      // Check readiness on the server's copy: a partner who clicked a moment
+      // ago may still show as not ready locally, and then nobody advances.
+      if (saved.players.every((p) => p.isReady)) {
+        const resetPlayers = saved.players.map((p) => ({ ...p, isReady: false }));
 
-        if (gameState.currentQuestionIndex >= gameState.totalQuestions) {
+        if (saved.currentQuestionIndex >= saved.totalQuestions) {
           // --- GAME OVER ---
           await updateGameState({ step: 'summary', players: resetPlayers });
 
           try {
             const summaryResult = await analyzeAndSummarizeAction({
-              questions: gameState.gameRounds.map((r) => r.question),
-              answers: gameState.gameRounds
+              questions: saved.gameRounds.map((r) => r.question),
+              answers: saved.gameRounds
                 .flatMap((r) => Object.values(r.answers))
                 .filter((a) => typeof a === 'string' && a.trim().length > 0),
               categories: gameState.commonCategories,
@@ -149,9 +153,9 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
             }
 
             const result = await generateQuestionAction({
-              categories: [gameState.commonCategories[categoryIndex]],
+              categories: [saved.commonCategories[categoryIndex]],
               spicyLevel: chaosResult.level,
-              previousQuestions: gameState.gameRounds.map((r) => r.question),
+              previousQuestions: saved.gameRounds.map((r) => r.question),
             });
 
             if ('question' in result) {
@@ -166,6 +170,8 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
                 description: result.error,
                 variant: 'destructive',
               });
+              // Un-ready everyone so the button comes back and they can retry.
+              await updateGameState({ players: resetPlayers });
             }
           } catch (e: unknown) {
             const errorMessage =

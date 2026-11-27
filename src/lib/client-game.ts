@@ -8,6 +8,25 @@ import { createLogger } from './utils/logger';
 
 const logger = createLogger('client-game');
 
+/**
+ * The API answers errors as `{ error: { code, message } }`. Reading
+ * `body.error` straight into `new Error()` showed players "[object Object]".
+ */
+async function readApiError(response: Response, fallback: string): Promise<Error> {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    const err = body?.error;
+    if (typeof err === 'string' && err) return new Error(err);
+    if (err && typeof err === 'object' && 'message' in err) {
+      const message = (err as { message?: unknown }).message;
+      if (typeof message === 'string' && message) return new Error(message);
+    }
+  } catch {
+    // Non-JSON error body (e.g. an HTML 404 from auth middleware)
+  }
+  return new Error(fallback);
+}
+
 export const clientGame = {
   create: async (roomCode: string, playerName: string): Promise<GameState> => {
     const response = await fetch('/api/game/create', {
@@ -18,8 +37,7 @@ export const clientGame = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create game');
+      throw await readApiError(response, 'Failed to create game');
     }
 
     const data = await response.json();
@@ -35,8 +53,7 @@ export const clientGame = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to join game');
+      throw await readApiError(response, 'Failed to join game');
     }
 
     const data = await response.json();
@@ -50,8 +67,7 @@ export const clientGame = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch game');
+      throw await readApiError(response, 'Failed to fetch game');
     }
 
     const data = await response.json();
@@ -67,8 +83,7 @@ export const clientGame = {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update game');
+      throw await readApiError(response, 'Failed to update game');
     }
 
     const data = await response.json();

@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import type { GameState } from '@/lib/game-types';
-import { useGameSession } from '@/hooks/use-game-session';
+import { nextLocalPlayerIndex, useGameSession } from '@/hooks/use-game-session';
 import { clientGame } from '@/lib/client-game';
 import { localGame } from '@/lib/local-game';
 
@@ -109,6 +109,47 @@ describe('useGameSession', () => {
       await result.current.updateGameState({ step: 'categories' });
     });
 
-    expect(localGame.update).toHaveBeenCalledWith('ROOM-01', { step: 'categories' });
+    expect(localGame.update).toHaveBeenCalledWith('ROOM-01', {
+      step: 'categories',
+      currentPlayerIndex: 0,
+    });
+  });
+});
+
+describe('nextLocalPlayerIndex', () => {
+  const base = {
+    step: 'lobby',
+    players: [
+      { id: 'p1', name: 'A', isReady: false, email: '', selectedCategories: [] },
+      { id: 'p2', name: 'B', isReady: false, email: '', selectedCategories: [] },
+    ],
+    gameRounds: [],
+    currentQuestion: '',
+  } as unknown as GameState;
+
+  it('hands the device to the first player who is not ready', () => {
+    const state = {
+      ...base,
+      players: [{ ...base.players[0], isReady: true }, base.players[1]],
+    } as GameState;
+    expect(nextLocalPlayerIndex(state)).toBe(1);
+  });
+
+  it('goes back to player one once everyone is ready', () => {
+    const state = {
+      ...base,
+      players: base.players.map((p) => ({ ...p, isReady: true })),
+    } as GameState;
+    expect(nextLocalPlayerIndex(state)).toBe(0);
+  });
+
+  it('during play, hands it to whoever has not answered yet', () => {
+    const state = {
+      ...base,
+      step: 'game',
+      currentQuestion: 'Q1',
+      gameRounds: [{ question: 'Q1', answers: { p1: 'yes' } }],
+    } as GameState;
+    expect(nextLocalPlayerIndex(state)).toBe(1);
   });
 });

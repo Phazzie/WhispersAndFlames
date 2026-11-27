@@ -138,10 +138,18 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
           imageGenerationCount: imageGenerationCount + 1,
         });
 
-        toast({
-          title: 'Visual Memory Created',
-          description: 'Your artistic memory has been generated!',
-        });
+        toast(
+          result.isPlaceholder
+            ? {
+                title: 'Painter unavailable',
+                description:
+                  "The image service didn't respond, so you got a color study instead. Try again in a bit.",
+              }
+            : {
+                title: 'Visual Memory Created',
+                description: 'Your artistic memory has been generated!',
+              }
+        );
       } else {
         toast({
           title: 'Generation Failed',
@@ -175,16 +183,21 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
           <CardDescription>A little insight from your conversation.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <Tabs defaultValue="summary" className="w-full">
+          <Tabs
+            defaultValue="summary"
+            className="w-full"
+            onValueChange={(value) => {
+              // Load on any way of reaching the tab (click, keyboard, touch).
+              if (value === 'therapist') void loadTherapistNotes();
+            }}
+          >
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="summary">Playful Summary</TabsTrigger>
               <TabsTrigger value="achievements">
                 <Trophy className="w-4 h-4 mr-2" />
                 Achievements
               </TabsTrigger>
-              <TabsTrigger value="therapist" onClick={loadTherapistNotes}>
-                Dr. Ember&apos;s Notes
-              </TabsTrigger>
+              <TabsTrigger value="therapist">Dr. Ember&apos;s Notes</TabsTrigger>
             </TabsList>
             <TabsContent value="summary" className="mt-6">
               <div className="prose prose-invert prose-p:text-foreground/90 prose-headings:text-primary max-w-none text-base whitespace-pre-wrap p-4 bg-secondary rounded-md">
@@ -195,9 +208,9 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold">AI Art Preview</h3>
+                    <h3 className="text-lg font-semibold">Visual Memories</h3>
                     <p className="text-xs text-muted-foreground">
-                      Placeholder visual generation output
+                      Abstract art painted from your session
                     </p>
                   </div>
                   <Button
@@ -240,10 +253,15 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
                           size="sm"
                           variant="secondary"
                           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Download visual memory"
                           onClick={() => {
                             const a = document.createElement('a');
                             a.href = memory.imageUrl;
-                            a.download = `visual-memory-${memory.timestamp}.svg`;
+                            const isSvg = memory.imageUrl.startsWith('data:image/svg+xml');
+                            a.download = `visual-memory-${memory.timestamp}.${isSvg ? 'svg' : 'jpg'}`;
+                            // Remote images ignore `download` cross-origin; open them instead.
+                            a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
                             a.click();
                           }}
                         >
@@ -346,7 +364,10 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
               ) : (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Clipboard className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Click the tab to load notes</p>
+                  <p className="text-muted-foreground mb-4">Dr. Ember hasn&apos;t written yet.</p>
+                  <Button variant="outline" size="sm" onClick={() => void loadTherapistNotes()}>
+                    Ask Dr. Ember for notes
+                  </Button>
                 </div>
               )}
             </TabsContent>

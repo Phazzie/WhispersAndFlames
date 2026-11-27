@@ -133,7 +133,7 @@ export async function generateVisualMemoryAction(
   summary: string,
   spicyLevel: string,
   sharedThemes: string[]
-): Promise<{ imageUrl: string; prompt: string } | { error: string }> {
+): Promise<{ imageUrl: string; prompt: string; isPlaceholder: boolean } | { error: string }> {
   try {
     const result = await withRetry(
       async () =>

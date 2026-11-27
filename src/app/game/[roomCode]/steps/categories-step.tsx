@@ -53,11 +53,15 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
     const updatedPlayers = gameState.players.map((p) =>
       p.id === me.id ? { ...p, isReady: true } : p
     );
-    await updateGameState({ players: updatedPlayers });
+    const saved = await updateGameState({ players: updatedPlayers });
+    if (!saved || saved.step !== 'categories') return;
 
-    // The game should only advance if ALL players are now ready.
-    if (updatedPlayers.every((p) => p.isReady)) {
-      const allSelectedCategories = updatedPlayers.map((p) => p.selectedCategories);
+    // The game should only advance if ALL players are now ready. Use the
+    // server's copy: a partner's latest picks and readiness may not have
+    // reached our local state yet.
+    const serverPlayers = saved.players;
+    if (serverPlayers.every((p) => p.isReady)) {
+      const allSelectedCategories = serverPlayers.map((p) => p.selectedCategories);
       const commonCategories = allSelectedCategories.reduce((a, b) =>
         a.filter((c) => b.includes(c))
       );
@@ -71,13 +75,13 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
           duration: 8000,
         });
         // Un-ready all players so they can change their selections
-        const unReadyPlayers = updatedPlayers.map((p) => ({ ...p, isReady: false }));
+        const unReadyPlayers = serverPlayers.map((p) => ({ ...p, isReady: false }));
         await updateGameState({ players: unReadyPlayers });
         return;
       }
 
       const totalQuestions = commonCategories.length * QUESTIONS_PER_CATEGORY;
-      const resetPlayers = updatedPlayers.map((p) => ({
+      const resetPlayers = serverPlayers.map((p) => ({
         ...p,
         isReady: false,
         selectedSpicyLevel: undefined,
@@ -106,7 +110,18 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
           return (
             <Card
               key={cat.name}
+              role="button"
+              tabIndex={me.isReady ? -1 : 0}
+              aria-pressed={isSelectedByMe}
+              aria-disabled={me.isReady}
+              aria-label={cat.name}
               onClick={() => handleToggleCategory(cat.name)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  void handleToggleCategory(cat.name);
+                }
+              }}
               className={`transition-all duration-200 cursor-pointer relative overflow-hidden
                 ${me.isReady ? 'cursor-not-allowed opacity-70' : ''}
                 ${

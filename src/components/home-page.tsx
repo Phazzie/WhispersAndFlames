@@ -53,10 +53,10 @@ export default function HomePageClient() {
   const handleCreateRoom = async () => {
     if (playLocally) {
       const names = localPlayerNames.map((name) => name.trim()).filter(Boolean);
-      if (names.length < 1 || names.length > 3) {
+      if (names.length < 2 || names.length > 3) {
         toast({
           title: 'Invalid local players',
-          description: 'Enter 1 to 3 player names to play locally.',
+          description: 'Enter 2 or 3 player names to play on one device.',
           variant: 'destructive',
         });
         return;
@@ -242,7 +242,8 @@ export default function HomePageClient() {
                   placeholder="Room Code"
                   value={roomCode}
                   onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                  maxLength={6}
+                  maxLength={64}
+                  aria-label="Room code"
                 />
                 <Button onClick={handleJoinRoom}>
                   <ArrowRight className="mr-2 h-4 w-4" />
