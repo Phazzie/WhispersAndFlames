@@ -8,7 +8,7 @@
 - **The world:** the whole game is a classified case file on a desk. You "open a file", pull
   folders, set a security clearance, give sealed statements that stay redacted until everyone
   talks, then get a debrief stamped CASE CLOSED and Dr. Ember's notes on privileged letterhead.
-- **Branch:** `claude/project-thread-pm0lar`, with a PR open and not merged.
+- **Branch:** `claude/project-thread-pm0lar`. **Update:** PR #95 was merged to main on 27 Nov and production on Vercel (project `whispers-and-flames`) now runs it.
 - **Preview:** see the PR. Vercel builds previews for pushed branches; I could not open it from
   here (see blockers).
 - **Score:** 7/10. The game works end to end and looks like nothing else; it loses points for
