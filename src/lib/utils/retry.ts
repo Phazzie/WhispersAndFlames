@@ -5,7 +5,28 @@ const NON_RETRYABLE_CODES = new Set([
   '22P02', // invalid_text_representation
 ]);
 
+/**
+ * Errors may declare themselves terminal by carrying `retryable: false`.
+ *
+ * Retrying is only ever worth it for a failure that might not recur. A
+ * deterministic refusal — an authorization decision, say — returns the same
+ * answer every time, so retrying it just multiplies transactions, log noise and
+ * latency before producing the identical result.
+ */
+function isExplicitlyNonRetryable(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'retryable' in error &&
+    (error as { retryable?: unknown }).retryable === false
+  );
+}
+
 function defaultShouldRetry(error: unknown): boolean {
+  if (isExplicitlyNonRetryable(error)) {
+    return false;
+  }
+
   if (error && typeof error === 'object' && 'code' in error) {
     const code = String((error as { code?: unknown }).code ?? '');
     if (NON_RETRYABLE_CODES.has(code)) {

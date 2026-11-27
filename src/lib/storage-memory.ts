@@ -2,6 +2,7 @@
  * In-memory storage for game state.
  */
 
+import { GameUpdateRefusedError, type GameUpdateReconcile } from './game-authorization';
 import type { GameState } from './game-types';
 
 const games = new Map<string, GameState>();
@@ -18,9 +19,23 @@ export const storage = {
       return games.get(roomCode);
     },
 
-    update: (roomCode: string, updates: Partial<GameState>): GameState | undefined => {
+    update: (
+      roomCode: string,
+      updates: Partial<GameState>,
+      reconcile?: GameUpdateReconcile
+    ): GameState | undefined => {
       const game = games.get(roomCode);
       if (!game) return undefined;
+
+      // Decide against the state we are about to write over, not one read
+      // earlier by the caller. See GameUpdateReconcile.
+      if (reconcile) {
+        const result = reconcile(game);
+        if (!result.ok) {
+          throw new GameUpdateRefusedError(result.reason);
+        }
+        updates = result.updates;
+      }
 
       const updated = { ...game, ...updates };
 

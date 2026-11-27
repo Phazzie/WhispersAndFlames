@@ -60,8 +60,13 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
         });
       }
 
-      await updateGameState({ gameRounds: updatedGameRounds });
-      setCurrentAnswer('');
+      // Only discard what they typed once it is actually stored. The update
+      // helper toasts failures rather than throwing, so clearing unconditionally
+      // silently destroyed the answer on every failed submit.
+      const persisted = await updateGameState({ gameRounds: updatedGameRounds });
+      if (persisted) {
+        setCurrentAnswer('');
+      }
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
       toast({
@@ -111,7 +116,7 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
             if ('summary' in summaryResult) {
               await updateGameState({
                 summary: summaryResult.summary,
-                completedAt: new Date(),
+                completedAt: new Date().toISOString(),
               });
             } else {
               toast({
@@ -216,7 +221,11 @@ export function GamePlayStep({ gameState, me, handlers }: GameStepProps) {
           <CardContent className="space-y-6 pt-6">
             <div
               className={`grid grid-cols-1 gap-4 ${
-                players.length >= 3 ? 'md:grid-cols-3' : players.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1'
+                players.length >= 3
+                  ? 'md:grid-cols-3'
+                  : players.length === 2
+                    ? 'md:grid-cols-2'
+                    : 'md:grid-cols-1'
               }`}
             >
               {players.map((player) => (
