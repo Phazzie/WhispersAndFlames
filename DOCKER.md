@@ -4,7 +4,7 @@
 
 The Dockerfile has been audited and optimized with:
 
-- ✅ **Alpine Linux** (node:20-alpine) - smallest, most secure base
+- ✅ **Alpine Linux** (node:22-alpine) - smallest, most secure base
 - ✅ **Multi-stage build** - reduces final image size by ~70%
 - ✅ **Non-root user** - runs as `nextjs` user for security
 - ✅ **Health checks** - automatic container health monitoring

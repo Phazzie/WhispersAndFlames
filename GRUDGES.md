@@ -25,3 +25,6 @@ Things that failed silently or lied. Read this before every deploy.
 - **Playwright's bundled browser didn't match the installed one in the sandbox.** Set
   `PW_CHROMIUM_PATH`.
 - **The home page hero image (storage.googleapis.com) was a 404.** Removed in the redesign.
+- **Vercel stopped building Node 20 (Oct 2026).** `engines.node` was `>=20 <21`, so every
+  deploy, including production redeploys from main, failed in 20 seconds before building
+  anything. Now pinned to `22.x` (package.json, .nvmrc, CI, Dockerfile).

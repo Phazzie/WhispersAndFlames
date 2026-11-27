@@ -25,7 +25,7 @@ Whispers and Flames creates a safe, private space for couples to explore their r
 
 ### Prerequisites
 
-- Node.js 20.x (we recommend using [nvm](https://github.com/nvm-sh/nvm))
+- Node.js 22.x (we recommend using [nvm](https://github.com/nvm-sh/nvm))
 - npm or yarn
 
 ### Installation
