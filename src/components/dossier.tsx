@@ -73,7 +73,7 @@ function PaperClip() {
     <svg
       aria-hidden="true"
       viewBox="0 0 24 64"
-      className="absolute -top-6 left-8 h-16 w-6 drop-shadow-[0_2px_1px_rgba(0,0,0,0.5)]"
+      className="absolute -top-7 right-6 h-14 w-5 drop-shadow-[0_2px_1px_rgba(0,0,0,0.5)]"
       fill="none"
       stroke="hsl(210 8% 70%)"
       strokeWidth="2.4"

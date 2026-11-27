@@ -250,7 +250,7 @@ export default function HomePageClient() {
       {!playLocally && (
         <div className="space-y-2 border-t-2 border-dashed border-card-foreground/40 pt-6">
           <FieldLabel htmlFor="room-code">Got a codename from your partner?</FieldLabel>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               id="room-code"
               placeholder="TIGER-OWL-WOLF-42"

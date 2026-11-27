@@ -178,14 +178,14 @@ export function SummaryStep({ gameState, me: _me, handlers }: SummaryStepProps) 
   return (
     <div className="w-full max-w-3xl">
       <Sheet form="Form WF-6 · Debrief" file={`Op. ${gameState.roomCode}`} clip>
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col-reverse items-start gap-4 sm:flex-row sm:justify-between">
           <div>
-            <h2 className="font-typewriter text-2xl sm:text-3xl">Your Session Summary</h2>
+            <h2 className="font-typewriter text-2xl sm:text-3xl">The debrief</h2>
             <p className="mt-1 text-sm text-card-foreground/75">
               Case closed. Here&apos;s what Ember found, filed for both of you.
             </p>
           </div>
-          <Stamp className="shrink-0 text-lg sm:text-xl" tilt={8}>
+          <Stamp className="shrink-0 self-end text-lg sm:self-start sm:text-xl" tilt={8}>
             Case closed
           </Stamp>
         </div>

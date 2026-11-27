@@ -123,7 +123,7 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
                   }
                 }}
                 className={cn(
-                  'relative flex min-h-[11rem] cursor-pointer flex-col justify-between border-2 p-4 outline-none transition-all',
+                  'relative flex min-h-[11rem] cursor-pointer flex-col gap-4 border-2 p-4 outline-none transition-all',
                   'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
                   isSelectedByMe
                     ? 'border-primary bg-primary/10'
@@ -132,11 +132,11 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
                 )}
                 style={{ transform: `rotate(${[-0.8, 0.6, -0.4, 0.9][index]}deg)` }}
               >
-                <div className="flex items-start justify-between">
-                  <span className="font-stamp text-3xl leading-none text-card-foreground/25">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="shrink-0 font-stamp text-3xl leading-none text-card-foreground/25">
                     {clearance.code}
                   </span>
-                  <span className="font-typewriter text-[10px] uppercase tracking-[0.2em] text-card-foreground/55">
+                  <span className="text-right font-typewriter text-[10px] uppercase tracking-[0.15em] text-card-foreground/55">
                     Level {index + 1} · {level.name}
                   </span>
                 </div>
@@ -172,9 +172,12 @@ export function SpicyStep({ gameState, me, handlers }: SpicyStepProps) {
           </Label>
         </div>
 
-        <ul className="mt-6 grid gap-2 border-t-2 border-dashed border-card-foreground/40 pt-4 sm:grid-cols-3">
+        <ul className="mt-6 grid gap-2 border-t-2 border-dashed border-card-foreground/40 pt-4 sm:flex sm:flex-wrap sm:gap-x-6">
           {players.map((player) => (
-            <li key={player.id} className="flex items-baseline justify-between gap-2">
+            <li
+              key={player.id}
+              className="flex items-baseline justify-between gap-2 border-b border-dotted border-card-foreground/30 pb-1 sm:min-w-[14rem] sm:border-b-0 sm:border-r sm:pb-0 sm:pr-6 sm:last:border-r-0"
+            >
               <span className="truncate font-hand text-2xl text-accent">{player.name}</span>
               <span className="font-typewriter text-xs uppercase tracking-wider">
                 {player.selectedSpicyLevel

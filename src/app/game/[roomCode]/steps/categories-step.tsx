@@ -117,7 +117,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
   return (
     <div className="w-full max-w-5xl">
       <Sheet form="Form WF-3 · Lines of inquiry" file={`Op. ${gameState.roomCode}`}>
-        <h2 className="font-typewriter text-2xl sm:text-3xl">Choose Your Categories</h2>
+        <h2 className="font-typewriter text-2xl sm:text-3xl">Pull your files</h2>
         <p className="mt-2 max-w-2xl text-sm text-card-foreground/75">
           Pull the files you want opened. Ember only investigates the ones <em>every</em> agent
           pulls, two questions per file. Your partner&apos;s initials show up on the tabs as they
@@ -167,7 +167,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
                 </div>
                 <div
                   className={cn(
-                    'relative flex aspect-[4/3] flex-col justify-between overflow-hidden rounded-sm border p-3 shadow-[0_6px_14px_-6px_rgba(0,0,0,0.55)]',
+                    'relative flex min-h-[7.5rem] flex-col sm:aspect-[4/3] sm:min-h-0 justify-between overflow-hidden rounded-sm border p-3 shadow-[0_6px_14px_-6px_rgba(0,0,0,0.55)]',
                     isSelectedByMe
                       ? 'border-card-foreground/50 bg-[hsl(41_45%_62%)]'
                       : 'border-card-foreground/25 bg-[hsl(41_30%_66%)]'
@@ -176,7 +176,7 @@ export function CategoriesStep({ gameState, me, handlers }: StepProps) {
                   <cat.icon className="h-5 w-5 opacity-70" aria-hidden="true" />
                   <div>
                     <h3 className="font-typewriter text-sm leading-tight">{cat.name}</h3>
-                    <p className="mt-1 hidden text-[11px] leading-snug text-card-foreground/70 sm:block">
+                    <p className="mt-1 line-clamp-3 text-[11px] leading-snug text-card-foreground/70">
                       {cat.description}
                     </p>
                   </div>

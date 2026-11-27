@@ -200,8 +200,12 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
         </div>
 
         <div className="text-center space-y-1">
-          <p className="text-sm text-muted-foreground">Room Code</p>
-          <p className="font-mono text-3xl font-bold tracking-wider text-primary">{roomCode}</p>
+          <p className="font-typewriter text-[11px] uppercase tracking-[0.2em] text-card-foreground/70">
+            Codename
+          </p>
+          <p className="break-words font-typewriter text-2xl tracking-wider text-primary">
+            {roomCode}
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -238,10 +242,12 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+            <span className="w-full border-t border-dashed border-card-foreground/40" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or share via</span>
+            <span className="bg-card px-2 font-typewriter tracking-widest text-card-foreground/70">
+              Or slip it to them via
+            </span>
           </div>
         </div>
 
@@ -249,7 +255,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full hover:bg-muted"
+            className="rounded-full hover:bg-black/10"
             onClick={() => handleSocialShare('whatsapp')}
             title="Share on WhatsApp"
             aria-label="Share on WhatsApp"
@@ -259,7 +265,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full hover:bg-muted"
+            className="rounded-full hover:bg-black/10"
             onClick={() => handleSocialShare('twitter')}
             title="Share on X (Twitter)"
             aria-label="Share on X (Twitter)"
@@ -269,7 +275,7 @@ export function QRCodeShare({ roomCode, gameUrl }: QRCodeShareProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-full hover:bg-muted"
+            className="rounded-full hover:bg-black/10"
             onClick={() => handleSocialShare('facebook')}
             title="Share on Facebook"
             aria-label="Share on Facebook"

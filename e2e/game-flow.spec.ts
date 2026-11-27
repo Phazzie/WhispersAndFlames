@@ -39,8 +39,8 @@ test.describe('Online game, two devices', () => {
 
     // Categories: pick one shared category plus one each that the other
     // didn't, confirm together. Only the shared one should survive.
-    await expectHeading(alice, 'Choose Your Categories');
-    await expectHeading(bob, 'Choose Your Categories');
+    await expectHeading(alice, 'Pull your files');
+    await expectHeading(bob, 'Pull your files');
     await alice.getByRole('button', { name: 'Hidden Attractions' }).click();
     await alice.getByRole('button', { name: 'Power Play' }).click();
     await bob.getByRole('button', { name: 'Hidden Attractions' }).click();
@@ -150,7 +150,7 @@ test.describe('Local game, one device', () => {
 
     // Categories
     await takeDevice('Dana');
-    await expectHeading(page, 'Choose Your Categories');
+    await expectHeading(page, 'Pull your files');
     await page.getByRole('button', { name: 'Future Dreams' }).click();
     await page.getByRole('button', { name: 'Confirm Selections' }).click();
     await takeDevice('Eli');

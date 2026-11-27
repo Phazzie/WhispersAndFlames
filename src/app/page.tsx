@@ -10,7 +10,7 @@ export default function Home() {
       <div className="w-full max-w-xl">
         {/* The folder tab sticking up from the file. */}
         <div className="ml-6 inline-block rounded-t-md bg-secondary px-5 pb-2 pt-2 font-typewriter text-[11px] uppercase tracking-[0.25em] text-secondary-foreground shadow-[0_-4px_10px_rgba(0,0,0,0.35)]">
-          File WF-0214 · Whispers and Flames
+          File WF-0214<span className="hidden sm:inline"> · Whispers and Flames</span>
         </div>
 
         <Sheet clip className="-mt-px" tilt={-0.6}>
@@ -28,24 +28,26 @@ export default function Home() {
             <Logo className="h-16 w-16 shrink-0 sm:h-20 sm:w-20" />
           </div>
 
-          <div className="relative my-7">
-            <Stamp className="absolute -right-2 -top-5 text-2xl sm:text-3xl" tilt={-12}>
-              Eyes only
-            </Stamp>
+          <div className="my-7">
+            <div className="-mt-2 mb-4 flex justify-end">
+              <Stamp className="text-2xl sm:text-3xl" tilt={-8}>
+                Eyes only
+              </Stamp>
+            </div>
             <dl className="space-y-3 font-sans text-[15px] leading-relaxed">
-              <div className="grid grid-cols-[7.5rem_1fr] gap-2">
+              <div className="grid gap-0.5 sm:grid-cols-[7.5rem_1fr] sm:gap-2">
                 <dt className="font-typewriter uppercase tracking-wider text-card-foreground/70">
                   Subject
                 </dt>
                 <dd>The two of you.</dd>
               </div>
-              <div className="grid grid-cols-[7.5rem_1fr] gap-2">
+              <div className="grid gap-0.5 sm:grid-cols-[7.5rem_1fr] sm:gap-2">
                 <dt className="font-typewriter uppercase tracking-wider text-card-foreground/70">
                   Objective
                 </dt>
                 <dd>Find out what you both actually want.</dd>
               </div>
-              <div className="grid grid-cols-[7.5rem_1fr] gap-2">
+              <div className="grid gap-0.5 sm:grid-cols-[7.5rem_1fr] sm:gap-2">
                 <dt className="font-typewriter uppercase tracking-wider text-card-foreground/70">
                   Method
                 </dt>
@@ -54,7 +56,7 @@ export default function Home() {
                   <em>both</em> of you talk.
                 </dd>
               </div>
-              <div className="grid grid-cols-[7.5rem_1fr] gap-2">
+              <div className="grid gap-0.5 sm:grid-cols-[7.5rem_1fr] sm:gap-2">
                 <dt className="font-typewriter uppercase tracking-wider text-card-foreground/70">
                   Handler
                 </dt>
